@@ -52,26 +52,17 @@ enum class AddressType : EnumType
  * The `Streaming` child object holds the streaming options.
  * It exists only for Mirrored and Unspecified Device types with at least one listed Streaming type.
  *
- * The transport the device is added over is one of the config's transport options. For a Device type with options, the
- * config's `TransportOption` property holds the id of the selected option, and its selection values are the ids of the
- * options. The `Port` property holds the port set, or -1 while none is set; a port set is used instead of the port of
- * whichever option is selected, even when it is the same, until setPort is called with -1.
+ * A Device type can list several transport options, each using another transport layer for the connection. The
+ * config selects one of them, and its port is the port of the selected option unless a port is set.
  *
- * When the device is added, it is connected at the first of these ports:
- * - the port set on the config, by setPort or by writing the `Port` property;
- * - the port named by the connection string the device is added with, even when that string is taken from a device info;
- * - the port of the selected option, as getAvailableTransportOptions lists it.
+ * The device is connected at the first of these ports:
+ * 1. the port set on the config;
+ * 2. the port named by the connection string the device is added with (e.g. "daq.nd://127.0.0.1:7420"), even when
+ *    that string is taken from a device info;
+ * 3. the port of the selected option.
  *
- * A Device type without options is added at the port set, else at the one the connection string names, else at the
- * module's own default; a module that does not use transport options gets the port in the connection string.
- *
- * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
- * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
- * and a connection string that names the same port.
- *
- * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection
- * string names another port, and when the prefix of the connection string belongs to another Device type. A `daq://`
- * connection string stands for the discovered server capability of the Device type, and names no port.
+ * A port set and another port named by the connection string contradict each other: adding the device fails with
+ * OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -137,7 +128,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @param id The id of one of the options of getAvailableTransportOptions.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id, as for a Device type without options.
      *
-     * A port set by setPort is kept and overrides the port of the newly selected option.
+     * The selection is the `TransportOption` property, whose selection values are the ids of the options. A port set
+     * by setPort is kept and overrides the port of the newly selected option.
      */
     virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
 
@@ -154,7 +146,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * it is the same; -1 to use the port of the selected option again.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
      *
-     * A Device type without options takes a port as well.
+     * The port set is the `Port` property, -1 while none is set. A Device type without options takes a port as well.
      */
     virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 

@@ -40,27 +40,19 @@ BEGIN_NAMESPACE_OPENDAQ
  * The Streaming type is fixed when the config is created.
  * The type's settings are the `TypeConfig` child object, created from the type's default config.
  *
- * The transport the streaming connects over is one of the config's transport options. For a Streaming type with
- * options, the config's `TransportOption` property holds the id of the selected option, and its selection values are
- * the ids of the options. The `Port` property holds the port set, or -1 while none is set; a port set is used instead
- * of the port of whichever option is selected, even when it is the same, until setPort is called with -1.
+ * A Streaming type can list several transport options, each using another transport layer for the connection. The
+ * config selects one of them, and its port is the port of the selected option unless a port is set.
  *
- * When the streaming is created, it connects at the first of these ports:
- * - the port set on the config, by setPort or by writing the `Port` property;
- * - the port named by the connection string the streaming is added with; a streaming that comes with the added device
- *   connects by the connection string of a server capability, whose port is not taken;
- * - the port the server of the added device announces for the selected option;
- * - the port of the selected option, as getAvailableTransportOptions lists it.
+ * The streaming connects at the first of these ports:
+ * 1. the port set on the config;
+ * 2. the port named by the connection string the streaming is added with (e.g. "daq.ns://127.0.0.1:7420");
+ * 3. for a streaming that comes with an added device, the port the server announces for the selected option in the
+ *    server capabilities of the connected device;
+ * 4. the port of the selected option.
  *
- * A Streaming type without options connects at the port set, else at the one the connection string names, else at the
- * module's own default; a module that does not use transport options gets the port in the connection string.
- *
- * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
- * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
- * and a connection string that names the same port.
- *
- * Creating the streaming fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection string it is
- * added with names another port.
+ * A streaming that comes with an added device connects by the connection string of a server capability, whose port is
+ * not taken. A port set and another port named by the connection string contradict each other: adding the streaming
+ * fails with OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -93,7 +85,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @param id The id of one of the options of getAvailableTransportOptions.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id, as for a Streaming type without options.
      *
-     * A port set by setPort is kept and overrides the port of the newly selected option.
+     * The selection is the `TransportOption` property, whose selection values are the ids of the options. A port set
+     * by setPort is kept and overrides the port of the newly selected option.
      */
     virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
 
@@ -110,7 +103,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * it is the same; -1 to use the port of the selected option again.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
      *
-     * A Streaming type without options takes a port as well.
+     * The port set is the `Port` property, -1 while none is set. A Streaming type without options takes a port as well.
      */
     virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 

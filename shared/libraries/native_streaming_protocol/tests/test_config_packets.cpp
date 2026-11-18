@@ -104,7 +104,7 @@ public:
         ClientAttributesBase::setUp();
 
         clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
+            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createCredentials());
 
         configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(
             [this](const PacketBuffer& packetBuffer)
@@ -214,7 +214,7 @@ TEST_P(ConfigPacketsTest, Reconnection)
 {
     startServer();
 
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     triggerConfigProtocolSetUp();
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
@@ -236,7 +236,7 @@ TEST_P(ConfigPacketsTest, ServerToClientPackets)
 {
     startServer();
 
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     triggerConfigProtocolSetUp();
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
@@ -264,7 +264,7 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
 {
     startServer();
 
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
     for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
     {
@@ -326,7 +326,7 @@ TEST_P(ConfigPacketsTest, ConfigClientConnectDisconnectCallbacks)
     );
     serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
 
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     triggerConfigProtocolSetUp();
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 

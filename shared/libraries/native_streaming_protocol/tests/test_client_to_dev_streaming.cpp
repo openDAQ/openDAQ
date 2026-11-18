@@ -16,7 +16,7 @@ public:
         ClientAttributesBase::setUp();
 
         clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
+            clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createCredentials());
 
         clientHandler->setConfigHandlers([](config_protocol::PacketBuffer&&) {},
                                          [](const EnumerationPtr&, const StringPtr&) {});
@@ -233,7 +233,7 @@ TEST_P(ClientToDeviceStreamingTest, SendPacketBasicC2DStreaming)
 
     startServer();
 
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     client.clientHandler->sendConfigRequest(config_protocol::PacketBuffer::createGetProtocolInfoRequest(0));
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
@@ -257,7 +257,7 @@ TEST_P(ClientToDeviceStreamingTest, GeneralizedC2DStreaming)
     startServer();
 
     // connect client to server
-    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
     // initiate streaming
     client.clientHandler->sendStreamingRequest();

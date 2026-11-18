@@ -967,7 +967,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point:
             // the connection string of a discovered device names the port of the server's default option, which may
             // belong to another option than the selected one.
-            AddTransportSelectionProperties(deviceTypeConfig, ComponentTypeTransportOptions(deviceType));
+            AddTransportSelectionProperties(deviceTypeConfig, deviceType.getAvailableTransportOptions());
             OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
 
             // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
@@ -1887,7 +1887,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         }
 
         // The module connects by the selection properties; a config without them gets the default option
-        if (const auto options = ComponentTypeTransportOptions(streamingType); options.getCount() > 0)
+        if (const auto options = streamingType.getAvailableTransportOptions(); options.getCount() > 0)
         {
             if (!streamingTypeConfig.assigned())
                 streamingTypeConfig = streamingType.createDefaultConfig();

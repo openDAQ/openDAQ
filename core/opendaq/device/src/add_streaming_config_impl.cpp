@@ -25,7 +25,7 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType,
                                                const DictPtr<IString, ITransportOption>& transportOptions)
     : AddStreamingConfigImpl(
-          streamingType, transportOptions.assigned() ? transportOptions : ComponentTypeTransportOptions(streamingType), Partial())
+          streamingType, transportOptions.assigned() ? transportOptions : streamingType.getAvailableTransportOptions(), Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
     if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
@@ -192,7 +192,7 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
                 serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
                     ? FrozenTransportOptions(
                           serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback))
-                    : ComponentTypeTransportOptions(streamingType);
+                    : streamingType.getAvailableTransportOptions();
 
             return createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType, options, Partial());
         };

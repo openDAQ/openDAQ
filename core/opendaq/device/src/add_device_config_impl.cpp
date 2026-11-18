@@ -62,7 +62,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                                          Bool scanOnAdd,
                                          const DictPtr<IString, ITransportOption>& transportOptions,
                                          const DictPtr<IString, IDict>& streamingTransportOptions)
-    : AddDeviceConfigImpl(deviceType, transportOptions.assigned() ? transportOptions : ComponentTypeTransportOptions(deviceType), Partial())
+    : AddDeviceConfigImpl(deviceType, transportOptions.assigned() ? transportOptions : deviceType.getAvailableTransportOptions(), Partial())
 {
     Super::addProperty(StringPropertyBuilder(add_device_config::DeviceType, deviceType.getId()).setReadOnly(true).build());
     Super::addProperty(ObjectProperty(add_device_config::TypeConfig, deviceType.createDefaultConfig()));
@@ -249,7 +249,7 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
                 serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
                     ? FrozenTransportOptions(
                           serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback))
-                    : ComponentTypeTransportOptions(deviceType);
+                    : deviceType.getAvailableTransportOptions();
 
             return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, options, Partial());
         };

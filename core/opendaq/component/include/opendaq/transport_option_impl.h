@@ -128,19 +128,6 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
 }
 
 /*!
- * @brief Gets the transport options of a device or streaming type.
- * @returns The options keyed by their ids, or an empty dictionary if the type lists none or does not implement them.
- */
-inline DictPtr<IString, ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
-{
-    DictPtr<IString, ITransportOption> options;
-    if (type == nullptr || OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
-        daqClearErrorInfo();
-
-    return options.assigned() ? options : Dict<IString, ITransportOption>();
-}
-
-/*!
  * @brief Gets the expression of the port of the selected transport option, for the default value of the port property of
  * an add-device or add-streaming config.
  * @param options The options keyed by their ids; none of the ids may contain a quote.

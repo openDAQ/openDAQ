@@ -423,7 +423,7 @@ TEST_F(OpenDaqFactoriesTest, FBTypeHasNoTransportOptions)
                  NotSupportedException);
 
     const FunctionBlockTypePtr fbType = FunctionBlockTypeBuilder().setId("Id").build();
-    ASSERT_THROW(fbType.getAvailableTransportOptions(), NotSupportedException);
+    ASSERT_EQ(fbType.getAvailableTransportOptions().getCount(), 0u);
 }
 
 // The module manager adds the selection properties right before a streaming is created, not to the default config

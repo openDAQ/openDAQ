@@ -437,6 +437,57 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
+// Temporary tests for the authenticated create path - `IAuthenticationConfig` is not yet part of `IAddDeviceConfig`,
+// so it's injected via `test_helpers::withAuthenticationConfig`. To be removed once `IAddDeviceConfig` is integrated
+// into the create path.
+
+TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousProhibited)
+{
+    auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(false, List<IUser>(User("jure", "jure123")))));
+
+    auto clientInstance = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(clientInstance);
+
+    // Anonymous - rejected by the server
+    {
+        auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+        authConfig.setAuthenticationMethod("Anonymous");
+        ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)));
+    }
+
+    // Username/password supplied via the authentication config - native configuration device
+    {
+        auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+        authConfig.setAuthenticationMethod("UserNamePassword");
+
+        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "wrongPass"}}));
+        ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)));
+
+        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "jure123"}}));
+        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig));
+        ASSERT_TRUE(device.assigned());
+        clientInstance.removeDevice(device);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousAllowed)
+{
+    auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(true, List<IUser>(User("jure", "jure123")))));
+
+    auto clientInstance = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(clientInstance);
+
+    // "Anonymous" is the default authentication method of the native device type
+    auto deviceDefault = clientInstance.addDevice("daq.nd://127.0.0.1");
+    ASSERT_TRUE(deviceDefault.assigned());
+    clientInstance.removeDevice(deviceDefault);
+
+    auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+    authConfig.setAuthenticationMethod("Anonymous");
+    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig));
+    ASSERT_TRUE(deviceAnonymous.assigned());
+}
+
 TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();

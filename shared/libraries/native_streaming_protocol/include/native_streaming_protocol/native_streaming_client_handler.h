@@ -49,6 +49,8 @@ public:
 
     ~NativeStreamingClientImpl();
 
+    /// blocks until connected or timed out; returns false on failure,
+    /// throws AuthenticationFailedException when the server rejects the credentials
     bool connect(std::string host,
                  std::string port,
                  std::string path = "/");
@@ -110,7 +112,8 @@ protected:
     {
         Connected = 0,
         ServerUnreachable,
-        ServerUnsupported
+        ServerUnsupported,
+        AuthenticationFailed
     };
 
     void onConnectionFailed(const std::string& errorMessage, const ConnectionResult result);

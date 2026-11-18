@@ -558,6 +558,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     }
 
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
+    // throws AuthenticationFailedException when the server rejects the credentials
     if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
         DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
 

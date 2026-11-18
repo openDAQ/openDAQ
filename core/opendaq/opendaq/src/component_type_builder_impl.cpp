@@ -3,6 +3,7 @@
 #include <coretypes/validation.h>
 #include <fmt/format.h>
 #include <opendaq/component_type_builder_impl.h>
+#include <opendaq/container_utils.h>
 #include <opendaq/device_type_impl.h>
 #include <opendaq/function_block_type_impl.h>
 #include <opendaq/server_type_impl.h>
@@ -253,7 +254,8 @@ ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IDict* transportO
                                            fmt::format(R"(Transport option "{}" is keyed by "{}")", option.getId(), id));
         }
 
-        this->transportOptions = transportOptions;
+        // A copy, so that the options checked here cannot change afterwards
+        this->transportOptions = FrozenClone(DictPtr<IString, ITransportOption>::Borrow(transportOptions));
         return OPENDAQ_SUCCESS;
     });
 }

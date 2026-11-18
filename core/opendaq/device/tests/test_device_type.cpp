@@ -73,6 +73,18 @@ TEST_F(DeviceTypeTest, TransportOptionsAreFrozenCopy)
     ASSERT_THROW(type.getAvailableTransportOptions().set("wss", TransportOption("wss", 7443)), FrozenException);
 }
 
+// The builder keeps a copy of the options it checked: the caller changing its dictionary before build changes nothing
+TEST_F(DeviceTypeTest, BuilderKeepsCopyOfTransportOptions)
+{
+    auto options = TransportOptionsById({TransportOption("plain", 7420)});
+    const auto builder = DeviceTypeBuilder().setId("id").setAvailableTransportOptions(options);
+
+    options.set("wrong", TransportOption("tls", 7421));
+
+    ASSERT_EQ(builder.getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
+    ASSERT_EQ(builder.build().getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
+}
+
 TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
 {
     const DeviceTypePtr type =

@@ -29,6 +29,7 @@
 #include <opendaq/authentication_config_ptr.h>
 #include <coretypes/serializer_ptr.h>
 #include <opendaq/transport_option_ptr.h>
+#include <opendaq/container_utils.h>
 #include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -86,9 +87,6 @@ protected:
     ModuleInfoPtr moduleInfo;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DictPtr<IString, ITransportOption> transportOptions;
-
-private:
-    static DictPtr<IString, ITransportOption> FrozenTransportOptionsCopy(const DictPtr<IString, ITransportOption>& transportOptions);
 };
 
 template <class Intf, class... Interfaces>
@@ -135,7 +133,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix("")
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(Dict<IString, IAuthenticationMethod>())
-    , transportOptions(FrozenTransportOptionsCopy(transportOptions))
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
@@ -155,34 +153,8 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix(prefix)
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
-    , transportOptions(FrozenTransportOptionsCopy(transportOptions))
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
-}
-
-template <class Intf, class... Interfaces>
-DictPtr<IString, ITransportOption> GenericComponentTypeImpl<Intf, Interfaces...>::FrozenTransportOptionsCopy(
-    const DictPtr<IString, ITransportOption>& transportOptions)
-{
-    auto copy = Dict<IString, ITransportOption>();
-    if (transportOptions.assigned())
-    {
-        IDict* items = transportOptions;
-        for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(items))
-        {
-            const auto id = key.asPtrOrNull<IString, StringPtr>();
-            const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!id.assigned() || !option.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
-
-            if (id != option.getId())
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getId(), id);
-
-            copy.set(id, option);
-        }
-    }
-
-    copy.freeze();
-    return copy;
 }
 
 template <class Intf, class... Interfaces>

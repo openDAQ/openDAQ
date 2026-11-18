@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
@@ -48,6 +49,11 @@ static PropertyObjectPtr createGeneral(const PropertyObjectPtr& source, Bool sca
     auto general = createLegacyGeneralConfig(scanOnAdd);
     copyValues(general, source);
     return general;
+}
+
+static PropertyObjectPtr generalOf(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    return createGeneral(sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
 }
 
 static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyObjectPtr& source, const PropertyObjectPtr& general)
@@ -136,8 +142,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const LoggerComponentPtr& loggerComponent)
 {
     const auto legacyConfig = input.assigned() ? input : PropertyObject();
-    const auto general =
-        detail::createGeneral(detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+    const auto general = detail::generalOf(legacyConfig, scanOnAdd);
     const auto streamingSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
     const auto loadedTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
 
@@ -197,6 +202,12 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     return config;
 }
 
+Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    const auto general = detail::generalOf(legacyConfig.assigned() ? legacyConfig : PropertyObject(), scanOnAdd);
+    return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
+}
+
 PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
 {
     if (!config.assigned() || !config.hasProperty(LegacyAddDeviceConfig::DeviceSection) ||
@@ -224,8 +235,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     auto streamingSection = PropertyObject();
     auto general = createLegacyGeneralConfig(config.getScanOnAdd());
 
-    const auto addressType =
-        (config.getPrimaryAddressType() == AddressType::IPv6) ? LegacyAddDeviceConfig::IPv6 : LegacyAddDeviceConfig::IPv4;
+    const auto addressType = getAddressTypeName(config.getPrimaryAddressType());
     general.setPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType, addressType);
 
     const auto options = config.getStreamingOptions();

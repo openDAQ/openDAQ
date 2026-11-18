@@ -868,8 +868,24 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
 
             discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
-            connectionStringPtr = resolveSmartConnectionString(
-                connectionStringPtr, discoveredDeviceInfo, deviceTypes, parent != nullptr, generalConfig, loggerComponent);
+            const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
+            if (capabilities.getCount() == 0)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                                           fmt::format(R"(Device with connection string "{}" has no available server capabilities)",
+                                                       connectionStringPtr));
+            }
+
+            const auto selectedCapability = SelectServerCapability(capabilities, deviceTypes, parent != nullptr);
+            if (!selectedCapability.assigned())
+            {
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_NOTFOUND,
+                    fmt::format(R"(Device with connection string "{}" has no server capability with a loaded device type)",
+                                connectionStringPtr));
+            }
+
+            connectionStringPtr = resolveSmartConnectionString(selectedCapability, generalConfig.getPropertyValue("PrimaryAddressType"));
         }
 
         for (const auto& library : libraries)
@@ -1453,22 +1469,28 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
         const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
-        const auto capabilities = infoPtr.getServerCapabilities();
-        const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
-        const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
-
-        auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
-
-        const auto options = addDeviceConfig.getStreamingOptions();
-        if (options.assigned())
-        {
-            const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
-            if (defaultType.assigned())
-                options.setStreamingType(defaultType.getId());
-        }
-
-        *config = addDeviceConfig.detach();
+        *config = createAddDeviceConfigForType(deviceType, infoPtr.getServerCapabilities(), streamingTypes).detach();
     });
+}
+
+AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceTypePtr& deviceType,
+                                                                   const ListPtr<IServerCapability>& capabilities,
+                                                                   const DictPtr<IString, IStreamingType>& streamingTypes) const
+{
+    const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
+    const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
+
+    auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
+
+    const auto options = addDeviceConfig.getStreamingOptions();
+    if (!options.assigned())
+        return addDeviceConfig;
+
+    const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
+    if (defaultType.assigned())
+        options.setStreamingType(defaultType.getId());
+
+    return addDeviceConfig;
 }
 
 DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
@@ -1630,27 +1652,9 @@ StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityP
     return {};
 }
 
-StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
-                                                          const DeviceInfoPtr& discoveredDeviceInfo,
-                                                          const DictPtr<IString, IDeviceType>& deviceTypes,
-                                                          bool asChild,
-                                                          const PropertyObjectPtr& generalConfig,
-                                                          const LoggerComponentPtr& loggerComponent) const
+StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability,
+                                                          const StringPtr& primaryAddressType) const
 {
-    const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
-    if (capabilities.getCount() == 0)
-        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
-
-    const auto selectedCapability = SelectServerCapability(capabilities, deviceTypes, asChild);
-    if (!selectedCapability.assigned())
-    {
-        DAQ_THROW_EXCEPTION(NotFoundException,
-                            "Device with connection string \"{}\" has no server capability with a loaded device type",
-                            inputConnectionString);
-    }
-
-    const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
     if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
         auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);

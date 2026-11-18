@@ -115,6 +115,17 @@ PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectP
                                                            const LoggerComponentPtr& loggerComponent);
 
 /*!
+ * @brief Gets the `ScanOnAdd` value of a legacy config.
+ * @param legacyConfig The legacy config
+ * @param scanOnAdd The scan on add setting used when `General` has none
+ * @returns The `ScanOnAdd` value
+ * @throws ConversionFailedException when `ScanOnAdd` can't be converted to a Bool.
+ *
+ * The value is read as `fromLegacyAddDeviceConfig` reads it, without a Device type.
+ */
+PUBLIC_EXPORT Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd);
+
+/*!
  * @brief Translates a legacy config into the type config of a Streaming type.
  * @param config The config
  * @param streamingType The Streaming type the config is created for

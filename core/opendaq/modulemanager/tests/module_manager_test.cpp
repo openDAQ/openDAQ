@@ -933,6 +933,7 @@ TEST_F(ModuleManagerAddConfigTest, DiscoveredDeviceType)
 
     AddDeviceConfigPtr config;
     ASSERT_EQ(create(deviceInfo("daq://x", {{"unloaded", both}}), nullptr, config), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(create(deviceInfo("daq://x", Caps{}), nullptr, config), OPENDAQ_ERR_NOTFOUND);
 }
 
 TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)

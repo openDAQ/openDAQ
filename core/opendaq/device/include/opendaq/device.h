@@ -439,7 +439,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 
@@ -451,7 +451,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add streamings.
      *
      * With a connection string, the Streaming type is the loaded type with its prefix.
-     * Without one, it is the available streaming type linked to the device's mirrored device type, else the first available one.
+     * Without one, it is chosen from the available streaming types by `selectStreamingType`.
      * A device without available streaming types gets the loaded type linked to its mirrored device type.
      */
     virtual ErrCode INTERFACE_FUNC createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString = nullptr) = 0;

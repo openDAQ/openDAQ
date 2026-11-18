@@ -2353,7 +2353,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (savedConfig.assigned())
         {
             const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-            deviceConfig = BoundAddDeviceConfig(savedConfig, onGetAvailableDeviceTypes(), managerUtils.getAvailableStreamingTypes());
+            deviceConfig = BoundAddDeviceConfig(savedConfig,
+                                                onGetAvailableDeviceTypes(),
+                                                managerUtils.getAvailableStreamingTypes(),
+                                                managerUtils.getScanOnAdd());
         }
 
         if (!deviceConfig.assigned())

@@ -96,3 +96,8 @@ daqErrCode daqModuleManagerUtils_createAddDeviceConfig(daqModuleManagerUtils* se
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config), reinterpret_cast<daq::IDeviceInfo*>(info), reinterpret_cast<daq::IString*>(prefix));
 }
+
+daqErrCode daqModuleManagerUtils_getScanOnAdd(daqModuleManagerUtils* self, daqBool* scanOnAdd)
+{
+    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getScanOnAdd(scanOnAdd);
+}

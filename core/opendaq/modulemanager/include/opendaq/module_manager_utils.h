@@ -227,9 +227,17 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
+
+    /*!
+     * @brief Gets whether adding a device scans for devices when its config doesn't set `ScanOnAdd`.
+     * @param[out] scanOnAdd True when adding a device scans
+     *
+     * It is the `ModuleManager.ScanOnAdd` context option, or true when the option is not set.
+     */
+    virtual ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) = 0;
 };
 /*!@}*/
 

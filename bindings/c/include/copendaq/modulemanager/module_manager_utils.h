@@ -65,6 +65,7 @@ extern "C"
     daqErrCode EXPORTED daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos);
     daqErrCode EXPORTED daqModuleManagerUtils_getDiscoveryInfo(daqModuleManagerUtils* self, daqDeviceInfo** deviceInfo, daqString* manufacturer, daqString* serialNumber);
     daqErrCode EXPORTED daqModuleManagerUtils_createAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqDeviceInfo* info, daqString* prefix);
+    daqErrCode EXPORTED daqModuleManagerUtils_getScanOnAdd(daqModuleManagerUtils* self, daqBool* scanOnAdd);
 
 #ifdef __cplusplus
 }

@@ -432,9 +432,9 @@ AddStreamingConfigPtr MirroredDeviceBase<Interfaces...>::onCreateAddStreamingCon
         return AddStreamingConfig(streamingType);
     }
 
-    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType, true);
+    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType);
     if (!streamingType.assigned())
-        streamingType = selectStreamingType(loadedTypes, mirroredDeviceType, false);
+        streamingType = findLinkedStreamingType(loadedTypes, mirroredDeviceType);
     if (!streamingType.assigned())
     {
         DAQ_THROW_EXCEPTION(NotFoundException, "The device has no available or linked streaming type");

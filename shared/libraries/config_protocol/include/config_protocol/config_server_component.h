@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/device_ptr.h>
+#include <opendaq/server_ptr.h>
 #include <coreobjects/property_object_protected.h>
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/update_parameters_factory.h>
@@ -385,8 +386,10 @@ inline BaseObjectPtr ConfigServerComponent::getAvailableFunctionBlockTypes(const
         fbTypes = device.getAvailableFunctionBlockTypes();
     else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
         fbTypes = fb.getAvailableFunctionBlockTypes();
+    else if (const auto server = component.asPtrOrNull<IServer>(true); server.assigned())
+        fbTypes = server.getAvailableFunctionBlockTypes();
     else
-        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device, function block or server");
 
     return fbTypes;
 }
@@ -407,8 +410,10 @@ inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& c
         fbNested = device.addFunctionBlock(fbTypeId, config);
     else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
         fbNested = fb.addFunctionBlock(fbTypeId, config);
+    else if (const auto server = component.asPtrOrNull<IServer>(true); server.assigned())
+        fbNested = server.addFunctionBlock(fbTypeId, config);
     else
-        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device, function block or server");
 
     return ComponentHolder(fbNested);
 }
@@ -447,8 +452,14 @@ inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext
         checkFb(fbs);
         fb.removeFunctionBlock(fbs[0]);
     }
+    else if (const auto server = component.asPtrOrNull<IServer>(true); server.assigned())
+    {
+        fbs = server.getFunctionBlocks(search::LocalId(localId));
+        checkFb(fbs);
+        server.removeFunctionBlock(fbs[0]);
+    }
     else
-        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device, function block or server");
 
     return nullptr;
 }

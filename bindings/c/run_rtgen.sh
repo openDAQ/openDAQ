@@ -233,10 +233,7 @@ run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager mo
 run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_utils module_manager_utils
 
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq boost_dll boost_dll #includes
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq format format #C++
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_header icmp_header #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_ping icmp_ping #C++
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq ipv4_header ipv4_header #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_check_dependencies module_check_dependencies #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_exports module_exports #utility macro
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_library module_library #C++
@@ -248,6 +245,7 @@ run_rtgen copendaq/opendaq opendaq/opendaq opendaq config_provider config_provid
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq errors errors #contains error codes
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance instance
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance_builder instance_builder
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq module_authenticator module_authenticator
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq_init opendaq_init #functions should be added manually
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq version version #functions should be added manually
 
@@ -368,6 +366,8 @@ run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_input_port_confi
 
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component sync_component
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component_private sync_component_private
+run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_interface sync_interface
+run_rtgen copendaq/synchronization opendaq/synchronization opendaq synchronization synchronization
 
 run_rtgen copendaq/utility opendaq/utility opendaq device_update_options device_update_options
 

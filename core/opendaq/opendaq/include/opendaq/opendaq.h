@@ -27,6 +27,7 @@
 
 #include <opendaq/module_authenticator_ptr.h>
 #include <opendaq/module_authenticator_impl.h>
+#include <opendaq/module_authenticator_factory.h>
 
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/module_ptr.h>
@@ -96,6 +97,7 @@
 
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
 
 #include <opendaq/log_file_info_ptr.h>
 #include <opendaq/log_file_info_builder_ptr.h>

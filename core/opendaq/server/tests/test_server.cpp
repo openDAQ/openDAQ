@@ -9,6 +9,8 @@
 #include <opendaq/module_manager_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/function_block_impl.h>
+#include <opendaq/function_block_type_factory.h>
 
 using ServerTest = testing::Test;
 
@@ -98,6 +100,149 @@ TEST_F(ServerTest, BeginUpdateEndUpdate)
 
     ASSERT_EQ(srv.getPropertyValue("SrvProp"), "s");
     ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}
+
+class TypedServer final : public daq::Server
+{
+public:
+    explicit TypedServer(const daq::ServerTypePtr& type)
+        : daq::Server(type, nullptr, nullptr, daq::NullContext())
+    {
+    }
+};
+
+class NestingFb final : public daq::FunctionBlock
+{
+public:
+    NestingFb(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::FunctionBlock(daq::FunctionBlockType("fb", "fb", ""), ctx, parent, localId)
+    {
+    }
+
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
+    {
+        return daq::Dict<daq::IString, daq::IFunctionBlockType>({{"fb", daq::FunctionBlockType("fb", "fb", "")}});
+    }
+
+    daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& /*typeId*/, const daq::PropertyObjectPtr& /*config*/) override
+    {
+        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, NestingFb>(this->context, this->functionBlocks, "nested");
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+};
+
+class FbServer final : public daq::Server
+{
+public:
+    FbServer()
+        : daq::Server("FbServer", nullptr, nullptr, daq::NullContext())
+    {
+    }
+
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
+    {
+        return daq::Dict<daq::IString, daq::IFunctionBlockType>({{"fb", daq::FunctionBlockType("fb", "fb", "")}});
+    }
+
+    daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& /*typeId*/, const daq::PropertyObjectPtr& /*config*/) override
+    {
+        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, NestingFb>(this->context, this->functionBlocks, "fb");
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+};
+
+TEST_F(ServerTest, ServerTypeFromId)
+{
+    auto server = daq::createWithImplementation<daq::IServer, TestServer>("TestServerId");
+
+    const auto type = server.getServerType();
+    ASSERT_EQ(type.getId(), "TestServerId");
+    ASSERT_EQ(type.getServerKind(), daq::ServerKind::Unspecified);
+}
+
+TEST_F(ServerTest, ServerTypeFromType)
+{
+    const auto type = daq::ServerTypeBuilder().setId("TypedServer").setServerKind(daq::ServerKind::Mirror).build().asPtr<daq::IServerType>();
+    auto server = daq::createWithImplementation<daq::IServer, TypedServer>(type);
+
+    ASSERT_EQ(server.getId(), "TypedServer");
+    ASSERT_EQ(server.getLocalId(), "TypedServer");
+    ASSERT_EQ(server.getServerType(), type);
+}
+
+TEST_F(ServerTest, SerializeAndDeserializeServerKind)
+{
+    const auto type = daq::ServerTypeBuilder().setId("TypedServer").setServerKind(daq::ServerKind::Streaming).build().asPtr<daq::IServerType>();
+    const auto srv = daq::createWithImplementation<daq::IServer, TypedServer>(type);
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    srv.serialize(serializer);
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "TypedServer");
+    const daq::ServerPtr newSrv = daq::JsonDeserializer().deserialize(serializer.getOutput(), deserializeContext, nullptr);
+
+    ASSERT_EQ(newSrv.getServerType().getId(), "TypedServer");
+    ASSERT_EQ(newSrv.getServerType().getServerKind(), daq::ServerKind::Streaming);
+}
+
+TEST_F(ServerTest, DeserializeWithoutComponentType)
+{
+    const auto type = daq::ServerTypeBuilder().setId("TypedServer").setServerKind(daq::ServerKind::Streaming).build().asPtr<daq::IServerType>();
+    const auto srv = daq::createWithImplementation<daq::IServer, TypedServer>(type);
+
+    const auto serializer = daq::JsonSerializer();
+    srv.serialize(serializer);
+    std::string json = serializer.getOutput();
+    const auto keyPos = json.find("\"componentType\"");
+    ASSERT_NE(keyPos, std::string::npos);
+    json.replace(keyPos, std::string("\"componentType\"").size(), "\"unknownKey\"");
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "TypedServer");
+    const daq::ServerPtr newSrv = daq::JsonDeserializer().deserialize(json, deserializeContext, nullptr);
+    ASSERT_EQ(newSrv.getServerType().getId(), "TypedServer");
+    ASSERT_EQ(newSrv.getServerType().getServerKind(), daq::ServerKind::Unspecified);
+}
+
+TEST_F(ServerTest, NoFunctionBlocksByDefault)
+{
+    auto server = daq::createWithImplementation<daq::IServer, TestServer>("TestServerId");
+
+    ASSERT_EQ(server.getAvailableFunctionBlockTypes().getCount(), 0u);
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 0u);
+    ASSERT_THROW(server.addFunctionBlock("fb"), daq::NotSupportedException);
+}
+
+TEST_F(ServerTest, AddAndRemoveFunctionBlocks)
+{
+    auto server = daq::createWithImplementation<daq::IServer, FbServer>();
+    ASSERT_TRUE(server.getAvailableFunctionBlockTypes().hasKey("fb"));
+
+    const auto fb = server.addFunctionBlock("fb");
+    ASSERT_EQ(fb.getParent(), server.getItem("FB"));
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(server.getFunctionBlocks()[0], fb);
+
+    const auto nested = fb.addFunctionBlock("fb");
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(server.getFunctionBlocks(daq::search::Recursive(daq::search::Any())).getCount(), 2u);
+
+    server.removeFunctionBlock(fb);
+    ASSERT_TRUE(fb.isRemoved());
+    ASSERT_TRUE(nested.isRemoved());
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(ServerTest, RemovingServerRemovesFunctionBlocks)
+{
+    auto server = daq::createWithImplementation<daq::IServer, FbServer>();
+    const auto fb = server.addFunctionBlock("fb");
+
+    server.remove();
+
+    ASSERT_TRUE(fb.isRemoved());
+    ASSERT_THROW(server.getFunctionBlocks(), daq::ComponentRemovedException);
 }
 
 class RecordingDiscoveryServer final : public daq::ImplementationOf<daq::IDiscoveryServer>

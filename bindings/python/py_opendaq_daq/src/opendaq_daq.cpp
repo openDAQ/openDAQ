@@ -5,6 +5,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_packet_buffer.h"
 #include "py_core_types/py_event_queue.h"
+#include <coretypes/ctutils.h>
 
 
 PYBIND11_MODULE(opendaq, m)
@@ -13,6 +14,7 @@ PYBIND11_MODULE(opendaq, m)
 
     opendaq_daq_module = m;
     python_class_fraction = py::module_::import("fractions").attr("Fraction");
+    pyFinalization().registerAtExit();
 
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
@@ -25,15 +27,7 @@ PYBIND11_MODULE(opendaq, m)
             if (!errorInfoList.assigned())
                 return std::string();
 
-            std::ostringstream oss;
-            for (const auto& errorInfo : errorInfoList)
-            {
-                daq::StringPtr message;
-                errorInfo->getFormattedMessage(&message);
-                if (message.assigned())
-                    oss << message << "\n";
-            }
-            return oss.str();
+            return daq::formatErrorInfoList(errorInfoList) + "\n";
         }
     );
 

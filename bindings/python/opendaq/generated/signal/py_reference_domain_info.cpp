@@ -38,10 +38,6 @@ PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainIn
         .value("Tai", daq::TimeProtocol::Tai)
         .value("Gps", daq::TimeProtocol::Gps)
         .value("Utc", daq::TimeProtocol::Utc);
-    py::enum_<daq::UsesOffset>(m, "UsesOffset")
-        .value("Unknown", daq::UsesOffset::Unknown)
-        .value("True", daq::UsesOffset::True)
-        .value("False", daq::UsesOffset::False);
 
     return wrapInterface<daq::IReferenceDomainInfo, daq::IBaseObject>(m, "IReferenceDomainInfo");
 }
@@ -77,12 +73,13 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
             return objectPtr.getReferenceTimeProtocol();
         },
         "Gets the value that indicates the Reference Time Source.");
-    cls.def_property_readonly("uses_offset",
+    cls.def_property_readonly("reference_domain_ids",
         [](daq::IReferenceDomainInfo *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
-            return objectPtr.getUsesOffset();
+            return objectPtr.getReferenceDomainIds().detach();
         },
-        "Gets the value that indicates if offset is used.");
+        py::return_value_policy::take_ownership,
+        "Gets the list of Reference Domain IDs.");
 }

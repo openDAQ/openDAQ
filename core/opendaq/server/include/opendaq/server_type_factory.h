@@ -36,7 +36,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param description A short description of the server type.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the server has its own configuration object.
+ *
+ * @deprecated The created type has no server kind. Use ServerTypeBuilder and set the kind with setServerKind.
  */
+[[deprecated("Use ServerTypeBuilder and set the server kind with setServerKind.")]]
 inline ServerTypePtr ServerType(const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
@@ -52,9 +55,9 @@ inline ServerTypePtr ServerType(const StringPtr& id,
 inline StructTypePtr ServerTypeStructType()
 {
     return StructType("ServerType",
-                      List<IString>("Id", "Name", "Description"),
-                      List<IString>("", "", ""),
-                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+                      List<IString>("Id", "Name", "Description", "ServerKind"),
+                      List<IBaseObject>("", "", "", static_cast<Int>(ServerKind::Unspecified)),
+                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctInt)));
 }
 
 /*!@}*/

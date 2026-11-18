@@ -19,6 +19,7 @@
 #include <opendaq/component_impl.h>
 #include <opendaq/component_status_container_private_ptr.h>
 #include <config_protocol/config_protocol_deserialize_context.h>
+#include <opendaq/component_holder_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -62,11 +63,17 @@ protected:
     // so that its siblings and the rest of this component still update.
     void remoteUpdateChild(const ComponentPtr& child, const SerializedObjectPtr& serialized);
 
+    // Nested function block add and remove shared by remote devices, function blocks and servers; templates so plain components never instantiate them.
+    template <class T = Impl>
+    FunctionBlockPtr addFunctionBlockRemote(const StringPtr& typeId, const PropertyObjectPtr& config, uint16_t minServerVersion);
+    template <class T = Impl>
+    void removeFunctionBlockRemote(const FunctionBlockPtr& functionBlock, uint16_t minServerVersion);
+
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
     void tagsChanged(const CoreEventArgsPtr& args);
-    void statusChanged(const CoreEventArgsPtr& args);
+    void statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args);
 };
 
 template <class Impl>
@@ -228,7 +235,7 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
             tagsChanged(args);
             break;
         case CoreEventId::StatusChanged:
-            statusChanged(args);
+            statusChanged(sender, args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -280,6 +287,39 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
 }
 
 template <class Impl>
+template <class T>
+FunctionBlockPtr ConfigClientComponentBaseImpl<Impl>::addFunctionBlockRemote(const StringPtr& typeId,
+                                                                             const PropertyObjectPtr& config,
+                                                                             uint16_t minServerVersion)
+{
+    const ComponentHolderPtr fbHolder = this->clientComm->addFunctionBlock(this->remoteGlobalId, typeId, config, this->functionBlocks, minServerVersion);
+
+    FunctionBlockPtr fb = fbHolder.getComponent();
+    if (!this->functionBlocks.hasItem(fb.getLocalId()))
+    {
+        this->clientComm->connectDomainSignals(fb);
+        this->addNestedFunctionBlock(fb);
+        this->clientComm->connectInputPorts(fb);
+        return fb;
+    }
+
+    return this->functionBlocks.getItem(fb.getLocalId());
+}
+
+template <class Impl>
+template <class T>
+void ConfigClientComponentBaseImpl<Impl>::removeFunctionBlockRemote(const FunctionBlockPtr& functionBlock, uint16_t minServerVersion)
+{
+    if (!functionBlock.assigned())
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId(), minServerVersion);
+
+    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
+        this->removeNestedFunctionBlock(functionBlock);
+}
+
+template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::remoteUpdateChild(const ComponentPtr& child, const SerializedObjectPtr& serialized)
 {
     const ErrCode errCode = child.template asPtr<IConfigClientObject>()->remoteUpdate(serialized);
@@ -298,32 +338,37 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 {
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
-    bool oldActive = this->active;
-    if (serialized.hasKey("active"))
-        this->localActive = serialized.readBool("active");
-    else
-        this->localActive = true;
-
-    this->active = this->parentActive && this->localActive;
-    if (oldActive != this->active)
+    bool activeChanged;
     {
-        this->notifyActiveChanged(true);
+        auto lock = this->getRecursiveConfigLock2();
+
+        const bool oldActive = this->active;
+        if (serialized.hasKey("active"))
+            this->localActive = serialized.readBool("active");
+        else
+            this->localActive = true;
+
+        this->active = this->parentActive && this->localActive;
+        activeChanged = oldActive != this->active;
+
+        if (serialized.hasKey("visible"))
+            this->visible = serialized.readBool("visible");
+        else
+            this->visible = true;
+
+        if (serialized.hasKey("description"))
+            this->description = serialized.readString("description");
+        else
+            this->description = "";
+
+        if (serialized.hasKey("name"))
+            this->name = serialized.readString("name");
+        else
+            this->name = "";
     }
 
-    if (serialized.hasKey("visible"))
-        this->visible = serialized.readBool("visible");
-    else
-        this->visible = true;
-
-    if (serialized.hasKey("description"))
-        this->description = serialized.readString("description");
-    else
-        this->description = "";
-
-    if (serialized.hasKey("name"))
-       this->name = serialized.readString("name");
-    else
-       this->name = "";
+    if (activeChanged)
+        this->notifyActiveChanged(true);
 
     if (serialized.hasKey("statuses"))
     {
@@ -419,12 +464,31 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
 }
 
 template <class Impl>
-void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
+void ConfigClientComponentBaseImpl<Impl>::statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args)
 {
+    const DictPtr<IString, IBaseObject> params = args.getParameters();
+
+    // The status belongs to a nested property object, such as an ISyncInterface, so the event goes to that object
+    if (const StringPtr path = params.getOrDefault("Path"); path.assigned() && path.getLength() != 0)
+    {
+        // The object can be missing on the client, for example after it was removed on the server
+        BaseObjectPtr obj;
+        if (const ErrCode errCode = this->getPropertyValue(path, &obj); OPENDAQ_FAILED(errCode))
+        {
+            daqClearErrorInfo();
+            const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+            LOG_D("Status change for \"{}\" ignored, the client has no such object", path);
+            return;
+        }
+
+        if (const auto configObj = obj.asPtrOrNull<IConfigClientObject>(); configObj.assigned())
+            configObj->handleRemoteCoreEvent(sender, args);
+        return;
+    }
+
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
 
-    const DictPtr<IString, IBaseObject> params = args.getParameters();
     StringPtr msg = params.getOrDefault("Message", "");
 
     for (const auto& [key, value] : params)

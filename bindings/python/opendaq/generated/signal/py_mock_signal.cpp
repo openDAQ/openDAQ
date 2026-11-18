@@ -228,12 +228,12 @@ std::string MockSignal::makeEpoch(const std::chrono::system_clock::time_point& t
 
 END_NAMESPACE_OPENDAQ
 
-py::class_<daq::MockSignal> declareMockSignal(py::module_ m)
+PyDaqClass<daq::MockSignal> declareMockSignal(py::module_ m)
 {
-    return py::class_<daq::MockSignal>(m, "MockSignal");
+    return wrapDaqClass<daq::MockSignal>(m, "MockSignal");
 }
 
-void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls)
+void defineMockSignal(pybind11::module_ m, PyDaqClass<daq::MockSignal> cls)
 {
     cls.doc() = "A mock signal that can be used for testing purposes.";
 

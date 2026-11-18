@@ -21,6 +21,32 @@ extern "C"
 {
 #endif
 
+    typedef enum daqSyncMode
+    {
+        daqSyncModeOff = 0,
+        daqSyncModeInput,
+        daqSyncModeOutput,
+        daqSyncModeAuto
+    } daqSyncMode;
+
+    typedef enum daqSyncSourceStatus
+    {
+        daqSyncSourceStatusOff = 0,
+        daqSyncSourceStatusListening,
+        daqSyncSourceStatusCalibrating,
+        daqSyncSourceStatusSynced,
+        daqSyncSourceStatusError,
+        daqSyncSourceStatusUnknown
+    } daqSyncSourceStatus;
+
+    typedef enum daqSyncRoleStatus
+    {
+        daqSyncRoleStatusOff = 0,
+        daqSyncRoleStatusInput,
+        daqSyncRoleStatusOutput,
+        daqSyncRoleStatusUnknown
+    } daqSyncRoleStatus;
+
 #ifdef __cplusplus
 }
 #endif

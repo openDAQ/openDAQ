@@ -148,6 +148,7 @@ extern "C"
 #include <copendaq/opendaq/errors.h>
 #include <copendaq/opendaq/instance_builder.h>
 #include <copendaq/opendaq/instance.h>
+#include <copendaq/opendaq/module_authenticator.h>
 
 #include <copendaq/reader/block_reader_builder.h>
 #include <copendaq/reader/block_reader_status.h>
@@ -210,8 +211,11 @@ extern "C"
 #include <copendaq/streaming/streaming.h>
 #include <copendaq/streaming/subscription_event_args.h>
 
+#include <copendaq/synchronization/common.h>
 #include <copendaq/synchronization/sync_component_private.h>
 #include <copendaq/synchronization/sync_component.h>
+#include <copendaq/synchronization/sync_interface.h>
+#include <copendaq/synchronization/synchronization.h>
 
 #ifdef __cplusplus
 }

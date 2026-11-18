@@ -56,6 +56,7 @@ extern "C"
     daqErrCode EXPORTED daqContext_getOptions(daqContext* self, daqDict** options);
     daqErrCode EXPORTED daqContext_getModuleOptions(daqContext* self, daqString* moduleId, daqDict** options);
     daqErrCode EXPORTED daqContext_getDiscoveryServers(daqContext* self, daqDict** servers);
+    daqErrCode EXPORTED daqContext_getRootDevice(daqContext* self, daqBaseObject** device);
     daqErrCode EXPORTED daqContext_createContext(daqContext** obj, daqScheduler* Scheduler, daqLogger* Logger, daqTypeManager* typeManager, daqModuleManager* moduleManager, daqAuthenticationProvider* authenticationProvider, daqDict* options, daqDict* discoveryServers);
 
 #ifdef __cplusplus

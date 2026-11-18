@@ -183,13 +183,31 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
-#ifdef NDEBUG
-    std::string expected = "multipleErrorInfoTest failed twice";
-#else
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
-    expected += " - Caused by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
-#endif
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
+}
+
+TEST_F(ErrorInfoTest, PassedOnErrorKeepsTheMessageFirst)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    const Int rootLine = __LINE__ - 1;
+    errCode = DAQ_EXTEND_ERROR_INFO(errCode);
+
+    ASSERT_EQ(getErrorInfoMessage(errCode, true), "Root cause" + getErrorPostfix(rootLine));
+}
+
+TEST_F(ErrorInfoTest, ErrorGuardListsNewestErrorFirst)
+{
+    auto obj = CreateTestObject();
+    const auto errorGuard = DAQ_ERROR_GUARD();
+    obj->argumentNotNullTest(nullptr);
+    obj->multipleErrorInfoTest();
+
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
+    expected += "Parameter obj must not be null";
+    ASSERT_THROW_MSG(checkErrorGuard(errorGuard), GeneralErrorException, expected);
 }
 
 TEST_F(ErrorInfoTest, ArgumentNotNull)
@@ -210,6 +228,148 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 
     std::string expected = "Test failed" + getErrorPostfix(68);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
+}
+
+TEST_F(ErrorInfoTest, MessageWithBraces)
+{
+    const std::string bracedMessage = R"(Invalid value {"a": 1} and {})";
+    ASSERT_THROW_MSG(checkErrorInfo(DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, bracedMessage)), GeneralErrorException, bracedMessage);
+    ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, bracedMessage), GeneralErrorException, bracedMessage);
+    ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, "Value {} is invalid", 5), GeneralErrorException, "Value 5 is invalid");
+}
+
+TEST_F(ErrorInfoTest, FormattedMessageLongerThan1KiBIsKeptWhole)
+{
+    std::string longText;
+    for (int i = 0; longText.size() < 5000; ++i)
+        longText += "Traceback line " + std::to_string(i) + "\n";
+
+    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Callback failed: %s (%d)", longText.c_str(), 42);
+
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    ASSERT_TRUE(errorInfo.assigned());
+
+    StringPtr message;
+    errorInfo->getMessage(&message);
+    ASSERT_EQ(message.toStdString(), "Callback failed: " + longText + " (42)");
+    daqClearErrorInfo();
+}
+
+TEST_F(ErrorInfoTest, FormattedMessageAroundTheStackBufferSizeIsKeptWhole)
+{
+    // 1023 characters fit the 1024-byte stack buffer with the terminator; 1024 and 1025 take the heap path
+    for (const size_t length : {1022u, 1023u, 1024u, 1025u})
+    {
+        const std::string text(length - 1, 'x');
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "%s!", text.c_str());
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        ASSERT_TRUE(errorInfo.assigned());
+
+        StringPtr message;
+        errorInfo->getMessage(&message);
+        ASSERT_EQ(message.toStdString(), text + "!") << "length " << length;
+        daqClearErrorInfo();
+    }
+}
+
+TEST_F(ErrorInfoTest, MalformedFormatStringDoesNotAbort)
+{
+    // The resulting text is platform-specific (MSVC keeps the unformatted string), so only the leading text is checked
+    const std::pair<std::string, std::string> cases[] = {
+        {"Bad conversion %y for %d", "Bad conversion "},
+        {"Lone percent %d at the end %", "Lone percent "},
+    };
+
+    for (const auto& [format, prefix] : cases)
+    {
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, format, 42);
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        ASSERT_TRUE(errorInfo.assigned()) << format;
+
+        StringPtr message;
+        errorInfo->getMessage(&message);
+        ASSERT_TRUE(message.assigned()) << format;
+        ASSERT_EQ(message.toStdString().substr(0, prefix.size()), prefix) << format;
+        daqClearErrorInfo();
+    }
+}
+
+TEST_F(ErrorInfoTest, LongChainKeepsNewestAndRootCause)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    for (int i = 1; i <= 500; ++i)
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Context " + std::to_string(i));
+
+    std::string chainMessage;
+    try
+    {
+        checkErrorInfo(errCode);
+    }
+    catch (const GeneralErrorException& e)
+    {
+        chainMessage = e.what();
+    }
+
+    ASSERT_LT(chainMessage.size(), 4200u);
+    ASSERT_EQ(chainMessage.rfind("Context 500", 0), 0u);
+    ASSERT_NE(chainMessage.find("\n - ...\n - Caused by: Context "), std::string::npos);
+    ASSERT_NE(chainMessage.find(" - Caused by: Root cause"), std::string::npos);
+}
+
+// Each level adds context, throws the chain and catches it as the root entry of its caller's chain, as an interface boundary does
+static ErrCode nestedFailure(int depth)
+{
+    if (depth == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+
+    return daqTry([depth] { checkErrorInfo(DAQ_EXTEND_ERROR_INFO(nestedFailure(depth - 1), "Context " + std::to_string(depth))); });
+}
+
+TEST_F(ErrorInfoTest, NestedChainsKeepOneMarker)
+{
+    const std::string message = getErrorInfoMessage(nestedFailure(300), true);
+    ASSERT_LT(message.size(), 4200u);
+    ASSERT_EQ(message.rfind("Context 300", 0), 0u);
+    ASSERT_NE(message.find("\n - ..."), std::string::npos);
+    ASSERT_EQ(message.find("\n - ...\n - ..."), std::string::npos) << message;
+    ASSERT_NE(message.find("Root cause"), std::string::npos) << message;
+}
+
+TEST_F(ErrorInfoTest, LongNewestLineIsCutBetweenCharacters)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    for (int i = 1; i <= 100; ++i)
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Context " + std::to_string(i));
+
+    // Two-byte characters after one ASCII byte, so a cut at the 1 KiB mark falls inside a character
+    std::string longLine = "x";
+    for (int i = 0; i < 3000; ++i)
+        longLine += "\xC3\xA9";
+    errCode = DAQ_EXTEND_ERROR_INFO(errCode, longLine);
+
+    const std::string message = getErrorInfoMessage(errCode, true);
+    ASSERT_LT(message.size(), 4200u);
+    const size_t marker = message.find("\n - ...");
+    ASSERT_LE(marker, 1024u);
+    ASSERT_EQ(marker % 2, 1u);
+    ASSERT_NE(message.find("Root cause"), std::string::npos);
+}
+
+TEST_F(ErrorInfoTest, ErrorGuardMessageIsTheChainOnly)
+{
+    const auto errorGuard = DAQ_ERROR_GUARD();
+    CreateTestObject()->multipleErrorInfoTest();
+
+    StringPtr message;
+    errorGuard->getFormattedMessage(&message);
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47);
+    ASSERT_EQ(message.toStdString(), expected);
 }
 
 TEST_F(ErrorInfoTest, SerializeDeserializeEmpty)

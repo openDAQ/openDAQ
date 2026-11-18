@@ -26,6 +26,8 @@
 #include <coretypes/stringobject.h>
 #include <numeric>
 #include <cctype>
+#include <cstdio>
+#include <vector>
 
 #include "xxhash.h"
 
@@ -129,13 +131,23 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
         }
         else
         {
+            // Formats on the stack; a longer message is formatted again on the heap, so any length is kept whole
             char errorMsg[1024];
-#if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
-            sprintf_s(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
-#else
-            snprintf(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
-#endif
-            err = createString(&msg, errorMsg);
+            const int length = std::snprintf(errorMsg, sizeof(errorMsg), message.c_str(), params...);
+            if (length < 0)
+            {
+                err = createString(&msg, message.c_str());
+            }
+            else if (static_cast<size_t>(length) < sizeof(errorMsg))
+            {
+                err = createString(&msg, errorMsg);
+            }
+            else
+            {
+                std::vector<char> longErrorMsg(static_cast<size_t>(length) + 1);
+                std::snprintf(longErrorMsg.data(), longErrorMsg.size(), message.c_str(), params...);
+                err = createString(&msg, longErrorMsg.data());
+            }
         }
     }
 
@@ -225,6 +237,82 @@ inline void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode)
     checkErrorInfo(errCode);
 }
 
+// Shortens a message longer than 4 KiB to about its first 1 KiB and last 3 KiB, joined by a " - ..." line
+inline void capErrorMessage(std::string& message)
+{
+    constexpr size_t maxLength = 4096;
+    constexpr size_t headLength = 1024;
+    if (message.size() <= maxLength)
+        return;
+
+    // Cut at line ends where a line fits, otherwise inside the line but between UTF-8 characters
+    size_t headEnd = message.rfind('\n', headLength);
+    if (headEnd == std::string::npos)
+        headEnd = headLength;
+    size_t tailStart = message.find('\n', message.size() - (maxLength - headLength));
+    if (tailStart == std::string::npos)
+        tailStart = message.size() - (maxLength - headLength);
+    while ((message[headEnd] & 0xC0) == 0x80)
+        --headEnd;
+    while ((message[tailStart] & 0xC0) == 0x80)
+        ++tailStart;
+
+    // A marker left by an earlier cap next to this cut joins it, so a message capped at every boundary shows one gap
+    const std::string marker = "\n - ...";
+    if (message.compare(tailStart, marker.size(), marker) == 0)
+        tailStart += marker.size();
+    if (headEnd >= marker.size() && message.compare(headEnd - marker.size(), marker.size(), marker) == 0)
+        headEnd -= marker.size();
+
+    message.replace(headEnd, tailStart - headEnd, marker);
+}
+
+// Lists the error infos newest first, each cause after the error it caused and an unrelated older error on a new line
+inline std::string formatErrorInfoList(IList* errorList, ErrCode* newestErrCode = nullptr)
+{
+    std::string text;
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    const char* separator = "";
+
+    SizeT count = 0;
+    errorList->getCount(&count);
+    for (SizeT i = count; i-- > 0;)
+    {
+        IBaseObject* item = nullptr;
+        if (OPENDAQ_FAILED(errorList->getItemAt(i, &item)))
+            continue;
+
+        IErrorInfo* errorInfo = nullptr;
+        item->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+        if (errorInfo)
+        {
+            if (OPENDAQ_SUCCEEDED(errCode))
+                errorInfo->getErrorCode(&errCode);
+
+            IString* message = nullptr;
+            errorInfo->getFormattedMessage(&message);
+            if (message)
+            {
+                ConstCharPtr chars = nullptr;
+                message->getCharPtr(&chars);
+                if (chars && *chars)
+                    text.append(text.empty() ? "" : separator).append(chars);
+                message->releaseRef();
+            }
+
+            ErrCode prevErrCode = OPENDAQ_SUCCESS;
+            errorInfo->getPreviousErrorCode(&prevErrCode);
+            separator = prevErrCode != OPENDAQ_SUCCESS ? "\n - Caused by: " : "\n";
+        }
+        item->releaseRef();
+    }
+
+    capErrorMessage(text);
+    if (newestErrCode)
+        *newestErrCode = errCode;
+    return text;
+}
+
 inline void checkErrorGuard(IErrorGuard* errorGuard)
 {
     if (errorGuard == nullptr)
@@ -234,46 +322,13 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
     errorGuard->getErrorInfoList(&errorList);
     if (errorList == nullptr)
         return;
-    
-    size_t count = 0;
-    errorList->getCount(&count);
 
-    std::ostringstream ss;
-    ErrCode lastErrorCode = OPENDAQ_SUCCESS;
-    bool firstError = true;
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        IBaseObject* errorInfoBase = nullptr;
-        if (OPENDAQ_FAILED(errorList->getItemAt(i, &errorInfoBase)))
-            continue;
-
-        IErrorInfo* errorInfo = nullptr;
-        errorInfoBase->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-        if (errorInfo)
-        {
-            errorInfo->getErrorCode(&lastErrorCode);
-
-            IString* message = nullptr;
-            errorInfo->getFormattedMessage(&message);
-            if (message)
-            {
-                ConstCharPtr msgCharPtr = nullptr;
-                message->getCharPtr(&msgCharPtr);
-                if (msgCharPtr)
-                {
-                    ss << (firstError ? "" : "\n") << msgCharPtr;
-                    firstError = false;
-                }
-                message->releaseRef();
-            }
-        }
-        errorInfo->releaseRef();
-    }
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    const std::string message = formatErrorInfoList(errorList, &errCode);
     errorList->releaseRef();
 
-    if (OPENDAQ_FAILED(lastErrorCode))
-        throwExceptionFromErrorCode(lastErrorCode, ss.str());
+    if (OPENDAQ_FAILED(errCode))
+        throwExceptionFromErrorCode(errCode, message);
 }
 
 template <typename... Params>

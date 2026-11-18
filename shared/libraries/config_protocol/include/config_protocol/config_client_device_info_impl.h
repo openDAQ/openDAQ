@@ -118,6 +118,8 @@ inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serial
 
         // Do not create client objects for nested property objects (eg. active client connection info)
         Super::DeserializePropertyValues(serialized, context, nullptr, propObj);
+
+        Super::DeserializeDeviceType(serialized, propObj);
         
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();

@@ -25,6 +25,9 @@ public:
     explicit MockServerImpl(const daq::StringPtr& id, const daq::DevicePtr& rootDevice, const daq::ContextPtr& context);
 
 protected:
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const daq::FunctionBlockPtr& functionBlock) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

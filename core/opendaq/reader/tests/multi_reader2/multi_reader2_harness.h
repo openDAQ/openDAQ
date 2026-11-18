@@ -319,7 +319,9 @@ private:
     std::optional<SizeT> expectedCount;
     std::optional<int64_t> firstTick;
     std::optional<ComponentStatus> expectedLevel;
-    std::optional<bool> changes;
+    // Not std::optional<bool>: icx 2025.3 reads value_or(true) of an empty one as the stale byte in its storage
+    bool changesListed = false;
+    bool changes = true;
     std::optional<std::optional<int>> mainSlot;
     bool domainChangedSet = false;
     bool resyncSet = false;

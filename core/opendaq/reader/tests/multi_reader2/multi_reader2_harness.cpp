@@ -606,8 +606,8 @@ Params same()
 
 MR2_EXPECT_SETTER(at, (int64_t tick), e.firstTick = tick)
 MR2_EXPECT_SETTER(level, (ComponentStatus l), e.expectedLevel = l)
-MR2_EXPECT_SETTER(noChanges, (), e.changes = false)
-MR2_EXPECT_SETTER(hasChanges, (), e.changes = true)
+MR2_EXPECT_SETTER(noChanges, (), e.changesListed = true; e.changes = false)
+MR2_EXPECT_SETTER(hasChanges, (), e.changesListed = true; e.changes = true)
 MR2_EXPECT_SETTER(main, (Input input), e.mainSlot = std::optional<int>(input.slot))
 MR2_EXPECT_SETTER(mainNull, (), e.mainSlot = std::optional<int>())
 MR2_EXPECT_SETTER(domainChanged, (), e.domainChangedSet = true)
@@ -2066,7 +2066,7 @@ void MultiReader2Test::checkResult(const Result& r, const Expect& e)
         EXPECT_EQ(r.stubAsked, *e.asked) << "acceptsDescriptor asked exactly these inputs";
     if (r.status.assigned())
         checkStatus(r, e);
-    else if (e.expectedLevel || e.changes || e.mainSlot || e.domainChangedSet || e.resyncSet || e.allDesc || !e.descChangedSlots.empty() ||
+    else if (e.expectedLevel || e.changesListed || e.mainSlot || e.domainChangedSet || e.resyncSet || e.allDesc || !e.descChangedSlots.empty() ||
              !e.errors.empty() || e.message || !e.sizes.empty() || e.inputSlots)
         ADD_FAILURE() << "status fields are listed for a call that returns no status";
     if (r.kind == Result::Kind::Read || r.kind == Result::Kind::Skip || r.kind == Result::Kind::ReadWithDomain)
@@ -2081,7 +2081,7 @@ void MultiReader2Test::checkStatus(const Result& r, const Expect& e)
     else if (r.previous.assigned())
         EXPECT_EQ(st.getStatus(), r.previous.getStatus()) << "an unlisted level equals the previous status's";
 
-    EXPECT_EQ(st.getHasChanges(), e.changes.value_or(true)) << "hasChanges";
+    EXPECT_EQ(st.getHasChanges(), e.changes) << "hasChanges";
     EXPECT_EQ(st.getDomainDescriptorChanged(), e.domainChangedSet) << "domainDescriptorChanged";
     EXPECT_EQ(st.getResynchronized(), e.resyncSet) << "resynchronized";
 

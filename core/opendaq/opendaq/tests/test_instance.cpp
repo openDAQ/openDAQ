@@ -1411,7 +1411,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1420,13 +1420,9 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
     auto instance2 = test_helpers::setupInstance();
     instance2.loadConfiguration(config);
 
-    auto device = instance2.getDevices()[0];
-    const auto deviceConfig = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
+    const auto deviceConfig = instance2.getDevices()[0].getAddDeviceConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("General"));
-
-    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(deviceConfig.getPrimaryAddressType(), AddressType::IPv6);
 }
 
 TEST_F(InstanceTest, SaveLoadDeviceConfig)
@@ -1435,9 +1431,8 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     {
         auto instance = test_helpers::setupInstance();
 
-        auto deviceConfig = instance.createDefaultAddDeviceConfig();
-        PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        auto deviceConfig = instance.createAddDeviceConfig(DeviceInfo("daqmock://phys_device"));
+        deviceConfig.setPrimaryAddressType(AddressType::IPv6);
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1446,13 +1441,9 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     auto instance2 = test_helpers::setupInstance();
     instance2.loadConfiguration(config);
 
-    auto device = instance2.getDevices()[0];
-    const auto deviceConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    const auto deviceConfig = instance2.getDevices()[0].getAddDeviceConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("General"));
-
-    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(deviceConfig.getPrimaryAddressType(), AddressType::IPv6);
 }
 
 static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr& savedConfig)

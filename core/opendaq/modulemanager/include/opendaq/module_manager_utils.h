@@ -104,14 +104,14 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * configuration - from a compatible registered credential provider.
      * @param[out] streaming The created streaming object.
      * @param connectionString Describes the connection parameters of the streaming.
-     * @param config A configuration object that contains parameters used to configure a streaming connection in the form of key-value pairs.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
      * @param owner The device the streaming connection is being attached to, its own `IDeviceInfo`
      * (manufacturer, serial number, model) identifies the connection endpoint.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      *
-     * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the
-     * provided connection string. There is no smart-string/discovery resolution here - streaming connection strings
-     * are always concrete, protocol-specific strings, not `daq://` smart ones - so `owner` is simply forwarded as
-     * given, defaulting to a null value when not known.
+     * With an add streaming config, the module that has its Streaming type creates the streaming connection.
+     * Otherwise the first module that has a Streaming type with the connection string's prefix creates it.
+     * Streaming connection strings are always protocol-specific, never `daq://`.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
                                                    IString* connectionString,

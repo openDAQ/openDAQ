@@ -2,6 +2,8 @@
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_device_config_private_ptr.h>
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/address_info_factory.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
@@ -511,6 +513,31 @@ TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
     const auto streamingTypes = Dict<IString, IStreamingType>({{"linked", createStreamingType("linked", "dev")}});
 
     ASSERT_FALSE(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions().assigned());
+}
+
+TEST_F(AddDeviceConfigTest, SortAddressInfos)
+{
+    using Status = AddressReachabilityStatus;
+
+    auto addressInfos = List<IAddressInfo>();
+    for (const auto& [connectionString, type, status] : {std::make_tuple("a", "IPv4", Status::Unreachable),
+                                                         std::make_tuple("b", "IPv6", Status::Unknown),
+                                                         std::make_tuple("c", "IPv4", Status::Unknown),
+                                                         std::make_tuple("d", "IPv4", Status::Reachable),
+                                                         std::make_tuple("e", "IPv6", Status::Unreachable),
+                                                         std::make_tuple("f", "IPv4", Status::Unknown)})
+        addressInfos.pushBack(AddressInfoBuilder()
+                                  .setAddress(connectionString)
+                                  .setConnectionString(connectionString)
+                                  .setType(type)
+                                  .setReachabilityStatus(status)
+                                  .build());
+
+    auto connectionStrings = List<IString>();
+    for (const auto& addressInfo : sortAddressInfos(addressInfos, AddressType::IPv6))
+        connectionStrings.pushBack(addressInfo.getConnectionString());
+
+    ASSERT_EQ(connectionStrings, List<IString>("d", "b", "c", "f", "e", "a"));
 }
 
 END_NAMESPACE_OPENDAQ

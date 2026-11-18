@@ -892,8 +892,9 @@ public:
         auto checkArray = [&](const py::array& a, const char* what)
         {
             if (!a.dtype().is(dtype) && !a.dtype().equal(dtype))
-                throw py::type_error(std::string("read_into: ") + what + " has dtype " + py::str(a.dtype()).cast<std::string>() +
-                                     ", the read type needs " + py::str(dtype).cast<std::string>());
+                throw py::type_error(std::string("read_into: ") + what + " has dtype " +
+                                     py::str(py::handle(a.dtype())).cast<std::string>() + ", the read type needs " +
+                                     py::str(py::handle(dtype)).cast<std::string>());
             if (!(a.flags() & py::array::c_style))
                 throw py::value_error(std::string("read_into: ") + what + " must be C-contiguous");
             if (!a.writeable())

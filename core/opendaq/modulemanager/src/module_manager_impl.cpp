@@ -800,258 +800,272 @@ DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const Authentica
     return credentials;
 }
 
-ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(device);
     *device = nullptr;
 
-    const PropertyObjectPtr inputConfig = PropertyObjectPtr::Borrow(config);
+    DevicePtr devicePtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleManagerImpl::onCreateDevice, devicePtr, connectionString, parent, config);
+    OPENDAQ_RETURN_IF_FAILED(
+        errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
+
+    *device = devicePtr.detach();
+    return errCode;
+}
+
+DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
+                                            const ComponentPtr& parent,
+                                            const PropertyObjectPtr& inputConfig)
+{
     // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
     // smuggles an `IAuthenticationConfig` onto the top-level `config` it passes in, rather than a dedicated
     // parameter.
     const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(inputConfig);
-    const bool authenticationConfigSupplied = authenticationConfig.assigned();
-    const ErrCode errCode = daqTry([&]()
+
+    // Parse the connection string
+    const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);
+    auto connectionStringPtr = String(pureConnectionString);
+    if (connectionStringPtr.getLength() == 0)
     {
-        const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
-        auto connectionStringPtr = String(pureConnectionString);
-        if (connectionStringPtr.getLength() == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Connection string is not set or empty");
+    }
 
-        const bool asChild = (parent != nullptr);
-        const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
-        const bool useSmartConnection = (prefix == "daq");
+    const bool asChild = parent.assigned();
+    const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
+    const bool useSmartConnection = (prefix == "daq");
 
-        DictPtr<IString, IDeviceType> deviceTypes;
-        OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
-        DictPtr<IString, IStreamingType> streamingTypes;
-        OPENDAQ_RETURN_IF_FAILED(getAvailableStreamingTypes(&streamingTypes));
+    DictPtr<IString, IDeviceType> deviceTypes;
+    checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+    DictPtr<IString, IStreamingType> streamingTypes;
+    checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
-        const auto inputAddDeviceConfig = inputConfig.asPtrOrNull<IAddDeviceConfig>(true);
-        const bool scanForDevices = inputAddDeviceConfig.assigned() ? static_cast<bool>(inputAddDeviceConfig.getScanOnAdd())
-                                                                    : static_cast<bool>(getLegacyScanOnAdd(inputConfig, scanOnAdd));
-        if (scanForDevices)
-        {
-            auto lock = std::lock_guard(availableDevicesSearchSync);
-            const auto currentTime = std::chrono::steady_clock::now();
-            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
-            {
-                const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
-            }
-        }
+    // Scan for devices
+    const auto inputAddDeviceConfig = inputConfig.asPtrOrNull<IAddDeviceConfig>(true);
+    const bool scanForDevices = inputAddDeviceConfig.assigned() ? static_cast<bool>(inputAddDeviceConfig.getScanOnAdd())
+                                                                : static_cast<bool>(getLegacyScanOnAdd(inputConfig, scanOnAdd));
+    if (scanForDevices)
+    {
+        auto lock = std::lock_guard(availableDevicesSearchSync);
+        const auto currentTime = std::chrono::steady_clock::now();
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            checkErrorInfo(getAvailableDevices(&ListPtr<IDeviceInfo>()));
+    }
 
-        const auto findDiscoveredDeviceInfo = [this](const StringPtr& protocolConnectionString) -> DeviceInfoPtr
-        {
-            if (!availableDevicesGroup.assigned())
-                return nullptr;
-            if (availableDevicesGroup.hasKey(protocolConnectionString))
-                return availableDevicesGroup.get(protocolConnectionString);
-
-            const auto isConnectionString = [&protocolConnectionString](const StringPtr& str)
-            {
-                return str == protocolConnectionString;
-            };
-            for (const auto& [_, info] : availableDevicesGroup)
-            {
-                for (const auto& capability : info.getServerCapabilities())
-                {
-                    const ListPtr<IString> connectionStrings = capability.getConnectionStrings();
-                    if (std::any_of(connectionStrings.begin(), connectionStrings.end(), isConnectionString))
-                        return info;
-                }
-            }
+    // Find the discovered device and its capabilities
+    const auto findDiscoveredDeviceInfo = [this](const StringPtr& protocolConnectionString) -> DeviceInfoPtr
+    {
+        if (!availableDevicesGroup.assigned())
             return nullptr;
-        };
+        if (availableDevicesGroup.hasKey(protocolConnectionString))
+            return availableDevicesGroup.get(protocolConnectionString);
 
-        DeviceInfoPtr discoveredDeviceInfo;
-        ListPtr<IServerCapability> capabilities = List<IServerCapability>();
-        if (useSmartConnection)
+        const auto isConnectionString = [&protocolConnectionString](const StringPtr& str)
         {
-            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
-            capabilities = discoveredDeviceInfo.getServerCapabilities();
-            if (capabilities.getCount() == 0)
+            return str == protocolConnectionString;
+        };
+        for (const auto& [_, info] : availableDevicesGroup)
+        {
+            for (const auto& capability : info.getServerCapabilities())
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
-                                           fmt::format(R"(Device with connection string "{}" has no available server capabilities)",
-                                                       connectionStringPtr));
+                const ListPtr<IString> connectionStrings = capability.getConnectionStrings();
+                if (std::any_of(connectionStrings.begin(), connectionStrings.end(), isConnectionString))
+                    return info;
             }
         }
-        else if (const auto info = findDiscoveredDeviceInfo(connectionStringPtr); info.assigned())
-            capabilities = info.getServerCapabilities();
+        return nullptr;
+    };
 
-        const auto createConfig = [&](const DeviceTypePtr& deviceType)
+    DeviceInfoPtr discoveredDeviceInfo;
+    ListPtr<IServerCapability> capabilities = List<IServerCapability>();
+    if (useSmartConnection)
+    {
+        discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
+        capabilities = discoveredDeviceInfo.getServerCapabilities();
+        if (capabilities.getCount() == 0)
         {
-            assert(!inputAddDeviceConfig.assigned());
-            if (inputConfig.assigned())
-                return fromLegacyAddDeviceConfig(inputConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
-            return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
-        };
+            DAQ_THROW_EXCEPTION(
+                NotFoundException, R"(Device with connection string "{}" has no available server capabilities)", connectionStringPtr);
+        }
+    }
+    else if (const auto info = findDiscoveredDeviceInfo(connectionStringPtr); info.assigned())
+        capabilities = info.getServerCapabilities();
 
-        AddDeviceConfigPtr addDeviceConfig;
-        if (inputAddDeviceConfig.assigned())
-            addDeviceConfig = inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
-        else if (!useSmartConnection)
+    // Turn the input into an add device config. No code below reads the input config.
+    const auto selectDeviceType = [&]() -> DeviceTypePtr
+    {
+        if (!useSmartConnection)
         {
             const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
             if (!deviceType.assigned())
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(No loaded device type for the prefix "{}")", prefix));
+                DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", prefix);
             }
-            addDeviceConfig = createConfig(deviceType);
+            return deviceType;
         }
 
-        if (addDeviceConfig.assigned())
+        const auto capability = SelectServerCapability(capabilities, deviceTypes, asChild);
+        if (!capability.assigned())
         {
-            const auto deviceType = addDeviceConfig.getDeviceType();
-            OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, asChild));
-            if (!useSmartConnection && prefix != deviceType.getConnectionStringPrefix())
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(Device with connection string "{}" has no server capability with a loaded device type)",
+                                connectionStringPtr);
+        }
+        return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
+    };
+
+    const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
+    {
+        if (inputAddDeviceConfig.assigned())
+            return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+
+        const auto deviceType = selectDeviceType();
+        if (inputConfig.assigned())
+            return fromLegacyAddDeviceConfig(inputConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
+        return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
+    };
+
+    const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+
+    // Check the device type and resolve the address
+    const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
+    {
+        const auto deviceType = config.getDeviceType();
+        const StringPtr typePrefix = deviceType.getConnectionStringPrefix();
+        if (!useSmartConnection)
+        {
+            if (prefix != typePrefix)
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
-                                           fmt::format(R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")",
-                                                       prefix,
-                                                       deviceType.getConnectionStringPrefix(),
-                                                       deviceType.getId()));
+                DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                    R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")",
+                                    prefix,
+                                    typePrefix,
+                                    deviceType.getId());
             }
+            return connectionStringPtr;
         }
 
-        if (useSmartConnection)
+        const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
         {
-            ServerCapabilityPtr capability;
-            if (addDeviceConfig.assigned())
-            {
-                const StringPtr typePrefix = addDeviceConfig.getDeviceType().getConnectionStringPrefix();
-                const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& cap)
-                {
-                    return getServerCapabilityPrefix(cap) == typePrefix;
-                };
-                const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
-                if (it == capabilities.end())
-                {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_NOTFOUND,
-                        fmt::format(R"(Device with connection string "{}" has no server capability with the prefix "{}")",
-                                    connectionStringPtr,
-                                    typePrefix));
-                }
-                capability = *it;
-            }
-            else
-            {
-                capability = SelectServerCapability(capabilities, deviceTypes, asChild);
-                if (!capability.assigned())
-                {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_NOTFOUND,
-                        fmt::format(R"(Device with connection string "{}" has no server capability with a loaded device type)",
-                                    connectionStringPtr));
-                }
-
-                addDeviceConfig = createConfig(FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability)));
-            }
-
-            connectionStringPtr = resolveSmartConnectionString(capability, addDeviceConfig.getPrimaryAddressType());
-        }
-
-        const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
-        PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
-        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
-
-        const auto hasDeviceType = [&deviceType](const ModulePtr& module)
-        {
-            DictPtr<IString, IDeviceType> types;
-            const ErrCode err = module->getAvailableDeviceTypes(&types);
-            if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-                daqClearErrorInfo();
-            else
-                checkErrorInfo(err);
-
-            return types.assigned() && types.hasKey(deviceType.getId());
+            return getServerCapabilityPrefix(capability) == typePrefix;
         };
-
-        for (const auto& library : libraries)
+        const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
+        if (it == capabilities.end())
         {
-            if (!hasDeviceType(library.module))
-                continue;
-
-            const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-            if (authenticationConfigSupplied && !authenticationSupported)
-            {
-                LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
-            }
-
-            // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
-            // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
-            const AuthenticationConfigPtr resolvedAuthConfig =
-                authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-
-            DictPtr<IString, IString> credentials;
-            ErrCode err;
-            if (authenticationSupported)
-            {
-                const auto credentialRequest = CredentialRequestBuilder()
-                                                   .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
-                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                                   .setComponentType(deviceType)
-                                                   .build();
-                credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
-
-                auto loginParameters = LoginParametersBuilder()
-                                           .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                           .setCredentials(credentials)
-                                           .build();
-                err = library.module->createAuthenticatedDevice(device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
-            }
-            else
-            {
-                err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            }
-
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned())
-            {
-                onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
-                if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setComponentConfig(addDeviceConfig);
-
-                ModuleInfoPtr moduleInfo;
-                err = library.module->getModuleInfo(&moduleInfo);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (auto info = devicePtr.getInfo(); info.assigned())
-                {
-                    auto deviceInfoType = info.getDeviceType();
-                    if (deviceInfoType.assigned())
-                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
-                }
-
-                if (authenticationSupported)
-                {
-                    if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                        componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
-
-                    // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
-                    // mechanism (e.g. a vault) is ready.
-                }
-            }
-
-            return err;
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(Device with connection string "{}" has no server capability with the prefix "{}")",
+                                connectionStringPtr,
+                                typePrefix);
         }
-        return DAQ_MAKE_ERROR_INFO(
-            OPENDAQ_ERR_NOTFOUND,
-            fmt::format("Device with given connection string '{}' and config is not available", StringPtr::Borrow(connectionString)));
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
-    return errCode;
+        return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+    };
+
+    const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
+    checkErrorInfo(CheckKindAllowed(deviceType, asChild));
+    connectionStringPtr = resolveConnectionString(addDeviceConfig);
+
+    // Connect through the module that has the device type
+    PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
+    PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
+
+    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
+    if (device.assigned())
+    {
+        onCompleteCapabilities(device, discoveredDeviceInfo);
+        if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate.setComponentConfig(addDeviceConfig);
+    }
+    return device;
 }
 
-ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
+                                           const ComponentPtr& parent,
+                                           const DeviceTypePtr& deviceType,
+                                           const PropertyObjectPtr& deviceTypeConfig,
+                                           const AuthenticationConfigPtr& authenticationConfig)
 {
-    return createDeviceInternal(device, connectionString, parent, config);
+    const bool authenticationConfigSupplied = authenticationConfig.assigned();
+
+    const auto hasDeviceType = [&deviceType](const ModulePtr& module)
+    {
+        DictPtr<IString, IDeviceType> types;
+        const ErrCode err = module->getAvailableDeviceTypes(&types);
+        if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else
+            checkErrorInfo(err);
+
+        return types.assigned() && types.hasKey(deviceType.getId());
+    };
+
+    for (const auto& library : libraries)
+    {
+        if (!hasDeviceType(library.module))
+            continue;
+
+        const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
+
+        if (authenticationConfigSupplied && !authenticationSupported)
+        {
+            LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
+        }
+
+        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
+        const AuthenticationConfigPtr resolvedAuthConfig =
+            authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
+
+        DevicePtr device;
+        DictPtr<IString, IString> credentials;
+        ErrCode err;
+        if (authenticationSupported)
+        {
+            const auto credentialRequest = CredentialRequestBuilder()
+                                               .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
+                                               .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                               .setComponentType(deviceType)
+                                               .build();
+            credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+
+            auto loginParameters = LoginParametersBuilder()
+                                       .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                       .setCredentials(credentials)
+                                       .build();
+            err = library.module->createAuthenticatedDevice(&device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
+        }
+        else
+        {
+            err = library.module->createDevice(&device, connectionStringPtr, parent, deviceTypeConfig);
+        }
+
+        checkErrorInfo(err);
+
+        if (device.assigned())
+        {
+            ModuleInfoPtr moduleInfo;
+            checkErrorInfo(library.module->getModuleInfo(&moduleInfo));
+
+            if (auto info = device.getInfo(); info.assigned())
+            {
+                auto deviceInfoType = info.getDeviceType();
+                if (deviceInfoType.assigned())
+                    deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+            }
+
+            if (authenticationSupported)
+            {
+                if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+                    componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
+
+                // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+                // mechanism (e.g. a vault) is ready.
+            }
+        }
+
+        return device;
+    }
+    DAQ_THROW_EXCEPTION(NotFoundException, "Device with given connection string '{}' and config is not available", connectionStringPtr);
 }
 
 ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)

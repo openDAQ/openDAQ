@@ -38,10 +38,6 @@ enum class SecurityMode : EnumType
     Encrypted  ///< The data cannot be altered and cannot be read. Encrypted or fails, never a fallback to plain.
 };
 
-/*#
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
- */
-
 /*!
  * @brief Describes one way to connect to a component: a transport, its port and its security mode.
  *
@@ -64,7 +60,7 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
      * @param[out] port The default port on a component type, the served port on a server capability;
      * 0 for a carrier without ports.
      */
-    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 
     /*!
      * @brief Gets what the option protects the data it carries against.
@@ -90,14 +86,14 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
 /*!
  * @brief Creates a frozen transport option.
  * @param id The id of the option, unique within a component type. Must not be empty.
- * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
+ * @param port The port of the option, 0 for a carrier without ports.
  * @param securityMode What the option protects the data it carries against.
  * @param certificateRequired True when the connection over this option needs a client certificate.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
     IString*, id,
-    IInteger*, port,
+    Int, port,
     SecurityMode, securityMode,
     Bool, certificateRequired
 )

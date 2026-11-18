@@ -32,10 +32,10 @@ BEGIN_NAMESPACE_OPENDAQ
 class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
 {
 public:
-    TransportOptionImpl(const StringPtr& id, const IntegerPtr& port, SecurityMode securityMode, Bool certificateRequired);
+    TransportOptionImpl(const StringPtr& id, Int port, SecurityMode securityMode, Bool certificateRequired);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
-    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
+    ErrCode INTERFACE_FUNC getPort(Int* port) override;
     ErrCode INTERFACE_FUNC getSecurityMode(SecurityMode* securityMode) override;
     ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) override;
 
@@ -46,7 +46,7 @@ public:
 
 private:
     StringPtr id;
-    IntegerPtr port;
+    Int port;
     SecurityMode securityMode;
     Bool certificateRequired;
 };
@@ -160,10 +160,10 @@ inline StringPtr SelectedTransportOptionPortEval(const DictPtr<IString, ITranspo
         if (idStr.find('\'') != std::string::npos)
             DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option id "{}" contains a quote)", idStr);
 
-        eval += fmt::format(", '{}', {}", idStr, static_cast<Int>(option.getPort()));
+        eval += fmt::format(", '{}', {}", idStr, option.getPort());
     }
 
-    return eval + fmt::format(", {})", static_cast<Int>(defaultOption.getPort()));
+    return eval + fmt::format(", {})", defaultOption.getPort());
 }
 
 END_NAMESPACE_OPENDAQ

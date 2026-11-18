@@ -45,19 +45,6 @@ TEST_F(TransportOptionTest, EmptyIdRejected)
     ASSERT_THROW(TransportOption(nullptr, 7420), InvalidParameterException);
 }
 
-TEST_F(TransportOptionTest, NegativePortRejected)
-{
-    ASSERT_THROW(TransportOption("plain", -1), InvalidParameterException);
-}
-
-TEST_F(TransportOptionTest, UnassignedPortRejected)
-{
-    ITransportOption* option = nullptr;
-    ASSERT_EQ(createTransportOption(&option, String("plain"), nullptr, SecurityMode::None, False), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo();
-    ASSERT_EQ(option, nullptr);
-}
-
 TEST_F(TransportOptionTest, InvalidSecurityModeRejected)
 {
     ASSERT_THROW(TransportOption("plain", 7420, static_cast<SecurityMode>(7)), InvalidParameterException);

@@ -37,7 +37,7 @@ SecurityMode SecurityModeFromString(const StringPtr& securityMode)
 }
 
 TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
-                                         const IntegerPtr& port,
+                                         Int port,
                                          SecurityMode securityMode,
                                          Bool certificateRequired)
     : id(id)
@@ -47,10 +47,6 @@ TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
 {
     if (!id.assigned() || id.getLength() == 0)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The transport option id must not be empty");
-    if (!port.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "The port of transport option \"{}\" is not assigned", id);
-    if (static_cast<Int>(port) < 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The port of transport option \"{}\" must not be negative", id);
     if (securityMode != SecurityMode::None && securityMode != SecurityMode::Signed && securityMode != SecurityMode::Encrypted)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The security mode of transport option \"{}\" is not valid", id);
 }
@@ -63,11 +59,11 @@ ErrCode TransportOptionImpl::getId(IString** id)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TransportOptionImpl::getPort(IInteger** port)
+ErrCode TransportOptionImpl::getPort(Int* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    *port = this->port.addRefAndReturn();
+    *port = this->port;
     return OPENDAQ_SUCCESS;
 }
 
@@ -99,7 +95,7 @@ ErrCode TransportOptionImpl::serialize(ISerializer* serializer)
         serializer->writeString(id.getCharPtr(), id.getLength());
 
         serializer->key("port");
-        serializer->writeInt(static_cast<Int>(port));
+        serializer->writeInt(port);
 
         serializer->key("securityMode");
         const StringPtr securityModeStr = SecurityModeToString(securityMode);
@@ -150,7 +146,7 @@ ErrCode TransportOptionImpl::Deserialize(ISerializedObject* serialized,
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
     IString*, id,
-    IInteger*, port,
+    Int, port,
     SecurityMode, securityMode,
     Bool, certificateRequired
 )

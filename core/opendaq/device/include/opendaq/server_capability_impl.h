@@ -429,7 +429,7 @@ inline ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
     return daqTry([&]
     {
         if (const auto first = FirstTransportOption(readTransportOptions()); first.assigned())
-            *port = first.getPort().detach();
+            *port = Integer(first.getPort()).detach();
         else
             *port = getTypedProperty<IInteger>(Port).detach();
 
@@ -703,7 +703,7 @@ inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IDict* t
 
         // Older clients read the Port property
         if (const auto first = FirstTransportOption(options); first.assigned())
-            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), first.getPort()));
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(first.getPort())));
 
         return OPENDAQ_SUCCESS;
     });
@@ -725,7 +725,7 @@ inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITranspor
 
         // the first option is the default one, whose port older clients read
         if (options.getCount() == 1)
-            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), option.getPort()));
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(option.getPort())));
 
         return OPENDAQ_SUCCESS;
     });

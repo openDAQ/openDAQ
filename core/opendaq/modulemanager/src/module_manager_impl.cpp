@@ -1584,7 +1584,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
             {
                 for (const auto& [id, option] : options)
                 {
-                    if (static_cast<Int>(option.getPort()) == value)
+                    if (option.getPort() == value)
                         return true;
                 }
                 return false;

@@ -74,7 +74,12 @@ public:
     ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) override;
 
 private:
-    ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& inputConfig);
+    DevicePtr connectDevice(const StringPtr& connectionStringPtr,
+                            const ComponentPtr& parent,
+                            const DeviceTypePtr& deviceType,
+                            const PropertyObjectPtr& deviceTypeConfig,
+                            const AuthenticationConfigPtr& authenticationConfig);
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);

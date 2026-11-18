@@ -39,7 +39,7 @@ public:
 
 private:
     bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor) override;
-    void processAndSend(SizeT count, SizeT packetOffset) override;
+    void processAndSend(SizeT count, Int packetOffset) override;
     void rebuildOutputDescriptor() override;
 
     void initProperties();

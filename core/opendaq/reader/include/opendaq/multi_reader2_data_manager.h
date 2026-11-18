@@ -79,8 +79,8 @@ public:
     ErrCode reevaluate(IMultiReader2Status** status);
 
     SizeT getAvailableCount();
-    ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
-    ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
+    ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status);
+    ErrCode skipSamples(SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status);
 
     bool connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool disconnected(SizeT slot);
@@ -200,7 +200,7 @@ private:
 
     // Read
     ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const;
-    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status,
+    void performRead(void** data, std::int64_t* domain, SizeT* count, Int* packetOffset, IMultiReader2Status** status,
                      std::vector<Copy>* copies);
     SizeT frontAvailable() const;
     bool readable() const;

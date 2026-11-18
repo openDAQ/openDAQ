@@ -117,7 +117,7 @@ void PowerReaderFbImpl::rebuildOutputDescriptor()
         powerDomainSignal.setDescriptor(outputDomain);
 }
 
-void PowerReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
+void PowerReaderFbImpl::processAndSend(SizeT count, Int packetOffset)
 {
     const auto* voltage = static_cast<const double*>(buffers[0]);
     const auto* current = static_cast<const double*>(buffers[1]);

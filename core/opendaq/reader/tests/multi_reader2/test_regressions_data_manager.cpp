@@ -97,7 +97,7 @@ TEST_F(MultiReader2RegressionDm, ReadDeliveringNothingOutsideStreamingReportsPac
     disconnect(in2);
     const Result result = read(0);
     expect(result, count(0).level(Error).inError(in2, InputError::Disconnected).msg("in2: not connected"));
-    EXPECT_EQ(result.packetOffset, 0u);
+    EXPECT_EQ(result.packetOffset, 0);
 }
 
 }

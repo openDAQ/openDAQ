@@ -182,7 +182,7 @@ void MultiCsvRecorderImpl::onPortRemoved(const InputPortConfigPtr& port)
 }
 
 // One column per recorded input, in slot order
-void MultiCsvRecorderImpl::processAndSend(SizeT count, SizeT packetOffset)
+void MultiCsvRecorderImpl::processAndSend(SizeT count, Int packetOffset)
 {
     if (!recordingActive || !writer.has_value())
         return;
@@ -194,7 +194,7 @@ void MultiCsvRecorderImpl::processAndSend(SizeT count, SizeT packetOffset)
         columns.push_back(std::make_unique<double[]>(count));
         std::copy_n(static_cast<const double*>(buffer), count, columns.back().get());
     }
-    writer.value().writeSamples(std::move(columns), count, static_cast<Int>(packetOffset));
+    writer.value().writeSamples(std::move(columns), count, packetOffset);
 }
 
 // The recorder's output is its file: a new header starts the next file, and a recovery resumes the recording even when

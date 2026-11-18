@@ -269,7 +269,7 @@ int64_t firstTickOf(const Result& r, int64_t start)
         std::memcpy(&tick, r.domainBuffer.data(), sizeof tick);
         return tick;
     }
-    return static_cast<int64_t>(r.packetOffset) + start;
+    return r.packetOffset + start;
 }
 
 struct FinalState

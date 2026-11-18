@@ -58,7 +58,7 @@ protected:
                 drain();
         };
         SizeT count = 0;
-        SizeT offset = 0;
+        Int offset = 0;
         handle(reader.read(nullptr, nullptr, &count, 0, offset));  // the first status
     }
 
@@ -84,7 +84,7 @@ protected:
                 buffers[i] = storage[i].data();
             }
 
-            SizeT offset = 0;
+            Int offset = 0;
             const MultiReader2StatusPtr status = reader.read(count > 0 ? buffers.data() : nullptr, nullptr, &count, 0, offset);
             if (count > 0)
                 processAndSend(count, offset);  // under the cached descriptors
@@ -217,7 +217,7 @@ protected:
     }
 
     // `count` samples per contributing slot in `buffers`, in the read type (Float64 unless the block sets another)
-    virtual void processAndSend(SizeT count, SizeT packetOffset) = 0;
+    virtual void processAndSend(SizeT count, Int packetOffset) = 0;
     virtual void rebuildOutputDescriptor() = 0;
 
     void removed() override

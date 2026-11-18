@@ -1550,7 +1550,7 @@ Result MultiReader2Test::runRead(Result::Kind kind, SizeT count, const ReadArgs&
     }
 
     SizeT n = count;
-    SizeT offset = 0;
+    Int offset = 0;
     IMultiReader2Status* status = nullptr;
     void** dataArg = args.nullData ? nullptr : data.data();
     SizeT* countArg = args.nullCount ? nullptr : &n;
@@ -2152,7 +2152,7 @@ void MultiReader2Test::checkBuffers(const Result& r, const Expect& e)
             EXPECT_EQ(first, *e.firstTick) << "first tick in the domain buffer";
         }
         else
-            EXPECT_EQ(static_cast<int64_t>(r.packetOffset) + mainStart, *e.firstTick) << "packetOffset plus the main rule's start";
+            EXPECT_EQ(r.packetOffset + mainStart, *e.firstTick) << "packetOffset plus the main rule's start";
     }
     if (r.kind == Result::Kind::ReadWithDomain && e.firstTick && copies)
         for (SizeT i = 0; i < n; ++i)

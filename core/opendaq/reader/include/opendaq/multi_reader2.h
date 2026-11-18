@@ -76,7 +76,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[out] packetOffset The main tick of the first sample, relative to the main domain rule start.
      * @param[out] status The status of this read.
      */
-    virtual ErrCode INTERFACE_FUNC read(void** data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void** data, void* domain, SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status) = 0;
 
     // [arrayArg(count, 1)]
     /*!
@@ -86,7 +86,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[out] packetOffset The main tick of the first skipped sample, as on read.
      * @param[out] status The status of this read.
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status) = 0;
 
     // [templateType(event, IBaseObject, IEventArgs)]
     /*!

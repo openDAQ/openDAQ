@@ -67,7 +67,7 @@ void SumReaderFbImpl::rebuildOutputDescriptor()
         sumDomainSignal.setDescriptor(outputDomain);
 }
 
-void SumReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
+void SumReaderFbImpl::processAndSend(SizeT count, Int packetOffset)
 {
     const auto domainPacket = DataPacket(sumDomainSignal.getDescriptor(), count, packetOffset);
     const auto valuePacket = DataPacketWithDomain(domainPacket, sumSignal.getDescriptor(), count);

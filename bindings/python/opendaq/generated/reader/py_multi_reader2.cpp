@@ -521,7 +521,7 @@ struct ReadOutcome
 {
     size_t requested = 0;
     daq::SizeT count = 0;
-    daq::SizeT offset = 0;
+    daq::Int offset = 0;
     daq::MultiReader2StatusPtr status;
     Layout layout;
     std::vector<Allocation> allocations;
@@ -531,7 +531,7 @@ class PyReadResult
 {
 public:
     size_t count = 0;
-    daq::SizeT offset = 0;
+    daq::Int offset = 0;
     py::object status;
     py::list inputs;
     std::vector<std::string> inputIds;
@@ -571,7 +571,7 @@ public:
             if (!layout.hasDomain)
                 throw std::runtime_error("The main domain is not known for this read");
             auto* data = ticks.mutable_data();
-            const int64_t first = layout.start + static_cast<int64_t>(offset);
+            const int64_t first = layout.start + offset;
             for (size_t i = 0; i < count; ++i)
                 data[i] = first + static_cast<int64_t>(i) * layout.delta;
         }
@@ -797,7 +797,7 @@ public:
         }
 
         daq::SizeT read = n;
-        daq::SizeT offset = 0;
+        daq::Int offset = 0;
         outcome.status = reader.read(n > 0 ? pointers.data() : nullptr, nullptr, &read, 0, offset);
         outcome.count = read;
         outcome.offset = offset;
@@ -948,7 +948,7 @@ public:
     py::tuple skipSamples(size_t count)
     {
         daq::SizeT skipped = count;
-        daq::SizeT offset = 0;
+        daq::Int offset = 0;
         daq::MultiReader2StatusPtr status;
         {
             py::gil_scoped_release release;

@@ -398,7 +398,7 @@ SizeT MultiReaderDataManager::getAvailableCount()
     return statusOwed ? 0 : frontAvailable();
 }
 
-ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(status);
@@ -446,7 +446,7 @@ ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* c
     return errCode;
 }
 
-ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, Int* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(status);
@@ -483,14 +483,14 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
 }
 
 void MultiReaderDataManager::performRead(
-    void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status, std::vector<Copy>* copies)
+    void** data, std::int64_t* domain, SizeT* count, Int* packetOffset, IMultiReader2Status** status, std::vector<Copy>* copies)
 {
     applyStalls();
     dropShortRun();
 
     const SizeT n = statusOwed ? 0 : std::min(*count, frontAvailable());
     if (packetOffset)
-        *packetOffset = n > 0 ? static_cast<SizeT>(readTick - mainStart) : 0;
+        *packetOffset = n > 0 ? readTick - mainStart : 0;
     if (n > 0)
     {
         if (domain)

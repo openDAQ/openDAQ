@@ -15,7 +15,7 @@ using namespace daq;
 // `data` is marked bufferArray, so the generated Ptr takes the pointer array as is. An RTGen without bufferArray
 // treats a `void**` as an out param: it generates `void* data` and passes its address, which compiles and corrupts
 static_assert(std::is_same_v<decltype(&MultiReader2Ptr::read),
-                             MultiReader2StatusPtr (MultiReader2Ptr::*)(void**, void*, SizeT*, SizeT, SizeT&) const>,
+                             MultiReader2StatusPtr (MultiReader2Ptr::*)(void**, void*, SizeT*, SizeT, Int&) const>,
               "MultiReader2Ptr::read must take the buffer pointers as void**");
 
 // A signal that runs a hook, once, the next time its descriptor is read
@@ -97,7 +97,7 @@ TEST_F(MultiReader2RegressionApi, DisconnectDuringTakeOverReachesTheReader)
     disconnecting.join();
 
     SizeT count = 0;
-    SizeT offset = 0;
+    Int offset = 0;
     const auto status = reader.read(nullptr, nullptr, &count, 0, offset);
     EXPECT_EQ(status.getInputStatus(portA.asPtr<IComponent>()).getError(), MultiReader2InputError::Disconnected);
 }
@@ -128,7 +128,7 @@ TEST_F(MultiReader2RegressionApi, StatusInputListCannotBeChanged)
     const auto reader = MultiReader2(params);
 
     SizeT count = 0;
-    SizeT offset = 0;
+    Int offset = 0;
     auto inputs = reader.read(nullptr, nullptr, &count, 0, offset).getInputs();
     ASSERT_EQ(inputs.getCount(), 1u);
     EXPECT_THROW(inputs.clear(), FrozenException);

@@ -67,7 +67,7 @@ private:
     bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor) override;
     bool onChanges(const MultiReader2StatusPtr& status) override;
     void onPortRemoved(const InputPortConfigPtr& port) override;
-    void processAndSend(SizeT count, SizeT packetOffset) override;
+    void processAndSend(SizeT count, Int packetOffset) override;
     void rebuildOutputDescriptor() override;
 
     // Opens the next file with the header of the recorded inputs

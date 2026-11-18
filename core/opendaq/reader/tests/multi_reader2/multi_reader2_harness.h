@@ -268,7 +268,7 @@ struct Result
     std::optional<bool> unchanged;     // input-status: avail and the port getters returned the same after it
     ErrCode error = OPENDAQ_SUCCESS;
     SizeT count = 0;
-    SizeT packetOffset = 0;
+    Int packetOffset = 0;
     MultiReader2StatusPtr status;
     MultiReader2StatusPtr previous;
     bool senderIsReader = false;  // the handler was called with the reader as sender

@@ -241,6 +241,45 @@ TEST_F(TransportSelectionTest, ConfigListsServedOptions)
     ASSERT_EQ(streamingConfig.getPort(), 17430);
 }
 
+// A device as discovery reports it, with only a configuration capability announcing the given options
+static DeviceInfoConfigPtr DeviceInfoAnnouncing(const DictPtr<IString, ITransportOption>& options)
+{
+    auto info = DeviceInfo("daq://m_s");
+    info.setManufacturer("m");
+    info.setSerialNumber("s");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("devproto", ProtocolType::Configuration, "dev", options));
+    return info;
+}
+
+// The config lists the announced options the type knows, in the server's order with its ports and the type's attributes
+TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
+{
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById(
+        {TransportOption("quic", 17425), TransportOption("tls", 17422), TransportOption("plain", 17420, SecurityMode::Signed, True)})));
+
+    const auto options = config.getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(options.get("tls").getPort(), 17422);
+    ASSERT_EQ(options.get("tls").getSecurityMode(), SecurityMode::Encrypted);
+    ASSERT_EQ(options.get("plain").getPort(), 17420);
+    ASSERT_EQ(options.get("plain").getSecurityMode(), SecurityMode::None);
+    ASSERT_FALSE(options.get("plain").getCertificateRequired());
+
+    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getPort(), 17422);
+}
+
+// A server that announces only options the type does not know leaves the config without options
+TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
+{
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(
+        DeviceInfoAnnouncing(TransportOptionsById({TransportOption("quic", 17425), TransportOption("wss", 17443)})));
+
+    ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_EQ(config.getPort(), -1);
+}
+
 // The config keeps the options the server announces; only a saved config selects among the type's again
 TEST_F(TransportSelectionTest, ServedOptionsSerialized)
 {

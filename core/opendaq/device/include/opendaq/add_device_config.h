@@ -116,10 +116,11 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the device can be added over.
-     * @param[out] transportOptions The options of the device info's server capability for the Device type, with the
-     * ports the server announces, keyed by their own ids, the server's default first in dict iteration order. The
-     * options of the Device type when the device info has no such capability. Empty for a Device type without
-     * options.
+     * @param[out] transportOptions The options of the device info's server capability for the Device type that the
+     * Device type lists as well, keyed by their own ids in the server's order, with the ports the server announces and
+     * the security mode and certificate requirement of the Device type. The options of the Device type when the device
+     * info has no such capability. Empty for a Device type without options, and when the server announces none of the
+     * options of the Device type.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 

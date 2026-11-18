@@ -73,10 +73,11 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the streaming can connect over.
-     * @param[out] transportOptions The options of the device info's server capability for the Streaming type, with
-     * the ports the server announces, keyed by their own ids, the server's default first in dict iteration order.
-     * The options of the Streaming type when the device info has no such capability. Empty for a Streaming type
-     * without options.
+     * @param[out] transportOptions The options of the device info's server capability for the Streaming type that the
+     * Streaming type lists as well, keyed by their own ids in the server's order, with the ports the server announces
+     * and the security mode and certificate requirement of the Streaming type. The options of the Streaming type when
+     * the device info has no such capability. Empty for a Streaming type without options, and when the server announces
+     * none of the options of the Streaming type.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 

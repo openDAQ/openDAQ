@@ -21,6 +21,7 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/address_info_factory.h>
+#include <opendaq/address_info_private_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
@@ -981,6 +982,51 @@ TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
     ASSERT_EQ(create("daq://m_unloaded", parent), OPENDAQ_ERR_NOTFOUND);
     ASSERT_EQ(module->createdConnectionStrings,
               List<IString>("extdev://extdev1", "extdev://extdev1", "rootdev://rootdev0", "extdev://unprefixed"));
+}
+
+TEST_F(ModuleManagerAddConfigTest, SmartReachabilityWinsOverPrimaryAddressType)
+{
+    using Status = AddressReachabilityStatus;
+
+    auto capability = ServerCapability("extdev0", "extdev0", cfg).setPrefix("extdev");
+    for (const auto* type : {"IPv4", "IPv6"})
+        capability.addAddressInfo(
+            AddressInfoBuilder().setAddress(type).setConnectionString(std::string("extdev://") + type).setType(type).build());
+
+    const auto info = DeviceInfo("x://s");
+    info.setManufacturer("m");
+    info.setSerialNumber("s");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+    module->availableDevices.pushBack(info);
+
+    const auto config = create(info);
+    config.setPrimaryAddressType(AddressType::IPv6);
+    config.setScanOnAdd(false);
+
+    struct Row
+    {
+        Status ipv4;
+        Status ipv6;
+        std::string expected;
+    };
+
+    const std::vector<Row> rows = {
+        {Status::Reachable, Status::Unknown, "extdev://IPv4"},
+        {Status::Unreachable, Status::Unreachable, "extdev://IPv6"},
+    };
+
+    const ModuleManagerUtilsPtr utils = manager;
+    utils.getAvailableDevices();
+
+    const auto parent = Component(NullContext(), nullptr, "parent");
+    for (const auto& row : rows)
+    {
+        for (const auto& addressInfo : capability.getAddressInfo())
+            addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate((addressInfo.getType() == "IPv4") ? row.ipv4 : row.ipv6);
+
+        utils.createDevice("daq://m_s", parent, config);
+        ASSERT_EQ(module->createdConnectionStrings[module->createdConnectionStrings.getCount() - 1], row.expected);
+    }
 }
 
 TEST_F(ModuleManagerAddConfigTest, DiscoveredExplicitPrefix)

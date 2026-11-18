@@ -1665,70 +1665,19 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     return localInfo;
 }
 
-StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityPtr& capability, AddressType primaryAddressType) const
-{
-    const auto primaryTypeName = getAddressTypeName(primaryAddressType);
-    AddressReachabilityStatus resolvedStatus = AddressReachabilityStatus::Unreachable;
-    StringPtr connectionString;
-
-    for (const auto& addrInfo : capability.getAddressInfo())
-    {
-        if (addrInfo.getType() == primaryTypeName)
-        {
-            switch (auto status = addrInfo.getReachabilityStatus())
-            {
-                case AddressReachabilityStatus::Unknown:
-                    connectionString = resolvedStatus == AddressReachabilityStatus::Unknown
-                                           ? connectionString
-                                           : addrInfo.getConnectionString();
-
-                    resolvedStatus = status;
-                    break;
-                case AddressReachabilityStatus::Reachable:
-                    return addrInfo.getConnectionString();
-                case AddressReachabilityStatus::Unreachable:
-                    connectionString = connectionString.assigned() ? connectionString : addrInfo.getConnectionString();
-                    break;
-            }
-        }
-    }
-
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unknown)
-    {
-        return connectionString;
-    }
-
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unreachable)
-    {
-        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses with given address type were available.", connectionString);
-        return connectionString;
-    }
-
-    return {};
-}
-
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability,
                                                           AddressType primaryAddressType) const
 {
-    auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);
-    if (connectionString.assigned())
-        return connectionString;
+    const auto addressInfos = sortAddressInfos(selectedCapability.getAddressInfo(), primaryAddressType);
+    if (addressInfos.empty())
+        return selectedCapability.getConnectionString();
 
-    connectionString = selectedCapability.getConnectionString();
-
-#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
-    for (const auto& addressInfo : selectedCapability.getAddressInfo())
+    const auto& selected = addressInfos.front();
+    const auto connectionString = selected.getConnectionString();
+    if (selected.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
     {
-        if (addressInfo.getConnectionString() == connectionString)
-        {
-            auto reachabilityStatus = addressInfo.getReachabilityStatus();
-            if (reachabilityStatus == AddressReachabilityStatus::Unreachable)
-            {
-                LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",  connectionString);
-            }
-        }
+        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.", connectionString);
     }
-#endif
 
     return connectionString;
 }

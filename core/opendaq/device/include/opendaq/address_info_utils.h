@@ -17,6 +17,9 @@
 #pragma once
 #include <opendaq/address_info_ptr.h>
 #include <coretypes/exceptions.h>
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,6 +39,42 @@ inline StringPtr getAddressTypeName(AddressType type)
     }
 
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
+}
+
+/*!
+ * @brief Sorts address infos in the order they should be tried when connecting.
+ * @param addressInfos The address infos
+ * @param primaryAddressType The preferred address type
+ * @returns The sorted address infos
+ *
+ * Reachable addresses come first, then those of unknown reachability, then unreachable ones.
+ * Among addresses of equal reachability, those of the primary address type come first.
+ * The sort is stable.
+ */
+inline std::vector<AddressInfoPtr> sortAddressInfos(const ListPtr<IAddressInfo>& addressInfos, AddressType primaryAddressType)
+{
+    const auto primaryTypeName = getAddressTypeName(primaryAddressType);
+    const auto reachabilityRank = [](AddressReachabilityStatus status)
+    {
+        switch (status)
+        {
+            case AddressReachabilityStatus::Reachable:
+                return 0;
+            case AddressReachabilityStatus::Unknown:
+                return 1;
+            case AddressReachabilityStatus::Unreachable:
+                return 2;
+        }
+        return 2;
+    };
+    const auto rank = [&reachabilityRank, &primaryTypeName](const AddressInfoPtr& addressInfo)
+    {
+        return std::make_pair(reachabilityRank(addressInfo.getReachabilityStatus()), addressInfo.getType() != primaryTypeName);
+    };
+
+    std::vector<AddressInfoPtr> sorted(addressInfos.begin(), addressInfos.end());
+    std::stable_sort(sorted.begin(), sorted.end(), [&rank](const AddressInfoPtr& a, const AddressInfoPtr& b) { return rank(a) < rank(b); });
+    return sorted;
 }
 
 END_NAMESPACE_OPENDAQ

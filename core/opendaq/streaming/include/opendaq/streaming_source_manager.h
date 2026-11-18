@@ -416,29 +416,19 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    const auto primaryTypeName = getAddressTypeName(primaryAddressType);
+    auto sorted = sortAddressInfos(availableAddressesInfo, primaryAddressType);
+    if (deviceConnectionAddress.assigned())
+    {
+        const auto isConnectionAddress = [&deviceConnectionAddress](const AddressInfoPtr& addressInfo)
+        {
+            return addressInfo.getAddress() == deviceConnectionAddress.getAddress();
+        };
+        std::stable_partition(sorted.begin(), sorted.end(), isConnectionAddress);
+    }
+
     auto result = List<IAddressInfo>();
-
-    auto const addToResult = [&result, &deviceConnectionAddress](AddressInfoPtr addressInfo)
-    {
-        if (deviceConnectionAddress.assigned() && addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-            result.pushFront(addressInfo);
-        else
-            result.pushBack(addressInfo);
-    };
-
-    for (const auto& addressInfo : availableAddressesInfo)
-    {
-        if (addressInfo.getType() == primaryTypeName)
-            addToResult(addressInfo);
-    }
-
-    for (const auto& addressInfo : availableAddressesInfo)
-    {
-        if (addressInfo.getType() != primaryTypeName)
-            addToResult(addressInfo);
-    }
-
+    for (const auto& addressInfo : sorted)
+        result.pushBack(addressInfo);
     return result;
 }
 
@@ -523,7 +513,6 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         ListPtr<IAddressInfo> addressesToUse =
             (discoveredAddrsByProtocol.count(capabilityProtocolId) > 0) ? discoveredAddrsByProtocol.at(capabilityProtocolId) : cap.getAddressInfo();
 
-        // get the addresses of primary type giving the priority to known config connection address
         const auto suitableAddressesInfo = getSuitableAddressesInfo(addressesToUse, deviceConnectionAddress);
 
         auto streamingConnectionStrings = List<IString>();

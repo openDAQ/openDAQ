@@ -19,6 +19,7 @@
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/folder_ptr.h>
+#include <opendaq/function_block_ptr.h>
 #include <tsl/ordered_map.h>
 #include <opendaq/component_deserialize_context_factory.h>
 
@@ -89,6 +90,9 @@ protected:
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
     void notifyActiveChanged(bool onUpdate) override;
+
+    // Called under the folder lock together with the insert.
+    virtual void validateSingletonFunctionBlock(const ComponentPtr& component);
 
 private:
     ErrCode removeItemWithLocalIdInternal(const std::string& str);
@@ -235,6 +239,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
         const ErrCode err = daqTry([this, &component]
         {
+            validateSingletonFunctionBlock(component);
             if (!addItemInternal(component))
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, fmt::format("Component with id {} already exists", component.getGlobalId()));
 
@@ -421,6 +426,40 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
     const auto res = items.emplace(component.getLocalId(), component);
     
     return res.second;
+}
+
+template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const ComponentPtr& component)
+{
+    const auto functionBlock = component.asPtrOrNull<IFunctionBlock>(true);
+    if (!functionBlock.assigned())
+        return;
+
+    const auto type = functionBlock.getFunctionBlockType();
+    if (!type.assigned() || !type.getSingleton())
+        return;
+
+    const auto localId = component.getLocalId().toStdString();
+    const auto typeId = type.getId();
+    for (const auto& [itemLocalId, item] : items)
+    {
+        // A duplicate local ID is reported by addItemInternal
+        if (itemLocalId == localId)
+            continue;
+
+        const auto itemFunctionBlock = item.template asPtrOrNull<IFunctionBlock>(true);
+        if (!itemFunctionBlock.assigned())
+            continue;
+
+        const auto itemType = itemFunctionBlock.getFunctionBlockType();
+        if (itemType.assigned() && itemType.getSingleton() && itemType.getId() == typeId)
+        {
+            DAQ_THROW_EXCEPTION(AlreadyExistsException,
+                "Function block type \"{}\" is a singleton and an instance of it already exists under \"{}\"",
+                typeId,
+                this->globalId);
+        }
+    }
 }
 
 template <class Intf, class ... Intfs>

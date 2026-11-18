@@ -31,10 +31,56 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief Describes how the input ports of a function block are created.
+ */
+enum class FunctionBlockInputPolicy : EnumType
+{
+    Unspecified = 0,  // custom input ports; no standard UI applies
+    Fixed,            // the block has a fixed set of input ports
+    OneAlwaysEmpty,   // one empty port follows the connected ones; connecting it creates the next one
+    SettingsDriven    // the number of input ports follows the block's settings
+};
+
+/*!
  * @brief Provides information about the function block.
  */
 DECLARE_OPENDAQ_INTERFACE(IFunctionBlockType, IComponentType)
 {
+    /*!
+     * @brief Gets the input policy of the function block type.
+     * @param[out] policy The input policy.
+     *
+     * The input policy describes how the function blocks of that type create their input ports:
+     * - `Fixed`: the block has a fixed set of input ports.
+     * - `OneAlwaysEmpty`: the block always keeps exactly one empty input port after the connected
+     *   ones; connecting that port creates the next empty one.
+     * - `SettingsDriven`: the number of input ports depends on the block's settings.
+     * - `Unspecified`: no standard UI applies. This is the default value when not set by the FB provider.
+     */
+    virtual ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) = 0;
+
+    /*!
+     * @brief Gets the singleton flag value.
+     * @param[out] singleton The flag value.
+     *
+     * When singleton flag is true, the function block type guarantees that at most one instance
+     * of the function block type can exist under a single parent and adding a second function
+     * block of the same type will fail. Defaults to false (i.e. when not set by the FB type
+     * provider).
+     */
+    virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;
+
+    /*!
+     * @brief Gets the commonSettingsTypeId - the Id for which this FB type acts as a common
+     * settings folder.
+     * @param[out] typeId The Id of the function block type.
+     *
+     * When assigned, the function block type declares that it acts as a common settings holder
+     * for nested function blocks of the type specified by commonSettingsTypeId (provided via
+     * the typeId output parameter). When unassigned, the function block does not declare such
+     * a relationship.
+     */
+    virtual ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) = 0;
 };
 /*!@}*/
 

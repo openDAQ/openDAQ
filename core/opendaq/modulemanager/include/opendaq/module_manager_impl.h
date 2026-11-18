@@ -93,6 +93,9 @@ private:
     DeviceTypePtr chooseDeviceType(const DeviceInfoPtr& info,
                                    const StringPtr& prefix,
                                    const DictPtr<IString, IDeviceType>& deviceTypes) const;
+    AddDeviceConfigPtr createAddDeviceConfigForType(const DeviceTypePtr& deviceType,
+                                                    const ListPtr<IServerCapability>& capabilities,
+                                                    const DictPtr<IString, IStreamingType>& streamingTypes) const;
 
     static ServerCapabilityPtr SelectServerCapability(const ListPtr<IServerCapability>& capabilities,
                                                       const DictPtr<IString, IDeviceType>& deviceTypes,

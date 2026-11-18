@@ -176,38 +176,6 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
                                            ids));
 }
 
-// The transport options the server of a device info announces for a type, those the type lists as well: in the
-// server's order and with its ports, with the security mode and certificate requirement of the type's own option.
-// Unassigned when the server announces none; empty when the type lists none of them.
-inline DictPtr<IString, ITransportOption> AnnouncedTransportOptions(const ListPtr<IServerCapability>& capabilities,
-                                                                     const StringPtr& prefix,
-                                                                     const DictPtr<IString, ITransportOption>& typeOptions)
-{
-    for (const auto& capability : capabilities)
-    {
-        if (getServerCapabilityPrefix(capability) != prefix)
-            continue;
-
-        const auto announced = capability.getAvailableTransportOptions();
-        if (!announced.assigned() || announced.getCount() == 0)
-            continue;
-
-        auto known = Dict<IString, ITransportOption>();
-        for (const auto& [id, option] : announced)
-        {
-            if (!typeOptions.hasKey(id))
-                continue;
-
-            const TransportOptionPtr typeOption = typeOptions.get(id);
-            known.set(id, TransportOption(id, option.getPort(), typeOption.getSecurityMode(), typeOption.getCertificateRequired()));
-        }
-
-        return known;
-    }
-
-    return nullptr;
-}
-
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
     : authenticatedModulesOnly(false)
     , moduleAuthenticator(nullptr)
@@ -1594,21 +1562,9 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
         const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
 
-        // The config lists the transport options the server of the device announces and the types list as well, instead
-        // of the ones of the types
-        const auto transportOptions =
-            AnnouncedTransportOptions(capabilities, deviceType.getConnectionStringPrefix(), deviceType.getAvailableTransportOptions());
-        auto streamingTransportOptions = Dict<IString, IDict>();
-        for (const auto& [id, streamingType] : listedTypes)
-        {
-            const auto options = AnnouncedTransportOptions(
-                capabilities, streamingType.getConnectionStringPrefix(), streamingType.getAvailableTransportOptions());
-            if (options.assigned())
-                streamingTransportOptions.set(id, options);
-        }
-
-        AddDeviceConfigPtr addDeviceConfig = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
-            deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
+        // The config lists the transport options the server of the device announces and the types list as well
+        AddDeviceConfigPtr addDeviceConfig =
+            createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, listedTypes, scanOnAdd, infoPtr);
 
         const auto options = addDeviceConfig.getStreamingOptions();
         if (options.assigned())

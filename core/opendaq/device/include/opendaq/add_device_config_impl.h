@@ -19,6 +19,7 @@
 #include <opendaq/transport_option_ptr.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/device_info_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
@@ -39,13 +40,12 @@ public:
 
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, IStreamingType>& streamingTypes, Bool scanOnAdd);
 
-    // Lists the transport options the server of a device announces instead of the ones of the types: `transportOptions`
-    // for the Device type and `streamingTransportOptions` by Streaming type ID. A type without them keeps its own.
+    // Lists the transport options the server capabilities of `deviceInfo` announce, those the types list as well, instead
+    // of the ones of the types. A type its server announces no options for keeps its own; `deviceInfo` may be unassigned.
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                         const DictPtr<IString, IStreamingType>& streamingTypes,
                         Bool scanOnAdd,
-                        const DictPtr<IString, ITransportOption>& transportOptions,
-                        const DictPtr<IString, IDict>& streamingTransportOptions);
+                        const DeviceInfoPtr& deviceInfo);
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;

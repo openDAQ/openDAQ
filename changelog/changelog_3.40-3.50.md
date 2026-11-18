@@ -72,6 +72,10 @@
 Setting the reference device as the root with `daqref://` now fails, so existing code and config files that do this break.
 Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config files.
 
+### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `General.PrimaryAddressType` is a preference
+
+A set `General.PrimaryAddressType` orders the addresses, the preferred type first, instead of dropping those of the other type.
+
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 
 `IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.

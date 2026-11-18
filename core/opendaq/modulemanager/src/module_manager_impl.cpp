@@ -1486,11 +1486,19 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     if (!options.assigned())
         return addDeviceConfig;
 
-    const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
+    const auto defaultType = selectStreamingType(listedTypes, deviceType);
     if (defaultType.assigned())
         options.setStreamingType(defaultType.getId());
 
     return addDeviceConfig;
+}
+
+ErrCode ModuleManagerImpl::getScanOnAdd(Bool* scanOnAdd)
+{
+    OPENDAQ_PARAM_NOT_NULL(scanOnAdd);
+
+    *scanOnAdd = this->scanOnAdd;
+    return OPENDAQ_SUCCESS;
 }
 
 DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,

@@ -50,6 +50,40 @@ private:
     StringPtr connectionString;
 };
 
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+    MockMirroredDeviceImpl(const ContextPtr& ctx,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const DeviceTypePtr& type,
+                           const StringPtr& connectionString)
+        : MirroredDevice(ctx, parent, localId)
+        , info(DeviceInfo(connectionString))
+    {
+        info.setDeviceType(type);
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoConfigPtr info;
+};
+
 class LoadingDevice final : public KindDevice
 {
 public:
@@ -166,11 +200,14 @@ TEST_F(InstanceTest, SetRootDeviceKind)
 
 TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
 {
-    const auto builder = [](const StringPtr& prefix, DeviceKind kind)
+    const auto builder = [](const StringPtr& prefix, DeviceKind kind, bool mirrored = false)
     {
         const auto moduleManager = ModuleManager("[[none]]");
         const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr);
-        moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
+        if (mirrored)
+            moduleManager.addModule(createWithImplementation<IModule, KindDeviceModuleT<MockMirroredDeviceImpl>>(context, prefix, kind));
+        else
+            moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
         return InstanceBuilder().setContext(context).setRootDevice(prefix + "://device");
     };
 
@@ -178,6 +215,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
     ASSERT_THROW(builder("daqadapter", DeviceKind::Adapter).build(), InvalidParameterException);
     ASSERT_NO_THROW(builder("daqroot", DeviceKind::Root).build());
     ASSERT_NO_THROW(builder("daqunspecified", DeviceKind::Unspecified).build());
+    ASSERT_THROW(builder("daqunspecified", DeviceKind::Unspecified, true).build(), InvalidParameterException);
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -286,29 +324,6 @@ public:
             StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
         return Dict<IString, IStreamingType>({{"mock_streaming_a", streamingA}, {"mock_streaming_b", streamingB}});
     }
-};
-
-class MockMirroredDeviceImpl : public MirroredDevice
-{
-public:
-    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
-        : MirroredDevice(ctx, nullptr, "mirrored")
-        , info(info)
-    {
-    }
-
-protected:
-    StringPtr onGetRemoteId() const override
-    {
-        return String("mirrored");
-    }
-
-    DeviceInfoPtr onGetInfo() override
-    {
-        return info;
-    }
-
-    DeviceInfoPtr info;
 };
 
 TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
@@ -1459,8 +1474,9 @@ static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr
 
 TEST_F(InstanceTest, LoadBindsSavedAddDeviceConfig)
 {
-    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, False);
+    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, True);
     savedConfig.setPrimaryAddressType(AddressType::IPv6);
+    savedConfig.setScanOnAdd(False);
 
     const auto addedConfigs = LoadRemovedAdapterChild(savedConfig);
 

@@ -1,5 +1,6 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/container_utils.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/component_type_private_ptr.h>
 #include <coreobjects/eval_value_factory.h>
@@ -48,7 +49,7 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
                                                Partial)
     : Super()
     , streamingType(streamingType)
-    , transportOptions(FrozenTransportOptions(transportOptions))
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
@@ -190,8 +191,8 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
             // A config serialized without options of its own lists the Streaming type's
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
-                    ? FrozenTransportOptions(
-                          serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback))
+                    ? DictPtr<IString, ITransportOption>(
+                          serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback).asPtr<IDict>())
                     : streamingType.getAvailableTransportOptions();
 
             return createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType, options, Partial());

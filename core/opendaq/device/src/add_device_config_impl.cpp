@@ -3,6 +3,7 @@
 #include <opendaq/add_streaming_options_impl.h>
 #include <opendaq/add_device_config_legacy.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/container_utils.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/json_serializer_factory.h>
@@ -105,7 +106,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                                          Partial)
     : Super()
     , deviceType(deviceType)
-    , transportOptions(FrozenTransportOptions(transportOptions))
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
@@ -247,8 +248,8 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
             // A config serialized without options of its own lists the Device type's
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
-                    ? FrozenTransportOptions(
-                          serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback))
+                    ? DictPtr<IString, ITransportOption>(
+                          serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback).asPtr<IDict>())
                     : deviceType.getAvailableTransportOptions();
 
             return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, options, Partial());

@@ -64,35 +64,6 @@ inline DictPtr<IString, ITransportOption> TransportOptionsById(std::initializer_
 }
 
 /*!
- * @brief Gets a frozen copy of transport options keyed by their ids, in the same order.
- * @param options The options, for example as deserialized; may be unassigned.
- * @throws InvalidTypeException if a key is not a string or a value is not a transport option.
- * @throws InvalidValueException if a key is not the id of its option.
- */
-inline DictPtr<IString, ITransportOption> FrozenTransportOptions(const DictPtr<IBaseObject, IBaseObject>& options)
-{
-    auto copy = Dict<IString, ITransportOption>();
-    if (options.assigned())
-    {
-        for (const auto& [key, item] : options)
-        {
-            const auto id = key.asPtrOrNull<IString, StringPtr>();
-            const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!id.assigned() || !option.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
-
-            if (id != option.getId())
-                DAQ_THROW_EXCEPTION(InvalidValueException, R"(Transport option "{}" is keyed by "{}")", option.getId(), id);
-
-            copy.set(id, option);
-        }
-    }
-
-    copy.freeze();
-    return copy;
-}
-
-/*!
  * @brief Gets the first transport option, the default one.
  * @returns The option, or unassigned if there are none.
  */

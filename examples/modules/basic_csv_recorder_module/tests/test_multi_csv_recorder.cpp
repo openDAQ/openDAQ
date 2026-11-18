@@ -161,6 +161,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
+    flush();
 
     fb.asPtr<IRecorder>(true).startRecording();
 
@@ -196,6 +197,7 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
 
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
+    flush();
 
     fb.asPtr<IRecorder>(true).startRecording();
 
@@ -269,6 +271,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
 
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
+    flush();
 
     fb.asPtr<IRecorder>(true).startRecording();
 

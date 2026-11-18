@@ -194,6 +194,7 @@ TEST_F(SumTest, SumSignals)
 {
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
+    flush();
 
     auto reader = StreamReader<double>(fb.getSignals()[0]);
 
@@ -246,6 +247,7 @@ TEST_F(SumTest, SumSignalsReconnect)
 
     for (size_t i = 5; i < 10; ++i)
         fb.getInputPorts()[i].connect(validSignals[i - 5]);
+    flush();
 
     sendData(100, 100, false, std::make_pair(0, 10));
     flush();
@@ -268,6 +270,7 @@ TEST_F(SumTest, SumSignalsInvalidRecovery)
         fb.getInputPorts()[i * 2].connect(validSignals[i]);
         fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
     }
+    flush();
 
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
 
@@ -329,6 +332,7 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
 
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.getInputPorts()[1].connect(incompatibleSignal);
+    flush();
 
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
 

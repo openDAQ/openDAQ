@@ -108,10 +108,12 @@ TEST(MultiReader2Domain, RefusesWhatCannotBeReadTogether)
     const auto main = *parseDomain(domainDescriptor(1, 1000, 1));
     EXPECT_FALSE(relate(*parseDomain(domainDescriptor(1, 1000, 2)), main).has_value());  // 500 Hz against 1 kHz
 
-    // An origin difference that does not fit in Int64 main ticks. Short of that, whole-second origins at integer rates
-    // are always a whole number of main ticks apart
-    const auto fine = *parseDomain(domainDescriptor(1, 1000000000, 1000000));
-    EXPECT_FALSE(relate(*parseDomain(domainDescriptor(1, 1000000000, 1000000, 0, "2500-01-01T00:00:00Z")), fine).has_value());
+    // An origin difference that does not fit in Int64 main ticks: 230 years in 0.1 ns ticks. Short of that, whole-second
+    // origins at integer rates are always a whole number of main ticks apart
+    const auto fine = parseDomain(domainDescriptor(1, 10000000000, 10000000));
+    const auto far = parseDomain(domainDescriptor(1, 10000000000, 10000000, 0, "2200-01-01T00:00:00Z"));
+    ASSERT_TRUE(fine.has_value() && far.has_value());
+    EXPECT_FALSE(relate(*far, *fine).has_value());
 }
 
 TEST(MultiReader2Domain, CheckedArithmeticSaturatesInsteadOfWrapping)

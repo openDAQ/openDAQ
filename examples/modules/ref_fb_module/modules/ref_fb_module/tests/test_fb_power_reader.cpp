@@ -142,6 +142,7 @@ TEST_F(PowerReaderTest, Simple)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -215,6 +216,7 @@ TEST_F(PowerReaderTest, ScaleAndOffsetProperties)
     currentSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(-1, 1)).build());
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto timePacket = DataPacket(timeSignal.getDescriptor(), 10, 0);
     const auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 10);
@@ -269,6 +271,7 @@ TEST_F(PowerReaderTest, MultiplePackets)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -374,6 +377,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();  // data sent before the reader applies the connects is lost
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -426,6 +430,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     fb.getInputPorts()[1].disconnect();
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     timePacket = DataPacket(timeSignal.getDescriptor(), 100, 100);
     timeSignal.sendPacket(timePacket);
@@ -462,7 +467,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     std::vector<int64_t> expectedTime1(100);
     std::generate(expectedTime1.begin(), expectedTime1.end(), [n = 100]() mutable { return n++; });
-    ASSERT_THAT(time, testing::ElementsAreArray(expectedTime));
+    ASSERT_THAT(time1, testing::ElementsAreArray(expectedTime1));
 
     ctx.getScheduler().stop();
 }
@@ -479,6 +484,7 @@ TEST_F(PowerReaderTest, Gap)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 

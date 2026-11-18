@@ -134,8 +134,9 @@ TEST_F(MultiReader2Limits, CriticalLimitDropsEveryQueuePastFiveSeconds)
 // S1.LIM.08
 TEST_F(MultiReader2Limits, InputWithoutDataStallsWhileSynchronizingAlthoughTheByteLimitTrimsTheOther)
 {
-    // in1's packets pass the byte limit on their own, so its queue never holds 3 s; the ticks it sent still count
-    given().policy(Exclude).value(in1, Value().dims({4000000})).domain(in1, Domain().delta(50)).domain(in2, Domain().delta(50));
+    // in1's 24 MB packets pass the 100 MB critical bytes every fifth packet, so its queue never holds 3 s; the ticks it sent
+    // still count
+    given().policy(Exclude).value(in1, Value().dims({300000})).domain(in1, Domain().delta(50)).domain(in2, Domain().delta(50));
     write(in1, 0, 3050);
     expect(read(0),
            count(0)

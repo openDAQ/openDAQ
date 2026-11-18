@@ -23,6 +23,26 @@ namespace
 constexpr uint8_t Sentinel = 0xA5;
 constexpr SizeT BytesPerSample = 128;  // larger than any sample in the suites (Struct[2x3] takes 72)
 
+// gtest keeps the main thread's SCOPED_TRACE stack for the whole run; growing it once before the tests keeps the debug
+// leak check from counting its growth in the first test that nests the harness's traces deeper than any before
+void nestTraces(int depth)
+{
+    SCOPED_TRACE("");
+    if (depth > 1)
+        nestTraces(depth - 1);
+}
+
+class TraceStackReserve : public testing::Environment
+{
+public:
+    void SetUp() override
+    {
+        nestTraces(8);
+    }
+};
+
+[[maybe_unused]] const auto* const traceStackReserve = testing::AddGlobalTestEnvironment(new TraceStackReserve);
+
 // A port listener that is neither the reader nor another reader: "listener=block"
 class BlockListenerImpl : public ImplementationOfWeak<IInputPortNotifications>  // the port holds its listener weakly
 {

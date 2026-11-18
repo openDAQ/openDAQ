@@ -531,7 +531,7 @@ protected:
     void waitForHeldHandlerCall();  // until that call is parked; a failure after 5 s
     void releaseHandlerCall();
     Script eachInputWrites(int64_t first, int64_t last);  // every input in force, in slot order
-    int64_t random(int64_t low, int64_t high);            // uniform; the seed is the test property "seed", MR2_SEED replays it
+    int64_t random(int64_t low, int64_t high);            // uniform; a failed test records the seed as the property "seed", MR2_SEED replays it
     void pause(int64_t ms);
     void runConcurrently(const std::function<void(bool concurrent)>& body, unsigned invariants);  // no reference run
     void replay(Timeline timeline, unsigned invariants);

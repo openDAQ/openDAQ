@@ -19,7 +19,7 @@ using InstanceTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class KindDevice final : public Device
+class KindDevice : public Device
 {
 public:
     KindDevice(const ContextPtr& ctx,
@@ -50,10 +50,30 @@ private:
     StringPtr connectionString;
 };
 
-class KindDeviceModule final : public Module
+class LoadingDevice final : public KindDevice
 {
 public:
-    KindDeviceModule(const ContextPtr& ctx, const StringPtr& prefix, DeviceKind kind)
+    using KindDevice::KindDevice;
+
+    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override
+    {
+        addedConfigs.pushBack(config);
+        return KindDevice::onAddDevice(connectionString, config);
+    }
+
+    bool allowAddDevicesFromModules() override
+    {
+        return true;
+    }
+
+    ListPtr<IPropertyObject> addedConfigs = List<IPropertyObject>();
+};
+
+template <typename TDevice>
+class KindDeviceModuleT final : public Module
+{
+public:
+    KindDeviceModuleT(const ContextPtr& ctx, const StringPtr& prefix, DeviceKind kind)
         : Module("Kind device module", VersionInfo(1, 0, 0), ctx, prefix)
         , prefix(prefix)
         , type(createType(prefix, kind))
@@ -75,13 +95,15 @@ public:
 
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override
     {
-        return createWithImplementation<IDevice, KindDevice>(context, parent, "kinddevice", type, connectionString);
+        return createWithImplementation<IDevice, TDevice>(context, parent, "kinddevice", type, connectionString);
     }
 
 private:
     StringPtr prefix;
     DeviceTypePtr type;
 };
+
+using KindDeviceModule = KindDeviceModuleT<KindDevice>;
 
 static constexpr const char* AdapterDevice = "daqadapter://device";
 
@@ -1327,6 +1349,44 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
 
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
     ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+}
+
+static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr& savedConfig)
+{
+    const auto instance = SetupInstanceWithAdapterDevice();
+    instance.getModuleManager().addModule(
+        createWithImplementation<IModule, KindDeviceModuleT<LoadingDevice>>(instance.getContext(), "daqloader", DeviceKind::Adapter));
+    const auto loader = instance.addDevice("daqloader://loader");
+    const auto child = loader.addDevice(AdapterDevice);
+    child.asPtr<IComponentPrivate>().setComponentConfig(savedConfig);
+    const auto setup = instance.saveConfiguration();
+
+    loader.removeDevice(child);
+    auto addedConfigs = dynamic_cast<LoadingDevice*>(loader.getObject())->addedConfigs;
+    addedConfigs.clear();
+    instance.loadConfiguration(setup);
+    return addedConfigs;
+}
+
+TEST_F(InstanceTest, LoadBindsSavedAddDeviceConfig)
+{
+    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, False);
+    savedConfig.setPrimaryAddressType(AddressType::IPv6);
+
+    const auto addedConfigs = LoadRemovedAdapterChild(savedConfig);
+
+    ASSERT_EQ(addedConfigs.getCount(), 1u);
+    const AddDeviceConfigPtr loadedConfig = addedConfigs[0];
+    ASSERT_EQ(loadedConfig.getDeviceType().getId(), "daqadapter");
+    ASSERT_EQ(loadedConfig.getPrimaryAddressType(), AddressType::IPv6);
+    ASSERT_FALSE(loadedConfig.getScanOnAdd());
+}
+
+TEST_F(InstanceTest, LoadSkipsSavedAddDeviceConfigOfUnloadedType)
+{
+    const auto unloadedType = KindDeviceModule::createType("daqunloaded", DeviceKind::Adapter);
+
+    ASSERT_EQ(LoadRemovedAdapterChild(AddDeviceConfig(unloadedType, nullptr, False)).getCount(), 0u);
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)

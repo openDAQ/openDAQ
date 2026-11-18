@@ -1,5 +1,9 @@
 opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
+if (OPENDAQ_ENABLE_DEBUG_EXTENSIONS)
+    add_subdirectory(tools/debugger_tools)
+endif()
+
 if (MSVC)
     add_compile_options(/wd4100)
 

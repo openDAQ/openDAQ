@@ -450,6 +450,18 @@ namespace test_helpers
         return connectionString.substr(0, hostEnd) + ":" + std::to_string(serverPort(port->second)) + connectionString.substr(hostEnd);
     }
 
+    // Temporary bridge - `IAuthenticationConfig` along with the add-device/add-streaming config schema isn't yet a part of create device / streaming,
+    // so it's smuggled onto an otherwise plain config property object under the key `ModuleManagerImpl` looks for and honors
+    // (see `AuthenticationConfigConfigKey`/`ExtractAuthenticationConfig` in `module_manager_impl.cpp`).
+    // To be removed once `IAddDeviceConfig` / `IAddStreamingConfig` is integrated into the create path.
+    [[maybe_unused]]
+    inline PropertyObjectPtr withAuthenticationConfig(const AuthenticationConfigPtr& authConfig)
+    {
+        auto config = PropertyObject();
+        config.addProperty(ObjectProperty("__AuthenticationConfig", authConfig));
+        return config;
+    }
+
     // Whether every visible signal under the device is mirrored with the given number of streaming sources and an active one.
     // Signals of a streaming pseudo-device are created asynchronously, so no signals at all counts as not attached yet.
     [[maybe_unused]]

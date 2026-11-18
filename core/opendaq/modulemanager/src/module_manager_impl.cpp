@@ -1047,20 +1047,21 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //                        (else OPENDAQ_ERR_INVALIDPARAMETER)
     //   port = config.getPort()
     //   optionPorts = the ports of the options config.getAvailableTransportOptions() lists and the discovered
-    //                 capability announces
+    //                 capability announces, and the port of the discovered capability itself
     //   stringPort = the port target names, unless it is one of optionPorts (a discovered connection string carries
-    //                the port of an option, not a port to connect at)
+    //                the port of an option, or of the capability of a server without options, not a port to connect at)
     //   if the Port property of config is not -1:                    // a port is set
     //       if stringPort is assigned and stringPort != port:
     //           fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   else if stringPort is assigned:
     //       port = stringPort
-    //   else if discovery reports the device:
+    //   else if discovery reports the device and config.getSelectedTransportOption() is assigned:
     //       port = the port the discovered capability announces for the selected option
-    //   typeConfig = a clone of config.getTypeConfig(), with
+    //   typeConfig = a clone of config.getTypeConfig(), and for a Device type with options
     //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
     //       typeConfig[PortConfigProperty] = port
-    //   the module creates the device from ReplaceConnectionStringPort(target, port) and typeConfig
+    //   the module creates the device from typeConfig and target, with ReplaceConnectionStringPort(target, port) when
+    //   port is not -1 (a Device type without options and no port set keeps the connection string as it is)
     //   the selected streaming config (config.getStreamingOptions().getStreamingConfig()) connects over its selected
     //   option the same way; a Streaming type linked to the Device type follows the device's option and port
     if (config != nullptr && PropertyObjectPtr::Borrow(config).supportsInterface<IAddDeviceConfig>())
@@ -1574,11 +1575,12 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         AddDeviceConfigPtr addDeviceConfig = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
             deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
 
-        // A device info that announces no options names the port to connect to in its connection string, if any. The
-        // port of one of the options is not set: like the one a discovered connection string carries, it does not
-        // override the port of whichever option is selected.
-        if (const auto options = addDeviceConfig.getAvailableTransportOptions(); !transportOptions.assigned() && options.getCount() > 0)
+        // A device info that announces no options names the port to connect to in its connection string, if any, also
+        // for a Device type without options. The port of one of the options is not set: like the one a discovered
+        // connection string carries, it does not override the port of whichever option is selected.
+        if (!transportOptions.assigned())
         {
+            const auto options = addDeviceConfig.getAvailableTransportOptions();
             const auto port = GetConnectionStringPort(infoPtr.getConnectionString());
             const auto isOptionPort = [&options](Int value)
             {

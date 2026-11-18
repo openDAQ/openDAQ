@@ -198,12 +198,17 @@ TEST_F(AddConfigTransportTest, WithoutTransportOptions)
     const auto config = CreateConfig(CreateDeviceType(TransportOptionsById({})));
 
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_THROW(config.setTransportOption("plain"), NotSupportedException);
-    ASSERT_THROW(config.getSelectedTransportOption(), NotSupportedException);
-    ASSERT_THROW(config.setPort(7420), NotSupportedException);
-    ASSERT_THROW(config.getPort(), NotSupportedException);
+    ASSERT_THROW(config.setTransportOption("plain"), NotFoundException);
+    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
     ASSERT_FALSE(Properties(config).hasProperty("TransportOption"));
-    ASSERT_FALSE(Properties(config).hasProperty("Port"));
+
+    // The port works without options: a module that does not use them gets it in the connection string
+    ASSERT_EQ(config.getPort(), -1);
+    config.setPort(7420);
+    ASSERT_EQ(config.getPort(), 7420);
+    ASSERT_TRUE(SavesPort(config));
+    config.setPort(-1);
+    ASSERT_EQ(config.getPort(), -1);
     ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
 }
@@ -321,8 +326,11 @@ TEST_F(AddConfigTransportTest, AddStreamingConfig)
     ASSERT_THROW(config.setTransportOption("wss"), NotFoundException);
 
     const auto withoutOptions = AddStreamingConfig(CreateStreamingType(TransportOptionsById({})));
-    ASSERT_THROW(withoutOptions.setTransportOption("plain"), NotSupportedException);
-    ASSERT_THROW(withoutOptions.getPort(), NotSupportedException);
+    ASSERT_THROW(withoutOptions.setTransportOption("plain"), NotFoundException);
+    ASSERT_FALSE(withoutOptions.getSelectedTransportOption().assigned());
+    ASSERT_EQ(withoutOptions.getPort(), -1);
+    withoutOptions.setPort(9000);
+    ASSERT_EQ(withoutOptions.getPort(), 9000);
 }
 
 END_NAMESPACE_OPENDAQ

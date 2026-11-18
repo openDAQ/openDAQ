@@ -63,6 +63,9 @@ public:
                                            {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
                                        .build();
         streamingTypes.set("str", streamingType);
+
+        // A type of a module that does not use transport options
+        deviceTypes.set("legacy", DeviceTypeBuilder().setId("legacy").setName("legacy").setConnectionStringPrefix("legacy").build());
     }
 
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** types) override
@@ -286,6 +289,18 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
     ASSERT_EQ(withOptionPort.getPort(), 7420);
     withOptionPort.setTransportOption("tls");
     ASSERT_EQ(withOptionPort.getPort(), 7421);
+}
+
+// A Device type without options takes the port the connection string of a hand-made device info names as well
+TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
+{
+    const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("legacy://host:9000"));
+    ASSERT_EQ(withPort.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(withPort.getSelectedTransportOption().assigned());
+    ASSERT_EQ(withPort.getPort(), 9000);
+
+    const AddDeviceConfigPtr withoutPort = utils().createAddDeviceConfig(DeviceInfo("legacy://host"));
+    ASSERT_EQ(withoutPort.getPort(), -1);
 }
 
 // Adding a device with an add-device config comes with the new createDevice

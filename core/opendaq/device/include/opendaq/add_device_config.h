@@ -62,17 +62,22 @@ enum class AddressType : EnumType
  *   capability for the Device type, createAddDeviceConfig sets the port its connection string names, unless it is the
  *   port of one of the options;
  * - the port the connection string names, unless it is the port of an option the config lists or the discovered server
- *   announces: such a port is the one a discovered connection string carries, not a port to connect at;
+ *   announces, or the port of the discovered server capability itself: such a port is the one a discovered connection
+ *   string carries, not a port to connect at;
  * - the port the server announces for the selected option, when discovery reports the device;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
+ *
+ * A Device type without options is added at the port set, else at the one the connection string names, else at the
+ * module's own default; a module that does not use transport options gets the port in the connection string.
  *
  * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
  * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
  * and a connection string that names the same port.
  *
  * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection
- * string names another port that is not the port of an option the config lists or the discovered server announces, and
- * when the prefix of the connection string belongs to another Device type. A `daq://` connection string stands for the
+ * string names another port that is not the port of an option the config lists or the discovered server announces, nor
+ * the port of the discovered server capability, and when the prefix of the connection string belongs to another Device
+ * type. A `daq://` connection string stands for the
  * discovered server capability of the Device type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
@@ -137,8 +142,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     /*!
      * @brief Selects the transport option the device is added over.
      * @param id The id of one of the options of getAvailableTransportOptions.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
-     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id.
+     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id, as for a Device type without options.
      *
      * A port set by setPort is kept and overrides the port of the newly selected option.
      */
@@ -146,9 +150,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Gets the selected transport option.
-     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
-     * @retval OPENDAQ_ERR_NOTFOUND if the selected option is none of the options.
+     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it; null for a Device type
+     * without options.
      */
     virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
 
@@ -156,8 +159,9 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @brief Sets the port the device is added on.
      * @param port The port, used instead of the one the selected option lists whichever option is selected, even when
      * it is the same; -1 to use the port of the selected option again.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
+     *
+     * A Device type without options takes a port as well.
      */
     virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 
@@ -165,8 +169,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @brief Gets the port the device is added on.
      * @param[out] port The port set by setPort. Otherwise the port of the selected transport option: the one the
      * device info's server capability announces for it, or the Device type's default port when the device info has
-     * no such capability.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     * no such capability. -1 for a Device type without options when no port is set.
      *
      * For a device info without a server capability for the Device type, createAddDeviceConfig sets the port its
      * connection string names, unless it is the port of one of the options. Unless a port is set, a port the

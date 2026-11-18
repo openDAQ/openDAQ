@@ -31,15 +31,17 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
         Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, streamingType.createAuthenticationConfig()));
 
-    // The selected transport option, and the port set, -1 while the port of the selected option applies
+    // The selected transport option, for a type with options
     if (this->transportOptions.getCount() > 0)
     {
         const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
         Super::addProperty(StringPropertyBuilder(add_streaming_config::TransportOption, firstOption.getId())
                                .setSelectionValues(this->transportOptions.getKeyList())
                                .build());
-        Super::addProperty(IntPropertyBuilder(add_streaming_config::Port, -1).setMinValue(-1).build());
     }
+
+    // The port set, -1 while none is set and the port of the selected option applies
+    Super::addProperty(IntPropertyBuilder(add_streaming_config::Port, -1).setMinValue(-1).build());
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType,
@@ -109,9 +111,6 @@ ErrCode AddStreamingConfigImpl::setTransportOption(IString* id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    if (transportOptions.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Streaming type has no transport options");
-
     return daqTry([&]
     {
         const StringPtr idStr = id;
@@ -128,24 +127,21 @@ ErrCode AddStreamingConfigImpl::getSelectedTransportOption(ITransportOption** tr
     OPENDAQ_PARAM_NOT_NULL(transportOption);
 
     if (transportOptions.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Streaming type has no transport options");
+    {
+        *transportOption = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
 
+    // The property only takes the ids of the options
     return daqTry([&]
     {
         const StringPtr selected = objPtr.getPropertyValue(add_streaming_config::TransportOption);
-        if (!selected.assigned() || !transportOptions.hasKey(selected))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(The selected transport option "{}" is not one of the options)", selected));
-
         *transportOption = transportOptions.get(selected).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 
 ErrCode AddStreamingConfigImpl::setPort(Int port)
 {
-    if (transportOptions.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Streaming type has no transport options");
-
     // -1 drops the port set, so the port of the selected option applies again
     if (port == -1)
         return Super::clearPropertyValue(String(add_streaming_config::Port));
@@ -160,14 +156,11 @@ ErrCode AddStreamingConfigImpl::getPort(Int* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    if (transportOptions.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Streaming type has no transport options");
-
     return daqTry([&]
     {
         // A port set is used whichever option is selected; -1 means none is set
         const Int portSet = objPtr.getPropertyValue(add_streaming_config::Port);
-        if (portSet != -1)
+        if (portSet != -1 || transportOptions.getCount() == 0)
         {
             *port = portSet;
             return;

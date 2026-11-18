@@ -48,16 +48,21 @@ BEGIN_NAMESPACE_OPENDAQ
  * When the streaming is created, it connects at the first of these ports:
  * - the port set on the config, by setPort or by writing the `Port` property;
  * - the port the connection string of the streaming names, unless it is the port of an option the config lists or the
- *   server announces, as the connection strings of the server capabilities carry;
+ *   server announces, or the port of the server capability itself, as the connection strings of the server
+ *   capabilities carry;
  * - the port the server of the added device announces for the selected option;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
+ *
+ * A Streaming type without options connects at the port set, else at the one the connection string names, else at the
+ * module's own default; a module that does not use transport options gets the port in the connection string.
  *
  * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
  * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
  * and a connection string that names the same port.
  *
  * Creating the streaming fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection string names
- * another port that is not the port of an option the config lists or the server announces.
+ * another port that is not the port of an option the config lists or the server announces, nor the port of the server
+ * capability.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -88,8 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     /*!
      * @brief Selects the transport option the streaming connects over.
      * @param id The id of one of the options of getAvailableTransportOptions.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
-     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id.
+     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id, as for a Streaming type without options.
      *
      * A port set by setPort is kept and overrides the port of the newly selected option.
      */
@@ -97,9 +101,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 
     /*!
      * @brief Gets the selected transport option.
-     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
-     * @retval OPENDAQ_ERR_NOTFOUND if the selected option is none of the options.
+     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it; null for a Streaming
+     * type without options.
      */
     virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
 
@@ -107,8 +110,9 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @brief Sets the port the streaming connects to.
      * @param port The port, used instead of the one the selected option lists whichever option is selected, even when
      * it is the same; -1 to use the port of the selected option again.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
+     *
+     * A Streaming type without options takes a port as well.
      */
     virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 
@@ -116,8 +120,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @brief Gets the port the streaming connects to.
      * @param[out] port The port set by setPort. Otherwise the port of the selected transport option: the one the
      * device info's server capability announces for it, or the Streaming type's default port when there is no such
-     * capability.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
+     * capability. -1 for a Streaming type without options when no port is set.
      *
      * Unless a port is set, a port the connection string of the streaming names, or else a port the server of the
      * added device announces for the selected option, takes precedence (see the class description).

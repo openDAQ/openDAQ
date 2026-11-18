@@ -81,8 +81,8 @@ private:
         const StringPtr& path,
         const PropertyObjectPtr& config,
         const LoginParametersPtr& loginParameters);
-    PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
-    static PropertyObjectPtr CreateAuthenticationObject(const LoginParametersPtr& loginParameters);
+    static DictPtr<IString, IString> ParseConfigCredentials(const PropertyObjectPtr& config);
+    static DictPtr<IString, IString> GetLoginCredentials(const LoginParametersPtr& loginParameters);
     void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,

@@ -540,8 +540,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     // Login parameters are only assigned on the authenticated path (`createAuthenticatedDevice`/`createAuthenticatedStreaming`).
     // Without them, the plain `createDevice`/`createStreaming` is used (e.g. by an older module manager) - backward compatibility
     // with credentials passed via the "Username"/"Password" config properties.
-    PropertyObjectPtr authenticationConfig = loginParameters.assigned() ? CreateAuthenticationObject(loginParameters)
-                                                                        : parseAuthenticationConfig(config);
+    const auto credentials = loginParameters.assigned() ? GetLoginCredentials(loginParameters) : ParseConfigCredentials(config);
 
     copyConfigPropertyValue("ClientType", config, transportLayerConfig);
     copyConfigPropertyValue("ExclusiveControlDropOthers", config, transportLayerConfig);
@@ -557,52 +556,46 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
         transportLayerConfig.addProperty(StringProperty("ClientId", fmt::format("{}/{}", transportClientUuidBase, transportClientIndex++)));
     }
 
-    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
-    // throws AuthenticationFailedException when the server rejects the credentials
-    if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
-        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
+    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, credentials);
+    // throws AuthenticationFailedException when the server rejects the credentials, NotFoundException on other failures
+    transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString());
 
     return transportClientHandler;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::parseAuthenticationConfig(const PropertyObjectPtr& config)
+DictPtr<IString, IString> NativeStreamingClientModule::ParseConfigCredentials(const PropertyObjectPtr& config)
 {
-    auto normalizedObject = PropertyObject();
+    auto credentials = Dict<IString, IString>();
+    if (!config.assigned())
+        return credentials;
 
-    normalizedObject.addProperty(StringProperty("Username", ""));
-    normalizedObject.addProperty(StringProperty("Password", ""));
+    const StringPtr username = config.hasProperty("Username") ? StringPtr(config.getPropertyValue("Username")) : StringPtr("");
+    const StringPtr password = config.hasProperty("Password") ? StringPtr(config.getPropertyValue("Password")) : StringPtr("");
 
-    if (config.assigned())
+    if (username.getLength() == 0)
     {
-        if (config.hasProperty("Username"))
-            normalizedObject.setPropertyValue("Username", config.getPropertyValue("Username"));
+        // a password without a user name is a misconfiguration, not an anonymous connection request
+        if (password.getLength() > 0)
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "The \"Password\" config property is set, but \"Username\" is empty - a user name is required for a password-based connection");
 
-        if (config.hasProperty("Password"))
-            normalizedObject.setPropertyValue("Password", config.getPropertyValue("Password"));
+        // no user name - anonymous connection
+        return credentials;
     }
 
-    return normalizedObject;
+    credentials.set("UserName", username);
+    credentials.set("Password", password);
+    return credentials;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::CreateAuthenticationObject(const LoginParametersPtr& loginParameters)
+DictPtr<IString, IString> NativeStreamingClientModule::GetLoginCredentials(const LoginParametersPtr& loginParameters)
 {
-    auto authenticationObject = PropertyObject();
-
-    authenticationObject.addProperty(StringProperty("Username", ""));
-    authenticationObject.addProperty(StringProperty("Password", ""));
-
     const StringPtr methodId = loginParameters.getAuthenticationMethod().getId();
     // "Anonymous" method - no credentials, connect anonymously
     if (methodId == StandardAnonymousId)
-        return authenticationObject;
+        return Dict<IString, IString>();
 
     if (methodId == StandardUserNamePasswordId)
-    {
-        const auto credentials = loginParameters.getCredentials();
-        authenticationObject.setPropertyValue("Username", credentials.get("UserName"));
-        authenticationObject.setPropertyValue("Password", credentials.get("Password"));
-        return authenticationObject;
-    }
+        return loginParameters.getCredentials();
 
     DAQ_THROW_EXCEPTION(NotSupportedException, "Authentication method \"{}\" is not supported by the native client", methodId);
 }

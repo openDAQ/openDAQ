@@ -5,7 +5,6 @@
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/container_utils.h>
 #include <coreobjects/property_factory.h>
-#include <coreobjects/eval_value_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <opendaq/component_type_private_ptr.h>
@@ -71,15 +70,14 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    // The selected transport option, and the port to connect at, which is the one of the selected option until it is set
+    // The selected transport option, and the port set, -1 while the port of the selected option applies
     if (this->transportOptions.getCount() > 0)
     {
         const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
         Super::addProperty(StringPropertyBuilder(add_device_config::TransportOption, firstOption.getId())
                                .setSelectionValues(this->transportOptions.getKeyList())
                                .build());
-        Super::addProperty(IntProperty(
-            add_device_config::Port, EvalValue(SelectedTransportOptionPortEval(this->transportOptions, add_device_config::TransportOption))));
+        Super::addProperty(IntPropertyBuilder(add_device_config::Port, -1).setMinValue(-1).build());
     }
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
@@ -368,29 +366,41 @@ ErrCode AddDeviceConfigImpl::getSelectedTransportOption(ITransportOption** trans
     });
 }
 
-ErrCode AddDeviceConfigImpl::setPort(IInteger* port)
+ErrCode AddDeviceConfigImpl::setPort(Int port)
 {
     if (transportOptions.getCount() == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Device type has no transport options");
 
-    // A null port drops the one set, so the port of the selected option applies again
-    if (port == nullptr)
+    // -1 drops the port set, so the port of the selected option applies again
+    if (port == -1)
         return Super::clearPropertyValue(String(add_device_config::Port));
 
-    if (static_cast<Int>(IntegerPtr(port)) < 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The port must not be negative");
+    if (port < 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The port must not be negative, other than -1");
 
-    return Super::setPropertyValue(String(add_device_config::Port), port);
+    return Super::setPropertyValue(String(add_device_config::Port), Integer(port));
 }
 
-ErrCode AddDeviceConfigImpl::getPort(IInteger** port)
+ErrCode AddDeviceConfigImpl::getPort(Int* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
     if (transportOptions.getCount() == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Device type has no transport options");
 
-    return daqTry([&] { *port = objPtr.getPropertyValue(add_device_config::Port).asPtr<IInteger>().detach(); });
+    return daqTry([&]
+    {
+        // A port set is used whichever option is selected; -1 means none is set
+        const Int portSet = objPtr.getPropertyValue(add_device_config::Port);
+        if (portSet != -1)
+        {
+            *port = portSet;
+            return;
+        }
+
+        const StringPtr selected = objPtr.getPropertyValue(add_device_config::TransportOption);
+        *port = transportOptions.get(selected).getPort();
+    });
 }
 
 bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)

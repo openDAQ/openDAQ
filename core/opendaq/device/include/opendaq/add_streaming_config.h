@@ -25,7 +25,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IAddStreamingConfig, GenericAddStreamingConfigPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IStreamingType, StreamingTypePtr, "<opendaq/streaming_type_ptr.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
@@ -43,8 +42,8 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The transport the streaming connects over is one of the config's transport options. For a Streaming type with
  * options, the config's `TransportOption` property holds the id of the selected option, and its selection values are
- * the ids of the options. The `Port` property is the port of the selected option until it is set; a port set overrides
- * the port of whichever option is selected, until setPort is called with null.
+ * the ids of the options. The `Port` property holds the port set, or -1 while none is set; a port set is used instead
+ * of the port of whichever option is selected, even when it is the same, until setPort is called with -1.
  *
  * When the streaming is created, it connects at the first of these ports:
  * - the port set on the config, by setPort or by writing the `Port` property;
@@ -53,10 +52,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * - the port the server of the added device announces for the selected option;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
- * A port set counts only when it differs from the port of the selected option. The module gets the selected option and
- * that port as the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
- * `PortConfigProperty`), in place of a port its own default config declares, and a connection string that names the
- * same port.
+ * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
+ * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
+ * and a connection string that names the same port.
  *
  * Creating the streaming fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection string names
  * another port that is not the port of an option the config lists or the server announces.
@@ -107,12 +105,12 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 
     /*!
      * @brief Sets the port the streaming connects to.
-     * @param port The port, used instead of the one the selected option lists whichever option is selected; null to
-     * use the port of the selected option again.
+     * @param port The port, used instead of the one the selected option lists whichever option is selected, even when
+     * it is the same; -1 to use the port of the selected option again.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
-     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
      */
-    virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
+    virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 
     /*!
      * @brief Gets the port the streaming connects to.
@@ -124,7 +122,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * Unless a port is set, a port the connection string of the streaming names, or else a port the server of the
      * added device announces for the selected option, takes precedence (see the class description).
      */
-    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };
 
 /*!@}*/

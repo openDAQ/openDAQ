@@ -97,7 +97,9 @@ TEST_F(AddConfigTransportTest, ListsTypeOptions)
     const auto properties = Properties(config);
     ASSERT_EQ(properties.getPropertyValue("TransportOption"), "tls");
     ASSERT_EQ(properties.getProperty("TransportOption").getSelectionValues(), List<IString>("tls", "plain"));
-    ASSERT_EQ(properties.getPropertyValue("Port"), 7421);
+    // -1 while no port is set: the port of the selected option applies
+    ASSERT_EQ(properties.getPropertyValue("Port"), -1);
+    ASSERT_EQ(config.getPort(), 7421);
     ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
 }
@@ -148,12 +150,25 @@ TEST_F(AddConfigTransportTest, SetTransportOptionKeepsPortSetBefore)
     ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
 }
 
-// A null port drops the port set, so the port of the selected option applies again
-TEST_F(AddConfigTransportTest, SetPortNullUsesTheOptionPortAgain)
+// A port equal to the one of the selected option is set all the same: it stays when another option is selected
+TEST_F(AddConfigTransportTest, SetPortEqualToOptionPortIsKept)
+{
+    const auto config = CreateConfig();
+    ASSERT_EQ(config.getSelectedTransportOption().getPort(), 7421);
+
+    config.setPort(7421);
+    ASSERT_TRUE(SavesPort(config));
+
+    config.setTransportOption("plain");
+    ASSERT_EQ(config.getPort(), 7421);
+}
+
+// -1 drops the port set, so the port of the selected option applies again
+TEST_F(AddConfigTransportTest, SetPortMinusOneUsesTheOptionPortAgain)
 {
     const auto config = CreateConfig();
     config.setPort(9000);
-    config.setPort(nullptr);
+    config.setPort(-1);
     ASSERT_EQ(config.getPort(), 7421);
     ASSERT_FALSE(SavesPort(config));
 
@@ -162,7 +177,7 @@ TEST_F(AddConfigTransportTest, SetPortNullUsesTheOptionPortAgain)
 
     const auto streamingConfig = AddStreamingConfig(CreateStreamingType());
     streamingConfig.setPort(9000);
-    streamingConfig.setPort(nullptr);
+    streamingConfig.setPort(-1);
     ASSERT_EQ(streamingConfig.getPort(), 7421);
     ASSERT_FALSE(SavesPort(streamingConfig));
 }
@@ -173,7 +188,7 @@ TEST_F(AddConfigTransportTest, InvalidSelection)
 
     ASSERT_THROW(config.setTransportOption("wss"), NotFoundException);
     ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
-    ASSERT_THROW(config.setPort(-1), InvalidParameterException);
+    ASSERT_THROW(config.setPort(-2), InvalidParameterException);
     ASSERT_EQ(config.getPort(), 7421);
     ASSERT_FALSE(SavesPort(config));
 }

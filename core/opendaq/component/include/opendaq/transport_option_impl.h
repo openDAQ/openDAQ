@@ -98,30 +98,4 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
         config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
 }
 
-/*!
- * @brief Gets the expression of the port of the selected transport option, for the default value of the port property of
- * an add-device or add-streaming config.
- * @param options The options keyed by their ids; none of the ids may contain a quote.
- * @param selectionProperty The name of the string property that holds the id of the selected option.
- * @returns A `switch` over the option ids with their ports, the port of the first option for an id it does not list.
- */
-inline StringPtr SelectedTransportOptionPortEval(const DictPtr<IString, ITransportOption>& options, const std::string& selectionProperty)
-{
-    const TransportOptionPtr defaultOption = FirstTransportOption(options);
-    if (!defaultOption.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "There are no transport options to select");
-
-    std::string eval = "switch($" + selectionProperty;
-    for (const auto& [id, option] : options)
-    {
-        const std::string idStr = id;
-        if (idStr.find('\'') != std::string::npos)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option id "{}" contains a quote)", idStr);
-
-        eval += fmt::format(", '{}', {}", idStr, option.getPort());
-    }
-
-    return eval + fmt::format(", {})", defaultOption.getPort());
-}
-
 END_NAMESPACE_OPENDAQ

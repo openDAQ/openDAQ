@@ -1050,7 +1050,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //                 capability announces
     //   stringPort = the port target names, unless it is one of optionPorts (a discovered connection string carries
     //                the port of an option, not a port to connect at)
-    //   if port != config.getSelectedTransportOption().getPort():      // a port is set
+    //   if the Port property of config is not -1:                    // a port is set
     //       if stringPort is assigned and stringPort != port:
     //           fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   else if stringPort is assigned:
@@ -1591,7 +1591,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
             };
 
             if (port.has_value() && !isOptionPort(port.value()))
-                addDeviceConfig.setPort(Integer(port.value()));
+                addDeviceConfig.setPort(port.value());
         }
 
         const auto options = addDeviceConfig.getStreamingOptions();

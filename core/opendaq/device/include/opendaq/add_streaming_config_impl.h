@@ -48,8 +48,8 @@ public:
     ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
     ErrCode INTERFACE_FUNC setTransportOption(IString* id) override;
     ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
-    ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
-    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
+    ErrCode INTERFACE_FUNC setPort(Int port) override;
+    ErrCode INTERFACE_FUNC getPort(Int* port) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 

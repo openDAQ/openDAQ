@@ -41,7 +41,6 @@ enum class AddressType : EnumType
  * [interfaceSmartPtr(IAddDeviceConfig, GenericAddDeviceConfigPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IDeviceType, GenericDeviceTypePtr, "<opendaq/device_type_ptr.h>", true)]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
@@ -55,8 +54,8 @@ enum class AddressType : EnumType
  *
  * The transport the device is added over is one of the config's transport options. For a Device type with options, the
  * config's `TransportOption` property holds the id of the selected option, and its selection values are the ids of the
- * options. The `Port` property is the port of the selected option until it is set; a port set overrides the port of
- * whichever option is selected, until setPort is called with null.
+ * options. The `Port` property holds the port set, or -1 while none is set; a port set is used instead of the port of
+ * whichever option is selected, even when it is the same, until setPort is called with -1.
  *
  * When the device is added, it is connected at the first of these ports:
  * - the port set on the config, by setPort or by writing the `Port` property. For a device info without a server
@@ -67,10 +66,9 @@ enum class AddressType : EnumType
  * - the port the server announces for the selected option, when discovery reports the device;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
- * A port set counts only when it differs from the port of the selected option. The module gets the selected option and
- * that port as the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
- * `PortConfigProperty`), in place of a port its own default config declares, and a connection string that names the
- * same port.
+ * The module gets the selected option and that port as the "TransportOption" and "Port" properties of the type config
+ * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
+ * and a connection string that names the same port.
  *
  * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection
  * string names another port that is not the port of an option the config lists or the discovered server announces, and
@@ -156,12 +154,12 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Sets the port the device is added on.
-     * @param port The port, used instead of the one the selected option lists whichever option is selected; null to
-     * use the port of the selected option again.
+     * @param port The port, used instead of the one the selected option lists whichever option is selected, even when
+     * it is the same; -1 to use the port of the selected option again.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
-     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
      */
-    virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
+    virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
 
     /*!
      * @brief Gets the port the device is added on.
@@ -175,7 +173,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * connection string names, or else a port discovery reports for the selected option, takes precedence when the
      * device is added (see the class description).
      */
-    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };
 
 /*!@}*/

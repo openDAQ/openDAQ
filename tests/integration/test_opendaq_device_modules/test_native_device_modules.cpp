@@ -13,6 +13,7 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/security_exceptions.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/module_impl.h>
 #include <opendaq/module_manager_utils_ptr.h>
@@ -452,7 +453,7 @@ TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousProhibited)
     {
         auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
         authConfig.setAuthenticationMethod("Anonymous");
-        ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)));
+        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)), AuthenticationFailedException);
     }
 
     // Username/password supplied via the authentication config - native configuration device
@@ -461,7 +462,7 @@ TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousProhibited)
         authConfig.setAuthenticationMethod("UserNamePassword");
 
         authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "wrongPass"}}));
-        ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)));
+        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)), AuthenticationFailedException);
 
         authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "jure123"}}));
         auto device = clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig));

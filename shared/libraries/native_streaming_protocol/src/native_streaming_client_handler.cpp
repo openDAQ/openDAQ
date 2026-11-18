@@ -2,6 +2,8 @@
 #include <native_streaming_protocol/async_exception_guard.h>
 #include <native_streaming/client.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/beast/http/error.hpp>
+#include <coreobjects/exceptions.h>
 #include "native_streaming_protocol/streaming_manager.h"
 
 #include <opendaq/custom_log.h>
@@ -266,6 +268,11 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
             connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
                                     "Reconnection failed – no valid device found at the connection address");
         }
+        else if (result == ConnectionResult::AuthenticationFailed)
+        {
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
+                                    "Reconnection failed – authentication rejected by the server");
+        }
         else
         {
             tryReconnect();
@@ -338,11 +345,21 @@ bool NativeStreamingClientImpl::connect(std::string host,
     connectedFuture = connectedPromise.get_future();
     client->connect(connectionTimeout);
 
-    if (connectedFuture.wait_for(connectionTimeout) == std::future_status::ready &&
-        connectedFuture.get() == ConnectionResult::Connected)
-            return true;
+    const auto result = connectedFuture.wait_for(connectionTimeout) == std::future_status::ready
+                            ? connectedFuture.get()
+                            : ConnectionResult::ServerUnreachable;
+    if (result == ConnectionResult::Connected)
+        return true;
 
     client.reset();
+    if (result == ConnectionResult::AuthenticationFailed)
+    {
+        DAQ_THROW_EXCEPTION(AuthenticationFailedException,
+                            "Authentication rejected by native streaming server - host {} port {} path {}",
+                            host,
+                            port,
+                            path);
+    }
     return false;
 }
 
@@ -644,14 +661,24 @@ void NativeStreamingClientImpl::initClient(std::string host,
             thisPtr->onConnectionFailed(fmt::format("Connection failed: {}", ec.message()),
                                         ConnectionResult::ServerUnreachable);
     };
-    OnCompleteCallback onHandshakeFailCallback =
-        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
+    OnHandshakeFailCallback onHandshakeFailCallback =
+        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec, const std::shared_ptr<const HandshakeResponse>& response)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
         {
-            if (ec.value() == boost::asio::error::connection_reset)
+            // server declined the upgrade with an HTTP reply - 401 means the credentials were rejected
+            if (response && response->result() == boost::beast::http::status::unauthorized)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (authentication rejected by the server): {} {}",
+                                                        response->result_int(),
+                                                        std::string(response->reason())),
+                                            ConnectionResult::AuthenticationFailed);
+            else if (ec.value() == boost::asio::error::connection_reset)
                 thisPtr->onConnectionFailed(fmt::format("Handshake failed (server reset the connection): {}", ec.message()),
                                             ConnectionResult::ServerUnreachable);
+            // older native streaming servers close the connection without any reply when they reject authentication
+            else if (ec == boost::beast::http::error::end_of_stream)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (server closed the connection, authentication rejected): {}", ec.message()),
+                                            ConnectionResult::AuthenticationFailed);
             else
                 thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
                                             ConnectionResult::ServerUnsupported);

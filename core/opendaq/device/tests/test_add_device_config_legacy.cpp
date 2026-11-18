@@ -423,6 +423,48 @@ TEST_F(AddDeviceConfigLegacyTest, AdapterDropsStreamingSection)
     ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 1);
 }
 
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigPassesOtherConfigs)
+{
+    const auto streamingType = streamingTypes.get(LtId);
+    ASSERT_FALSE(fromLegacyAddStreamingConfig(nullptr, streamingType).assigned());
+
+    for (const auto name : {"Device", "Streaming", "General"})
+    {
+        const auto config = createLegacyConfig();
+        config.removeProperty(name);
+        ASSERT_EQ(fromLegacyAddStreamingConfig(config, streamingType), config);
+    }
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigTakesItsEntryAndGeneralCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
+    const auto entry = typeSection(legacy, "Streaming", LtId);
+    entry.setPropertyValue("Port", 1);
+    entry.setPropertyValue("Username", "ltuser");
+
+    const auto typeConfig = fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId));
+
+    ASSERT_EQ(typeConfig.getPropertyValue("Port"), 1);
+    ASSERT_EQ(typeConfig.getPropertyValue("Username"), "ltuser");
+    ASSERT_EQ(typeConfig.getPropertyValue("Password"), "pw");
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutEntryTakesGeneralCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    section(legacy, "Streaming").removeProperty(LtId);
+    section(legacy, "General").setPropertyValue("Username", "user");
+
+    const auto expected = createTypeConfig();
+    expected.setPropertyValue("Username", "user");
+
+    ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId))), serialize(expected));
+}
+
 TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)
 {
     const auto connects = [](DeviceKind kind)

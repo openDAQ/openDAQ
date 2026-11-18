@@ -115,6 +115,24 @@ PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectP
                                                            const LoggerComponentPtr& loggerComponent);
 
 /*!
+ * @brief Translates a legacy config into the type config of a Streaming type.
+ * @param config The config
+ * @param streamingType The Streaming type the config is created for
+ * @returns The type config, or the config as given when it isn't a legacy config
+ * @throws InvalidValueException when the type config rejects a value of the `Streaming` entry.
+ * @throws NotFoundException when a `General` selection value is not in its selection.
+ * @throws ConversionFailedException when a `General` value can't be converted to its property's type.
+ *
+ * A legacy config has `Device`, `Streaming` and `General` sections.
+ * Any other config, null included, is returned as given.
+ * The type config is the default config of the Streaming type.
+ * It takes the values of the type's entry in the `Streaming` section, copied as `fromLegacyAddDeviceConfig` copies them.
+ * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into it as in `fromLegacyAddDeviceConfig`.
+ * Without an entry for the type, the type config takes only the `General` keys.
+ */
+PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
+
+/*!
  * @brief Translates an Add device config into a legacy config with `Device`, `Streaming` and `General` sections.
  * @param config The Add device config
  * @returns The legacy config

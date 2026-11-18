@@ -36,6 +36,39 @@ static void copyValues(const PropertyObjectPtr& target, const PropertyObjectPtr&
     }
 }
 
+static PropertyObjectPtr sectionOf(const PropertyObjectPtr& obj,
+                                   const StringPtr& name,
+                                   const PropertyObjectPtr& fallback = PropertyObject())
+{
+    return obj.hasProperty(name) ? PropertyObjectPtr(obj.getPropertyValue(name)) : fallback;
+}
+
+static PropertyObjectPtr createGeneral(const PropertyObjectPtr& source, Bool scanOnAdd)
+{
+    auto general = createLegacyGeneralConfig(scanOnAdd);
+    copyValues(general, source);
+    return general;
+}
+
+static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyObjectPtr& source, const PropertyObjectPtr& general)
+{
+    try
+    {
+        copyValues(target, source);
+    }
+    catch (const DaqException& e)
+    {
+        DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
+    }
+
+    for (const auto name : {LegacyAddDeviceConfig::Username,
+                            LegacyAddDeviceConfig::Password,
+                            LegacyAddDeviceConfig::ClientType,
+                            LegacyAddDeviceConfig::ExclusiveControlDropOthers})
+        if (target.hasProperty(name) && target.getPropertyValue(name) == general.getProperty(name).getDefaultValue())
+            target.setPropertyValue(name, general.getPropertyValue(name));
+}
+
 }
 
 PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
@@ -103,15 +136,9 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const LoggerComponentPtr& loggerComponent)
 {
     const auto legacyConfig = input.assigned() ? input : PropertyObject();
-    const auto sectionOf = [](const PropertyObjectPtr& obj, const StringPtr& name, const PropertyObjectPtr& fallback = PropertyObject())
-    {
-        return obj.hasProperty(name) ? PropertyObjectPtr(obj.getPropertyValue(name)) : fallback;
-    };
-
-    const auto general = createLegacyGeneralConfig(scanOnAdd);
-    detail::copyValues(general, sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig));
-
-    const auto streamingSection = sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
+    const auto general =
+        detail::createGeneral(detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+    const auto streamingSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
     const auto loadedTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
 
     const bool hasStreamingSection = legacyConfig.hasProperty(LegacyAddDeviceConfig::StreamingSection);
@@ -125,29 +152,10 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     const auto options = config.getStreamingOptions();
     const auto streamingConfigs = options.assigned() ? options.getAvailableStreamingConfigs() : Dict<IString, IAddStreamingConfig>();
 
-    const auto translateTypeConfig = [&general](const PropertyObjectPtr& target, const PropertyObjectPtr& source)
-    {
-        try
-        {
-            detail::copyValues(target, source);
-        }
-        catch (const DaqException& e)
-        {
-            DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
-        }
-
-        for (const auto name : {LegacyAddDeviceConfig::Username,
-                                LegacyAddDeviceConfig::Password,
-                                LegacyAddDeviceConfig::ClientType,
-                                LegacyAddDeviceConfig::ExclusiveControlDropOthers})
-            if (target.hasProperty(name) && target.getPropertyValue(name) == general.getProperty(name).getDefaultValue())
-                target.setPropertyValue(name, general.getPropertyValue(name));
-    };
-
-    const auto deviceSection = sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
-    translateTypeConfig(config.getTypeConfig(), sectionOf(deviceSection, deviceType.getId(), legacyConfig));
+    const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
+    detail::translateTypeConfig(config.getTypeConfig(), detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig), general);
     for (const auto& [typeId, streamingConfig] : streamingConfigs)
-        translateTypeConfig(streamingConfig.getTypeConfig(), sectionOf(streamingSection, typeId));
+        detail::translateTypeConfig(streamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, typeId), general);
 
     const StringPtr addressType = general.getPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType);
     if (addressType == LegacyAddDeviceConfig::IPv6)
@@ -187,6 +195,20 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     options.setStreamingType(*pick);
     return config;
+}
+
+PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
+{
+    if (!config.assigned() || !config.hasProperty(LegacyAddDeviceConfig::DeviceSection) ||
+        !config.hasProperty(LegacyAddDeviceConfig::StreamingSection) || !config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
+        return config;
+
+    const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
+    const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
+
+    auto typeConfig = streamingType.createDefaultConfig();
+    detail::translateTypeConfig(typeConfig, detail::sectionOf(streamingSection, streamingType.getId()), general);
+    return typeConfig;
 }
 
 PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)

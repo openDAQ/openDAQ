@@ -9,6 +9,7 @@
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 
 using ServerCapabilityTest = testing::Test;
 

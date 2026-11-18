@@ -2,6 +2,7 @@
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/container_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -124,6 +125,26 @@ inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
     if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
         return nullptr;
     return typeConfig.getPropertyValue(TransportOptionConfigProperty);
+}
+
+/*!
+ * @brief Adds the properties a module connects by to the config a device or streaming is created with.
+ * @param config The type config.
+ * @param options The type's transport options; nothing is added when there are none.
+ *
+ * Adds TransportOptionConfigProperty, set to the id of the first option, and PortConfigProperty, set to its port.
+ * A property the config already has is kept.
+ */
+inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
+{
+    const TransportOptionPtr defaultOption = FirstValue(options);
+    if (!config.assigned() || !defaultOption.assigned())
+        return;
+
+    if (!config.hasProperty(TransportOptionConfigProperty))
+        config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getId()));
+    if (!config.hasProperty(PortConfigProperty))
+        config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
 }
 
 // Fails with OPENDAQ_ERR_NOTFOUND when the type config holds the id of a transport option the type does not list

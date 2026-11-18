@@ -1,6 +1,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <opendaq/transport_option_impl.h>

@@ -26,6 +26,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/address_info_ptr.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/container_utils.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <fmt/format.h>
 #include <algorithm>
@@ -119,8 +120,6 @@ private:
 
     DictPtr<IString, ITransportOption> readTransportOptions();
     ErrCode writeTransportOptions(const DictPtr<IString, ITransportOption>& options);
-    static DictPtr<IString, ITransportOption> ValidatedTransportOptions(IDict* transportOptions);
-    static TransportOptionPtr FirstTransportOption(const DictPtr<IString, ITransportOption>& options);
     static TransportOptionPtr TransportOptionFromObject(const PropertyObjectPtr& obj);
     static PropertyObjectPtr TransportOptionObject(const TransportOptionPtr& option);
 
@@ -442,7 +441,7 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
     {
         // Keeps the default option in step with the port
         auto options = readTransportOptions();
-        if (const auto first = FirstTransportOption(options); first.assigned())
+        if (const auto first = FirstValue(options); first.assigned())
         {
             // replacing the value of a key keeps its place
             const Int newPort = IntegerPtr::Borrow(port);
@@ -591,14 +590,6 @@ inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransp
     return options;
 }
 
-inline TransportOptionPtr ServerCapabilityConfigImpl::FirstTransportOption(const DictPtr<IString, ITransportOption>& options)
-{
-    for (const auto& [id, option] : options)
-        return option;
-
-    return nullptr;
-}
-
 // Restores an option from the plain Property object the capability keeps it as, also on a serialized or remote one
 inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(const PropertyObjectPtr& obj)
 {
@@ -658,25 +649,6 @@ inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<I
     });
 }
 
-inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::ValidatedTransportOptions(IDict* transportOptions)
-{
-    auto options = Dict<IString, ITransportOption>();
-    for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(transportOptions))
-    {
-        const auto id = key.asPtrOrNull<IString, StringPtr>();
-        const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-        if (!id.assigned() || !option.assigned())
-            DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
-
-        if (id != option.getId())
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getId(), id);
-
-        options.set(id, option);
-    }
-
-    return options;
-}
-
 inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
@@ -694,11 +666,12 @@ inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IDict* t
 
     return daqTry([&]
     {
-        const auto options = ValidatedTransportOptions(transportOptions);
+        CheckKeyedByIds<ITransportOption>(transportOptions);
+        const DictPtr<IString, ITransportOption> options = transportOptions;
         OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
 
         // Older clients read the Port property
-        if (const auto first = FirstTransportOption(options); first.assigned())
+        if (const auto first = FirstValue(options); first.assigned())
             OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(first.getPort())));
 
         return OPENDAQ_SUCCESS;

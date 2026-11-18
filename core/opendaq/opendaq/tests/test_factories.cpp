@@ -1,4 +1,5 @@
 #include <opendaq/instance_factory.h>
+#include <testutils/transport_options.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/streaming_type_factory.h>

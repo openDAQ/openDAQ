@@ -34,7 +34,7 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     // The selected transport option, for a type with options
     if (this->transportOptions.getCount() > 0)
     {
-        const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
+        const TransportOptionPtr firstOption = FirstValue(this->transportOptions);
         Super::addProperty(StringPropertyBuilder(add_streaming_config::TransportOption, firstOption.getId())
                                .setSelectionValues(this->transportOptions.getKeyList())
                                .build());

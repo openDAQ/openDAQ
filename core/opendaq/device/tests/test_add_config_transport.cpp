@@ -7,6 +7,7 @@
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>

@@ -73,7 +73,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
     // The selected transport option, for a type with options
     if (this->transportOptions.getCount() > 0)
     {
-        const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
+        const TransportOptionPtr firstOption = FirstValue(this->transportOptions);
         Super::addProperty(StringPropertyBuilder(add_device_config::TransportOption, firstOption.getId())
                                .setSelectionValues(this->transportOptions.getKeyList())
                                .build());

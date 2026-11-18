@@ -1,4 +1,5 @@
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/context_factory.h>

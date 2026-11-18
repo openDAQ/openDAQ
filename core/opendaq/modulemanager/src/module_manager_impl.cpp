@@ -814,6 +814,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
     const bool authenticationConfigSupplied = authenticationConfig.assigned();
     const ErrCode errCode = daqTry([&]()
     {
+        // Parse the connection string
         const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
         auto connectionStringPtr = String(pureConnectionString);
         if (connectionStringPtr.getLength() == 0)
@@ -828,6 +829,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
         DictPtr<IString, IStreamingType> streamingTypes;
         OPENDAQ_RETURN_IF_FAILED(getAvailableStreamingTypes(&streamingTypes));
 
+        // Scan for devices
         const auto inputAddDeviceConfig = inputConfig.asPtrOrNull<IAddDeviceConfig>(true);
         const bool scanForDevices = inputAddDeviceConfig.assigned() ? static_cast<bool>(inputAddDeviceConfig.getScanOnAdd())
                                                                     : static_cast<bool>(getLegacyScanOnAdd(inputConfig, scanOnAdd));
@@ -842,6 +844,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             }
         }
 
+        // Find the discovered device and its capabilities
         const auto findDiscoveredDeviceInfo = [this](const StringPtr& protocolConnectionString) -> DeviceInfoPtr
         {
             if (!availableDevicesGroup.assigned())
@@ -881,80 +884,70 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
         else if (const auto info = findDiscoveredDeviceInfo(connectionStringPtr); info.assigned())
             capabilities = info.getServerCapabilities();
 
-        const auto createConfig = [&](const DeviceTypePtr& deviceType)
+        // Turn the input into an add device config. No code below reads the input config.
+        const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
         {
-            assert(!inputAddDeviceConfig.assigned());
+            if (inputAddDeviceConfig.assigned())
+                return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+
+            DeviceTypePtr deviceType;
+            if (useSmartConnection)
+            {
+                const auto capability = SelectServerCapability(capabilities, deviceTypes, asChild);
+                if (!capability.assigned())
+                {
+                    DAQ_THROW_EXCEPTION(NotFoundException,
+                                        R"(Device with connection string "{}" has no server capability with a loaded device type)",
+                                        connectionStringPtr);
+                }
+                deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
+            }
+            else
+            {
+                deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
+                if (!deviceType.assigned())
+                {
+                    DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", prefix);
+                }
+            }
+
             if (inputConfig.assigned())
                 return fromLegacyAddDeviceConfig(inputConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
             return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
         };
 
-        AddDeviceConfigPtr addDeviceConfig;
-        if (inputAddDeviceConfig.assigned())
-            addDeviceConfig = inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
-        else if (!useSmartConnection)
-        {
-            const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
-            if (!deviceType.assigned())
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(No loaded device type for the prefix "{}")", prefix));
-            }
-            addDeviceConfig = createConfig(deviceType);
-        }
+        const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
 
-        if (addDeviceConfig.assigned())
-        {
-            const auto deviceType = addDeviceConfig.getDeviceType();
-            OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, asChild));
-            if (!useSmartConnection && prefix != deviceType.getConnectionStringPrefix())
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
-                                           fmt::format(R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")",
-                                                       prefix,
-                                                       deviceType.getConnectionStringPrefix(),
-                                                       deviceType.getId()));
-            }
-        }
+        // Check the device type and resolve the address
+        const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
+        const StringPtr typePrefix = deviceType.getConnectionStringPrefix();
+        OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, asChild));
 
         if (useSmartConnection)
         {
-            ServerCapabilityPtr capability;
-            if (addDeviceConfig.assigned())
+            const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
             {
-                const StringPtr typePrefix = addDeviceConfig.getDeviceType().getConnectionStringPrefix();
-                const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& cap)
-                {
-                    return getServerCapabilityPrefix(cap) == typePrefix;
-                };
-                const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
-                if (it == capabilities.end())
-                {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_NOTFOUND,
-                        fmt::format(R"(Device with connection string "{}" has no server capability with the prefix "{}")",
-                                    connectionStringPtr,
-                                    typePrefix));
-                }
-                capability = *it;
-            }
-            else
+                return getServerCapabilityPrefix(capability) == typePrefix;
+            };
+            const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
+            if (it == capabilities.end())
             {
-                capability = SelectServerCapability(capabilities, deviceTypes, asChild);
-                if (!capability.assigned())
-                {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_NOTFOUND,
-                        fmt::format(R"(Device with connection string "{}" has no server capability with a loaded device type)",
-                                    connectionStringPtr));
-                }
-
-                addDeviceConfig = createConfig(FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability)));
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_NOTFOUND,
+                    fmt::format(R"(Device with connection string "{}" has no server capability with the prefix "{}")",
+                                connectionStringPtr,
+                                typePrefix));
             }
-
-            connectionStringPtr = resolveSmartConnectionString(capability, addDeviceConfig.getPrimaryAddressType());
+            connectionStringPtr = resolveSmartConnectionString(*it, addDeviceConfig.getPrimaryAddressType());
+        }
+        else if (prefix != typePrefix)
+        {
+            return DAQ_MAKE_ERROR_INFO(
+                OPENDAQ_ERR_INVALIDPARAMETER,
+                fmt::format(R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")", prefix, typePrefix, deviceType.getId()));
         }
 
-        const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
+        // Connect through the module that has the device type
         PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
         PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
 

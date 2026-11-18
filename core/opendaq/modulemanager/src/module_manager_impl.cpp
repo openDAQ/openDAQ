@@ -885,32 +885,34 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             capabilities = info.getServerCapabilities();
 
         // Turn the input into an add device config. No code below reads the input config.
+        const auto selectDeviceType = [&]() -> DeviceTypePtr
+        {
+            if (!useSmartConnection)
+            {
+                const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
+                if (!deviceType.assigned())
+                {
+                    DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", prefix);
+                }
+                return deviceType;
+            }
+
+            const auto capability = SelectServerCapability(capabilities, deviceTypes, asChild);
+            if (!capability.assigned())
+            {
+                DAQ_THROW_EXCEPTION(NotFoundException,
+                                    R"(Device with connection string "{}" has no server capability with a loaded device type)",
+                                    connectionStringPtr);
+            }
+            return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
+        };
+
         const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
         {
             if (inputAddDeviceConfig.assigned())
                 return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
 
-            DeviceTypePtr deviceType;
-            if (useSmartConnection)
-            {
-                const auto capability = SelectServerCapability(capabilities, deviceTypes, asChild);
-                if (!capability.assigned())
-                {
-                    DAQ_THROW_EXCEPTION(NotFoundException,
-                                        R"(Device with connection string "{}" has no server capability with a loaded device type)",
-                                        connectionStringPtr);
-                }
-                deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
-            }
-            else
-            {
-                deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
-                if (!deviceType.assigned())
-                {
-                    DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", prefix);
-                }
-            }
-
+            const auto deviceType = selectDeviceType();
             if (inputConfig.assigned())
                 return fromLegacyAddDeviceConfig(inputConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
             return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
@@ -919,12 +921,23 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
         const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
 
         // Check the device type and resolve the address
-        const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
-        const StringPtr typePrefix = deviceType.getConnectionStringPrefix();
-        OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, asChild));
-
-        if (useSmartConnection)
+        const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
         {
+            const auto deviceType = config.getDeviceType();
+            const StringPtr typePrefix = deviceType.getConnectionStringPrefix();
+            if (!useSmartConnection)
+            {
+                if (prefix != typePrefix)
+                {
+                    DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                        R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")",
+                                        prefix,
+                                        typePrefix,
+                                        deviceType.getId());
+                }
+                return connectionStringPtr;
+            }
+
             const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
             {
                 return getServerCapabilityPrefix(capability) == typePrefix;
@@ -932,20 +945,17 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
             if (it == capabilities.end())
             {
-                return DAQ_MAKE_ERROR_INFO(
-                    OPENDAQ_ERR_NOTFOUND,
-                    fmt::format(R"(Device with connection string "{}" has no server capability with the prefix "{}")",
-                                connectionStringPtr,
-                                typePrefix));
+                DAQ_THROW_EXCEPTION(NotFoundException,
+                                    R"(Device with connection string "{}" has no server capability with the prefix "{}")",
+                                    connectionStringPtr,
+                                    typePrefix);
             }
-            connectionStringPtr = resolveSmartConnectionString(*it, addDeviceConfig.getPrimaryAddressType());
-        }
-        else if (prefix != typePrefix)
-        {
-            return DAQ_MAKE_ERROR_INFO(
-                OPENDAQ_ERR_INVALIDPARAMETER,
-                fmt::format(R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")", prefix, typePrefix, deviceType.getId()));
-        }
+            return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+        };
+
+        const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
+        OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, asChild));
+        connectionStringPtr = resolveConnectionString(addDeviceConfig);
 
         // Connect through the module that has the device type
         PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();

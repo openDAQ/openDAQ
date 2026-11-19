@@ -10,6 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
+    , serverKind(ServerKind::Unspecified)
     , deviceKind(DeviceKind::Unspecified)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
 {
@@ -131,6 +132,20 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
     *defaultConfig = this->defaultConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setServerKind(ServerKind kind)
+{
+    this->serverKind = kind;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getServerKind(ServerKind* kind)
+{
+    OPENDAQ_PARAM_NOT_NULL(kind);
+
+    *kind = this->serverKind;
     return OPENDAQ_SUCCESS;
 }
 

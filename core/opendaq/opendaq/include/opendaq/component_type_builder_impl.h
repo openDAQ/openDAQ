@@ -50,6 +50,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) override;
+    ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) override;
+
     ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) override;
     ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) override;
 
@@ -67,6 +70,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    ServerKind serverKind;
     DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;

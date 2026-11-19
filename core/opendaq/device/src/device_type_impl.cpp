@@ -54,58 +54,59 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
     OPENDAQ_PARAM_NOT_NULL(serializer);
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-    const ErrCode errCode = daqTry([this, &serializerPtr]
-    {
-        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
-        {
-            serializerPtr.key("id");
-            serializerPtr.writeString(id);
-
-            if (name.assigned())
-            {
-                serializerPtr.key("name");
-                serializerPtr.writeString(name);
-            }
-
-            if (description.assigned())
-            {
-                serializerPtr.key("description");
-                serializerPtr.writeString(description);
-            }
-
-            if (prefix.assigned())
-            {
-                serializerPtr.key("prefix");
-                serializerPtr.writeString(prefix);
-            }
-
-            if (defaultConfig.assigned())
-            {
-                serializerPtr.key("defaultConfig");
-                defaultConfig.serialize(serializerPtr);
-            }
-
-            if (supportedAuthenticationMethods.getCount() > 0)
-            {
-                serializerPtr.key("supportedAuthenticationMethods");
-                supportedAuthenticationMethods.serialize(serializerPtr);
-            }
-
-            if (moduleInfo.assigned())
-            {
-                serializerPtr.key("moduleInfo");
-                moduleInfo.serialize(serializerPtr);
-            }
-
-            serializerPtr.key("deviceKind");
-            serializerPtr.writeInt(static_cast<Int>(deviceKind));
-        }
-
-        serializerPtr.endObject();
-    });
+    const ErrCode errCode = daqTry([this, &serializerPtr] { serializeType(serializerPtr, true); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+void DeviceTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig)
+{
+    serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+    {
+        serializerPtr.key("id");
+        serializerPtr.writeString(id);
+
+        if (name.assigned())
+        {
+            serializerPtr.key("name");
+            serializerPtr.writeString(name);
+        }
+
+        if (description.assigned())
+        {
+            serializerPtr.key("description");
+            serializerPtr.writeString(description);
+        }
+
+        if (prefix.assigned())
+        {
+            serializerPtr.key("prefix");
+            serializerPtr.writeString(prefix);
+        }
+
+        if (withDefaultConfig && defaultConfig.assigned())
+        {
+            serializerPtr.key("defaultConfig");
+            defaultConfig.serialize(serializerPtr);
+        }
+
+        if (supportedAuthenticationMethods.getCount() > 0)
+        {
+            serializerPtr.key("supportedAuthenticationMethods");
+            supportedAuthenticationMethods.serialize(serializerPtr);
+        }
+
+        if (moduleInfo.assigned())
+        {
+            serializerPtr.key("moduleInfo");
+            moduleInfo.serialize(serializerPtr);
+        }
+
+        serializerPtr.key("deviceKind");
+        serializerPtr.writeInt(static_cast<Int>(deviceKind));
+    }
+
+    serializerPtr.endObject();
 }
 
 ErrCode INTERFACE_FUNC DeviceTypeImpl::getSerializeId(ConstCharPtr* serializedId) const

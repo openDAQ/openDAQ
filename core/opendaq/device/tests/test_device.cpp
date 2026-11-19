@@ -19,6 +19,8 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/module_info_factory.h>
 #include <coretypes/version_info_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -345,6 +347,28 @@ TEST_F(DeviceTest, DeviceTypeDeserializeWithoutKindIsUnspecified)
     const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(json, nullptr, nullptr);
     ASSERT_EQ(deserialized.getId(), "id");
     ASSERT_EQ(deserialized.getDeviceKind(), daq::DeviceKind::Unspecified);
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesPrefixWithoutDescription)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
+
+    const auto serializer = daq::JsonSerializer();
+    type.serialize(serializer);
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getConnectionStringPrefix(), "prefix");
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesDescriptionWithoutPrefix)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setDescription("desc").build();
+
+    const auto serializer = daq::JsonSerializer();
+    ASSERT_NO_THROW(type.serialize(serializer));
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getDescription(), "desc");
 }
 
 TEST_F(DeviceTest, StandardProperties)

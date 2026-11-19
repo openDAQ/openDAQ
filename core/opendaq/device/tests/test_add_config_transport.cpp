@@ -14,6 +14,8 @@
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/updatable_ptr.h>
 #include <coretypes/json_deserializer_factory.h>
+#include <opendaq/add_device_config_legacy.h>
+#include <opendaq/logger_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -332,6 +334,165 @@ TEST_F(AddConfigTransportTest, AddStreamingConfig)
     ASSERT_EQ(withoutOptions.getPort(), -1);
     withoutOptions.setPort(9000);
     ASSERT_EQ(withoutOptions.getPort(), 9000);
+}
+
+// The legacy translation keeps a set port in the Port of the Device and Streaming entries
+class AddConfigTransportLegacyTest : public AddConfigTransportTest
+{
+protected:
+    // A Mirrored Device type whose module has no Port
+    static DeviceTypePtr DeviceTypeWithoutOwnPort()
+    {
+        return DeviceTypeBuilder()
+            .setId("dev")
+            .setName("dev")
+            .setConnectionStringPrefix("dev")
+            .setDeviceKind(DeviceKind::Mirrored)
+            .setAvailableTransportOptions(TypeOptions())
+            .build();
+    }
+
+    static PropertyObjectPtr Entry(const PropertyObjectPtr& legacy, const char* section, const char* id)
+    {
+        const PropertyObjectPtr sectionObj = legacy.getPropertyValue(section);
+        return sectionObj.getPropertyValue(id);
+    }
+
+    // Sets the device port to 7500 and the streaming port to 7600
+    static AddDeviceConfigPtr ConfigWithPortsSet(const DeviceTypePtr& deviceType)
+    {
+        const auto config = CreateConfig(deviceType);
+        config.setPort(7500);
+        config.getStreamingOptions().getAvailableStreamingConfigs().get("str").setPort(7600);
+        return config;
+    }
+
+    static AddStreamingConfigPtr StreamingConfig(const AddDeviceConfigPtr& config)
+    {
+        return config.getStreamingOptions().getAvailableStreamingConfigs().get("str");
+    }
+
+    static PropertyObjectPtr LegacyConfig(const DeviceTypePtr& deviceType)
+    {
+        return createLegacyAddDeviceConfig(
+            Dict<IString, IDeviceType>({{"dev", deviceType}}), Dict<IString, IStreamingType>({{"str", CreateStreamingType()}}), True);
+    }
+
+    static AddDeviceConfigPtr FromLegacy(const PropertyObjectPtr& legacy,
+                                         const DeviceTypePtr& deviceType,
+                                         const StreamingTypePtr& streamingType = CreateStreamingType())
+    {
+        return fromLegacyAddDeviceConfig(legacy,
+                                         deviceType,
+                                         Dict<IString, IStreamingType>({{"str", streamingType}}),
+                                         True,
+                                         Logger().getOrAddComponent("AddConfigTransportLegacyTest"));
+    }
+};
+
+TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSet)
+{
+    const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(DeviceTypeWithoutOwnPort()));
+
+    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").getPropertyValue(PortConfigProperty), 7600);
+}
+
+// The module has its own Port (7000). The legacy entry gets the set port instead.
+TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSetOverModulePort)
+{
+    const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(CreateDeviceType()));
+
+    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+}
+
+// Without a set port, the entries keep the module's values.
+// Writing the option port there would override the port of the connection string.
+TEST_F(AddConfigTransportLegacyTest, ToLegacyWithoutPortSetKeepsTypeConfigs)
+{
+    const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(CreateConfig(CreateDeviceType()));
+
+    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7000);
+    ASSERT_FALSE(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").hasProperty(PortConfigProperty));
+}
+
+// A config serialized for an older peer (serializer version 3) goes through the translation
+TEST_F(AddConfigTransportLegacyTest, SerializedForOlderPeerCarriesPortSet)
+{
+    const auto serializer = JsonSerializerWithVersion(3);
+    ConfigWithPortsSet(CreateDeviceType()).serialize(serializer);
+    const PropertyObjectPtr legacy = JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+}
+
+TEST_F(AddConfigTransportLegacyTest, FromLegacyTakesPortSet)
+{
+    const auto deviceType = CreateDeviceType();
+    const auto legacy = LegacyConfig(deviceType);
+    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
+    Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").addProperty(IntProperty(PortConfigProperty, 7600));
+
+    const auto config = FromLegacy(legacy, deviceType);
+
+    ASSERT_EQ(config.getPort(), 7500);
+    ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(StreamingConfig(config).getPort(), 7600);
+}
+
+// The default of the module's Port is not a set port, so the option port is used
+TEST_F(AddConfigTransportLegacyTest, FromLegacyPortAtModuleDefaultIsNoPortSet)
+{
+    const auto deviceType = CreateDeviceType();
+    const auto config = FromLegacy(LegacyConfig(deviceType), deviceType);
+
+    ASSERT_EQ(Properties(config).getPropertyValue("Port"), -1);
+    ASSERT_EQ(config.getPort(), 7421);
+    ASSERT_EQ(Properties(StreamingConfig(config)).getPropertyValue("Port"), -1);
+}
+
+TEST_F(AddConfigTransportLegacyTest, LegacyRoundTripKeepsPortSet)
+{
+    for (const auto& deviceType : {DeviceTypeWithoutOwnPort(), CreateDeviceType()})
+    {
+        const auto config = FromLegacy(toLegacyAddDeviceConfig(ConfigWithPortsSet(deviceType)), deviceType);
+
+        ASSERT_EQ(config.getPort(), 7500);
+        ASSERT_EQ(StreamingConfig(config).getPort(), 7600);
+    }
+}
+
+// A type without transport options keeps the legacy Port in the module's Port
+TEST_F(AddConfigTransportLegacyTest, FromLegacyTypeWithoutOptionsKeepsModulePort)
+{
+    const auto deviceType = CreateDeviceType(Dict<IString, ITransportOption>());
+    const auto legacy = LegacyConfig(deviceType);
+    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
+
+    const auto config = FromLegacy(legacy, deviceType);
+
+    ASSERT_EQ(Properties(config).getPropertyValue("Port"), -1);
+    ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7500);
+}
+
+// Without options and without a module Port, the legacy Port can only be a set port
+TEST_F(AddConfigTransportLegacyTest, LegacyRoundTripKeepsPortSetWithoutOptions)
+{
+    const auto deviceType = DeviceTypeBuilder()
+                                .setId("dev")
+                                .setName("dev")
+                                .setConnectionStringPrefix("dev")
+                                .setDeviceKind(DeviceKind::Mirrored)
+                                .build();
+    const auto streamingType = CreateStreamingType(Dict<IString, ITransportOption>());
+    const auto config = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", streamingType}}), True);
+    config.setPort(7500);
+    StreamingConfig(config).setPort(7600);
+
+    const auto copy = FromLegacy(toLegacyAddDeviceConfig(config), deviceType, streamingType);
+
+    ASSERT_EQ(copy.getPort(), 7500);
+    ASSERT_EQ(StreamingConfig(copy).getPort(), 7600);
 }
 
 END_NAMESPACE_OPENDAQ

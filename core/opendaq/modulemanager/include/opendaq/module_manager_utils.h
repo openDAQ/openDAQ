@@ -232,12 +232,18 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 
     /*!
-     * @brief Gets whether adding a device scans for devices when its config doesn't set `ScanOnAdd`.
-     * @param[out] scanOnAdd True when adding a device scans
+     * @brief Creates an add device config from its saved form, bound to the Device types of the parent device.
+     * @param[out] config The add device config, or null when `saved` is not the save form of an add device config
+     * @param saved The config as written by `serializeForUpdate`
+     * @param parent The device the config adds a device to
      *
-     * It is the `ModuleManager.ScanOnAdd` context option, or true when the option is not set.
+     * Without a parent, the config is bound to the loaded Device types.
+     * Streaming types are bound to the loaded ones.
+     * A `ScanOnAdd` that was not set when the config was saved takes the `ModuleManager.ScanOnAdd` context option.
      */
-    virtual ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) = 0;
+    virtual ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
+                                                              ISerializedObject* saved,
+                                                              IDevice* parent = nullptr) = 0;
 };
 /*!@}*/
 

@@ -72,7 +72,9 @@ public:
     ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
     ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) override;
-    ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) override;
+    ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
+                                                      ISerializedObject* saved,
+                                                      IDevice* parent = nullptr) override;
 
 private:
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& inputConfig);

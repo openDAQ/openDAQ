@@ -1756,12 +1756,23 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     return addDeviceConfig;
 }
 
-ErrCode ModuleManagerImpl::getScanOnAdd(Bool* scanOnAdd)
+ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config, ISerializedObject* saved, IDevice* parent)
 {
-    OPENDAQ_PARAM_NOT_NULL(scanOnAdd);
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(saved);
 
-    *scanOnAdd = this->scanOnAdd;
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]()
+    {
+        DictPtr<IString, IDeviceType> deviceTypes;
+        if (parent != nullptr)
+            checkErrorInfo(parent->getAvailableDeviceTypes(&deviceTypes));
+        else
+            checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        DictPtr<IString, IStreamingType> streamingTypes;
+        checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+        *config = BoundAddDeviceConfig(saved, deviceTypes, streamingTypes, scanOnAdd).detach();
+    });
 }
 
 DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,

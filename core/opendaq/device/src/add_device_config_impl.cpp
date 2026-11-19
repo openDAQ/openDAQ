@@ -2,6 +2,7 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/component_type_private_ptr.h>
 #include <coreobjects/eval_value_factory.h>
@@ -209,6 +210,17 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
     });
 }
 
+ErrCode AddDeviceConfigImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    Int version;
+    OPENDAQ_RETURN_IF_FAILED(serializer->getVersion(&version));
+    if (version < 4)
+        return daqTry([&] { toLegacyAddDeviceConfig(objPtr.asPtr<IAddDeviceConfig>()).serialize(serializer); });
+    return Super::serialize(serializer);
+}
+
 ErrCode AddDeviceConfigImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -251,6 +263,9 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
                                              const DictPtr<IString, IStreamingType>& streamingTypes)
 {
+    if (!saved.hasKey("__type") || saved.readString("__type") != SerializeId())
+        return nullptr;
+
     const auto givenStreamingTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     const StringPtr deviceTypeId = saved.readString(add_device_config::DeviceTypeIdKey);
     if (!deviceTypes.assigned() || !deviceTypes.hasKey(deviceTypeId))
@@ -385,15 +400,15 @@ bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)
 {
     switch (deviceType.getDeviceKind())
     {
+        case DeviceKind::Unspecified:
         case DeviceKind::Mirrored:
             return true;
-        case DeviceKind::Unspecified:
         case DeviceKind::Adapter:
         case DeviceKind::Root:
             return false;
     }
 
-    return false;
+    return true;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

@@ -27,6 +27,9 @@
 #include <opendaq/logger_sink_factory.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <opendaq/add_component_config_factory.h>
+#include <opendaq/component_type_builder_factory.h>
+#include <opendaq/component_private_ptr.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -482,6 +485,35 @@ TEST_F(ConfigCoreEventTest, ComponentAdded)
     ASSERT_TRUE(clientFolder.getItem("newFb3").assigned());
 
     ASSERT_EQ(addCount, 3);
+}
+
+TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto setAddDeviceConfig = [&deviceType](const ComponentPtr& component)
+    {
+        component.asPtr<IComponentPrivate>().setComponentConfig(AddDeviceConfig(deviceType, nullptr, False));
+    };
+    const auto isLegacy = [](const PropertyObjectPtr& config)
+    {
+        return config.assigned() && config.hasProperty("General");
+    };
+
+    const auto serverFb = serverDevice.getDevices()[0].getFunctionBlocks()[0];
+    setAddDeviceConfig(serverFb);
+    connectClient();
+
+    const auto clientFb = clientDevice.getDevices()[0].getFunctionBlocks()[0];
+    ASSERT_TRUE(isLegacy(clientFb.asPtr<IComponentPrivate>().getComponentConfig()));
+    ASSERT_TRUE(isLegacy(client->getClientComm()->getComponentConfig(serverFb.getGlobalId())));
+
+    const FolderConfigPtr serverFolder = serverDevice.getItem("FB");
+    const auto newFb = createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb");
+    setAddDeviceConfig(newFb);
+    serverFolder.addItem(newFb);
+
+    const FolderConfigPtr clientFolder = clientDevice.getItem("FB");
+    ASSERT_TRUE(isLegacy(clientFolder.getItem("newFb").asPtr<IComponentPrivate>().getComponentConfig()));
 }
 
 TEST_F(ConfigCoreEventTest, ServerComponentAdded)

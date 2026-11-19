@@ -145,7 +145,6 @@ private:
     // provider to obtain one.
     DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
 
-    static PropertyObjectPtr CreateGeneralConfig(Bool scanOnAdd);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();

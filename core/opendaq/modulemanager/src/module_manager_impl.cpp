@@ -34,6 +34,7 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
@@ -1436,24 +1437,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     err = getAvailableStreamingTypes(&streamingTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    auto config = PropertyObject();
-
-    auto deviceConfig = PropertyObject();
-    auto streamingConfig = PropertyObject();
-    auto generalConfig = PropertyObject();
-
-    for (auto const& [key, typeObj] : deviceTypes)
-        deviceConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-
-    for (auto const& [key, typeObj] : streamingTypes)
-        streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-
-    config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
-    config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", CreateGeneralConfig(scanOnAdd).detach()));
-
-    *defaultConfig = config.detach();
-    return OPENDAQ_SUCCESS;
+    return daqCreateLegacyAddDeviceConfig(defaultConfig, deviceTypes, streamingTypes, scanOnAdd);
 }
 
 ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig)
@@ -1570,14 +1554,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
         const auto capabilities = infoPtr.getServerCapabilities();
         const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
-        auto listedTypes = Dict<IString, IStreamingType>();
-        for (const auto& [id, streamingType] : candidates)
-            if (isStreamingTypeIdReserved(id))
-            {
-                LOG_W(R"(Streaming type ID "{}" is reserved)", id);
-            }
-            else
-                listedTypes.set(id, streamingType);
+        const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
 
         // The config lists the transport options the server of the device announces instead of the ones of the types
         const auto transportOptions = AnnouncedTransportOptions(capabilities, deviceType.getConnectionStringPrefix());
@@ -2096,46 +2073,6 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 
     for (const auto& target: targetCaps)
         target.freeze();
-}
-
-
-PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool scanOnAdd)
-{
-    auto obj = PropertyObject();
-
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                    List<IString>("MinConnections",
-                                                                                  "MinHops",
-                                                                                  "NotConnected"),
-                                                                    0);
-    obj.addProperty(streamingConnectionHeuristicProp);
-
-    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
-    obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-
-    obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
-
-    obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
-
-    obj.addProperty(BoolPropertyBuilder("ScanOnAdd", scanOnAdd)
-                        .setDescription("Scans the network when adding the device; when off, a daq:// connection string needs an earlier scan")
-                        .build());
-
-    obj.addProperty(StringProperty("Username", ""));
-    obj.addProperty(StringProperty("Password", ""));
-
-    ClientTypeTools::DefineConfigProperties(obj);
-
-    obj.addProperty(
-        StringPropertyBuilder("PrimaryAddressType", "")
-            .setDescription("Specifies the primary address type for establishing configuration and streaming protocols connections "
-                            "while using smart connection string with \"daq://\" prefix. "
-                            "Acceptable values are \"IPv4\" or \"IPv6\"; if left blank, any address type may be used. "
-                            "If no addresses of the specified type are available, the first available address of the alternate type will be used.")
-            .build()
-    );
-
-    return obj.detach();
 }
 
 void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)

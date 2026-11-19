@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_device_config_private_ptr.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
@@ -131,7 +132,7 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
     ASSERT_EQ(configs.get("a").getTypeConfig().getPropertyValue("Id"), "a");
 }
 
-TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
+TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
 {
     const DeviceTypePtr unknownType = deserialize(R"({"__type":"DeviceType","id":"dev","name":"dev","prefix":"dev","deviceKind":99})");
     ASSERT_EQ(static_cast<Int>(unknownType.getDeviceKind()), 99);
@@ -140,7 +141,7 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
     for (const auto& deviceType : {createDeviceType(DeviceKind::Unspecified), unknownType})
     {
         const auto config = AddDeviceConfig(deviceType, streamingTypes, true);
-        ASSERT_FALSE(config.getStreamingOptions().assigned());
+        ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("a"));
     }
 }
 
@@ -327,6 +328,21 @@ TEST_F(AddDeviceConfigTest, WireFormRoundTripNotMirrored)
     ASSERT_FALSE(deserialized.getStreamingOptions().assigned());
 }
 
+TEST_F(AddDeviceConfigTest, WireFormBelowVersion4IsLegacy)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("b");
+
+    const auto serializeWithVersion3 = [](const PropertyObjectPtr& obj)
+    {
+        const auto serializer = JsonSerializerWithVersion(3);
+        obj.serialize(serializer);
+        return serializer.getOutput();
+    };
+
+    ASSERT_EQ(serializeWithVersion3(config), serializeWithVersion3(toLegacyAddDeviceConfig(config)));
+}
+
 TEST_F(AddDeviceConfigTest, StandaloneStreamingConfig)
 {
     const auto streamingType = createStreamingType("a", "dev");
@@ -432,6 +448,15 @@ TEST_F(AddDeviceConfigTest, BindUnknownDeviceType)
     const auto deviceTypes = Dict<IString, IDeviceType>({{"otherDev", createDeviceType(DeviceKind::Mirrored)}});
 
     ASSERT_THROW(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, nullptr), NotFoundException);
+}
+
+TEST_F(AddDeviceConfigTest, BindOtherSavedObjectIsNull)
+{
+    auto other = PropertyObject();
+    other.addProperty(StringProperty("DeviceType", "dev"));
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+
+    ASSERT_FALSE(bindSaved(serializeForUpdate(other), deviceTypes, nullptr).assigned());
 }
 
 TEST_F(AddDeviceConfigTest, BindDeviceKindChange)

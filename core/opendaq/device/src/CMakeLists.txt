@@ -184,10 +184,12 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/add_streaming_options.h
         ${SDK_HEADERS_DIR}/add_streaming_config.h
         ${SDK_HEADERS_DIR}/add_component_config_factory.h
+        ${SDK_HEADERS_DIR}/add_device_config_legacy.h
         ${SDK_HEADERS_DIR}/add_device_config_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_options_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_config_impl.h
         ${SDK_SRC_DIR}/add_device_config_impl.cpp
+        ${SDK_SRC_DIR}/add_device_config_legacy.cpp
         ${SDK_SRC_DIR}/add_streaming_options_impl.cpp
         ${SDK_SRC_DIR}/add_streaming_config_impl.cpp
     )
@@ -244,6 +246,7 @@ set(SRC_PublicHeaders_Component
     device_network_config.h
     connected_client_info.h
     add_component_config_factory.h
+    add_device_config_legacy.h
     PARENT_SCOPE
 )
 
@@ -280,6 +283,7 @@ set(SRC_Cpp_Component
     user_lock_impl.cpp
     network_interface_impl.cpp
     connected_client_info_impl.cpp
+    add_device_config_legacy.cpp
     add_streaming_options_impl.cpp
     add_streaming_config_impl.cpp
     device.natvis

@@ -35,9 +35,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param deviceType The Device type
  * @param streamingTypes The Streaming types listed by the streaming options, keyed by Streaming type ID
  * @param scanOnAdd The initial ScanOnAdd value
- * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
+ * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored or Unspecified and a Streaming type ID is reserved.
  *
- * The streaming types are ignored unless the Device type is Mirrored.
+ * The streaming types are ignored unless the Device type is Mirrored or Unspecified.
  * The config has no streaming options when no streaming types are given.
  * No Streaming type is selected.
  */
@@ -56,6 +56,7 @@ inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
  * @param streamingTypes The available Streaming types, keyed by ID
  *
  * Binds as IAddDeviceConfigPrivate::bind does.
+ * Returns null when `saved` is not the save form of an add device config.
  */
 inline AddDeviceConfigPtr BoundAddDeviceConfig(const SerializedObjectPtr& saved,
                                                const DictPtr<IString, IDeviceType>& deviceTypes,

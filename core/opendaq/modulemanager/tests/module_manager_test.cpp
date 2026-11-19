@@ -1117,6 +1117,11 @@ TEST_F(ModuleManagerAddConfigTest, ScanOnAddSeededFromModuleManager)
     ASSERT_FALSE(disabled.asPtr<IModuleManagerUtils>().createAddDeviceConfig(deviceInfo("mockdev://")).getScanOnAdd());
 }
 
+TEST_F(ModuleManagerAddConfigTest, BoundConfigRejectsNonSerializedObject)
+{
+    ASSERT_THROW(manager.asPtr<IModuleManagerUtils>().createBoundAddDeviceConfig(String("{}")), InvalidTypeException);
+}
+
 TEST_F(ModuleManagerAddConfigTest, RootKindConfigRejected)
 {
     AddDeviceConfigPtr config;

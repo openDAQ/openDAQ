@@ -1756,10 +1756,16 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     return addDeviceConfig;
 }
 
-ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config, ISerializedObject* saved, IDevice* parent)
+ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config,
+                                                      /* ISerializedObject */ IBaseObject* saved,
+                                                      IDevice* parent)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
     OPENDAQ_PARAM_NOT_NULL(saved);
+
+    const SerializedObjectPtr savedObject = BaseObjectPtr::Borrow(saved).asPtrOrNull<ISerializedObject>();
+    if (!savedObject.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "The saved add device config is not a serialized object");
 
     return daqTry([&]()
     {
@@ -1771,7 +1777,7 @@ ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config,
         DictPtr<IString, IStreamingType> streamingTypes;
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
-        *config = BoundAddDeviceConfig(saved, deviceTypes, streamingTypes, scanOnAdd).detach();
+        *config = BoundAddDeviceConfig(savedObject, deviceTypes, streamingTypes, scanOnAdd).detach();
     });
 }
 

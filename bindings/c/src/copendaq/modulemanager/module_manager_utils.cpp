@@ -97,7 +97,7 @@ daqErrCode daqModuleManagerUtils_createAddDeviceConfig(daqModuleManagerUtils* se
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config), reinterpret_cast<daq::IDeviceInfo*>(info), reinterpret_cast<daq::IString*>(prefix));
 }
 
-daqErrCode daqModuleManagerUtils_createBoundAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqSerializedObject* saved, daqDevice* parent)
+daqErrCode daqModuleManagerUtils_createBoundAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqBaseObject* saved, daqDevice* parent)
 {
-    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createBoundAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config), reinterpret_cast<daq::ISerializedObject*>(saved), reinterpret_cast<daq::IDevice*>(parent));
+    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createBoundAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config), reinterpret_cast<daq::IBaseObject*>(saved), reinterpret_cast<daq::IDevice*>(parent));
 }

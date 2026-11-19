@@ -46,7 +46,6 @@ extern "C"
     typedef struct daqServer daqServer;
     typedef struct daqDeviceInfo daqDeviceInfo;
     typedef struct daqAddDeviceConfig daqAddDeviceConfig;
-    typedef struct daqSerializedObject daqSerializedObject;
 
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID;
     void EXPORTED daqModuleManagerUtils_getInterfaceId(daqIntfID* intfId);
@@ -66,7 +65,7 @@ extern "C"
     daqErrCode EXPORTED daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos);
     daqErrCode EXPORTED daqModuleManagerUtils_getDiscoveryInfo(daqModuleManagerUtils* self, daqDeviceInfo** deviceInfo, daqString* manufacturer, daqString* serialNumber);
     daqErrCode EXPORTED daqModuleManagerUtils_createAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqDeviceInfo* info, daqString* prefix);
-    daqErrCode EXPORTED daqModuleManagerUtils_createBoundAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqSerializedObject* saved, daqDevice* parent);
+    daqErrCode EXPORTED daqModuleManagerUtils_createBoundAddDeviceConfig(daqModuleManagerUtils* self, daqAddDeviceConfig** config, daqBaseObject* saved, daqDevice* parent);
 
 #ifdef __cplusplus
 }

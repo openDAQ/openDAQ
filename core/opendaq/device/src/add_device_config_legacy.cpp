@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
@@ -7,9 +8,42 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/listobject_factory.h>
 #include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+namespace LegacyAddDeviceConfig
+{
+static constexpr const char* DeviceSection = "Device";
+static constexpr const char* StreamingSection = "Streaming";
+static constexpr const char* GeneralSection = "General";
+
+static constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
+static constexpr const char* MinConnections = "MinConnections";
+static constexpr const char* MinHops = "MinHops";
+static constexpr const char* NotConnected = "NotConnected";
+
+static constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
+static constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
+static constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
+static constexpr const char* ScanOnAdd = "ScanOnAdd";
+static constexpr const char* Username = "Username";
+static constexpr const char* Password = "Password";
+static constexpr const char* ClientType = "ClientType";
+static constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
+static constexpr const char* PrimaryAddressType = "PrimaryAddressType";
+static constexpr const char* IPv4 = "IPv4";
+static constexpr const char* IPv6 = "IPv6";
+
+static constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
+static constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
+
+static ListPtr<IString> defaultPrioritizedStreamingProtocols()
+{
+    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
+}
+}
 
 namespace detail
 {
@@ -36,12 +70,47 @@ static void copyValues(const PropertyObjectPtr& target, const PropertyObjectPtr&
     }
 }
 
+static PropertyObjectPtr sectionOf(const PropertyObjectPtr& obj,
+                                   const StringPtr& name,
+                                   const PropertyObjectPtr& fallback = PropertyObject())
+{
+    return obj.hasProperty(name) ? PropertyObjectPtr(obj.getPropertyValue(name)) : fallback;
 }
 
-namespace
+static PropertyObjectPtr createGeneral(const PropertyObjectPtr& source, Bool scanOnAdd)
 {
+    auto general = createLegacyGeneralConfig(scanOnAdd);
+    copyValues(general, source);
+    return general;
+}
 
-PropertyObjectPtr createGeneralConfig(Bool scanOnAdd)
+static PropertyObjectPtr generalOf(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    return createGeneral(sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+}
+
+static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyObjectPtr& source, const PropertyObjectPtr& general)
+{
+    try
+    {
+        copyValues(target, source);
+    }
+    catch (const DaqException& e)
+    {
+        DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
+    }
+
+    for (const auto name : {LegacyAddDeviceConfig::Username,
+                            LegacyAddDeviceConfig::Password,
+                            LegacyAddDeviceConfig::ClientType,
+                            LegacyAddDeviceConfig::ExclusiveControlDropOthers})
+        if (target.hasProperty(name) && target.getPropertyValue(name) == general.getProperty(name).getDefaultValue())
+            target.setPropertyValue(name, general.getPropertyValue(name));
+}
+
+}
+
+PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
 {
     auto obj = PropertyObject();
 
@@ -80,9 +149,9 @@ PropertyObjectPtr createGeneralConfig(Bool scanOnAdd)
     return obj.detach();
 }
 
-PropertyObjectPtr createDefaultConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
-                                      const DictPtr<IString, IStreamingType>& streamingTypes,
-                                      Bool scanOnAdd)
+PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
+                                              const DictPtr<IString, IStreamingType>& streamingTypes,
+                                              Bool scanOnAdd)
 {
     auto deviceSection = PropertyObject();
     for (const auto& [id, type] : deviceTypes)
@@ -95,31 +164,19 @@ PropertyObjectPtr createDefaultConfig(const DictPtr<IString, IDeviceType>& devic
     auto config = PropertyObject();
     config.addProperty(ObjectProperty(LegacyAddDeviceConfig::DeviceSection, deviceSection.detach()));
     config.addProperty(ObjectProperty(LegacyAddDeviceConfig::StreamingSection, streamingSection.detach()));
-    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, createGeneralConfig(scanOnAdd).detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, createLegacyGeneralConfig(scanOnAdd).detach()));
     return config.detach();
 }
 
-AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& input,
-                              const DeviceTypePtr& deviceType,
-                              const DictPtr<IString, IStreamingType>& streamingTypes,
-                              Bool scanOnAdd,
-                              const LoggerComponentPtr& loggerComponent)
+AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
+                                             const DeviceTypePtr& deviceType,
+                                             const DictPtr<IString, IStreamingType>& streamingTypes,
+                                             Bool scanOnAdd,
+                                             const LoggerComponentPtr& loggerComponent)
 {
-    if (!loggerComponent.assigned())
-    {
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "The logger component is null");
-    }
-
     const auto legacyConfig = input.assigned() ? input : PropertyObject();
-    const auto sectionOf = [](const PropertyObjectPtr& obj, const StringPtr& name, const PropertyObjectPtr& fallback = PropertyObject())
-    {
-        return obj.hasProperty(name) ? PropertyObjectPtr(obj.getPropertyValue(name)) : fallback;
-    };
-
-    const auto general = createGeneralConfig(scanOnAdd);
-    detail::copyValues(general, sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig));
-
-    const auto streamingSection = sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
+    const auto general = detail::generalOf(legacyConfig, scanOnAdd);
+    const auto streamingSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
     const auto loadedTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
 
     const bool hasStreamingSection = legacyConfig.hasProperty(LegacyAddDeviceConfig::StreamingSection);
@@ -133,29 +190,10 @@ AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& input,
     const auto options = config.getStreamingOptions();
     const auto streamingConfigs = options.assigned() ? options.getAvailableStreamingConfigs() : Dict<IString, IAddStreamingConfig>();
 
-    const auto translateTypeConfig = [&general](const PropertyObjectPtr& target, const PropertyObjectPtr& source)
-    {
-        try
-        {
-            detail::copyValues(target, source);
-        }
-        catch (const DaqException& e)
-        {
-            DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
-        }
-
-        for (const auto name : {LegacyAddDeviceConfig::Username,
-                                LegacyAddDeviceConfig::Password,
-                                LegacyAddDeviceConfig::ClientType,
-                                LegacyAddDeviceConfig::ExclusiveControlDropOthers})
-            if (target.hasProperty(name) && target.getPropertyValue(name) == general.getProperty(name).getDefaultValue())
-                target.setPropertyValue(name, general.getPropertyValue(name));
-    };
-
-    const auto deviceSection = sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
-    translateTypeConfig(config.getTypeConfig(), sectionOf(deviceSection, deviceType.getId(), legacyConfig));
+    const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
+    detail::translateTypeConfig(config.getTypeConfig(), detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig), general);
     for (const auto& [typeId, streamingConfig] : streamingConfigs)
-        translateTypeConfig(streamingConfig.getTypeConfig(), sectionOf(streamingSection, typeId));
+        detail::translateTypeConfig(streamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, typeId), general);
 
     const StringPtr addressType = general.getPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType);
     if (addressType == LegacyAddDeviceConfig::IPv6)
@@ -197,7 +235,27 @@ AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& input,
     return config;
 }
 
-PropertyObjectPtr toLegacy(const AddDeviceConfigPtr& config)
+Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    const auto general = detail::generalOf(legacyConfig.assigned() ? legacyConfig : PropertyObject(), scanOnAdd);
+    return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
+}
+
+PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
+{
+    if (!config.assigned() || !config.hasProperty(LegacyAddDeviceConfig::DeviceSection) ||
+        !config.hasProperty(LegacyAddDeviceConfig::StreamingSection) || !config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
+        return config;
+
+    const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
+    const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
+
+    auto typeConfig = streamingType.createDefaultConfig();
+    detail::translateTypeConfig(typeConfig, detail::sectionOf(streamingSection, streamingType.getId()), general);
+    return typeConfig;
+}
+
+PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
 {
     const auto cloneTypeConfig = [](const PropertyObjectPtr& typeConfig) -> PropertyObjectPtr
     {
@@ -208,10 +266,9 @@ PropertyObjectPtr toLegacy(const AddDeviceConfigPtr& config)
     deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), cloneTypeConfig(config.getTypeConfig())));
 
     auto streamingSection = PropertyObject();
-    auto general = createGeneralConfig(config.getScanOnAdd());
+    auto general = createLegacyGeneralConfig(config.getScanOnAdd());
 
-    const auto addressType =
-        (config.getPrimaryAddressType() == AddressType::IPv6) ? LegacyAddDeviceConfig::IPv6 : LegacyAddDeviceConfig::IPv4;
+    const auto addressType = getAddressTypeName(config.getPrimaryAddressType());
     general.setPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType, addressType);
 
     const auto options = config.getStreamingOptions();
@@ -239,46 +296,6 @@ PropertyObjectPtr toLegacy(const AddDeviceConfigPtr& config)
     legacyConfig.addProperty(ObjectProperty(LegacyAddDeviceConfig::StreamingSection, streamingSection.detach()));
     legacyConfig.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, general.detach()));
     return legacyConfig.detach();
-}
-
-}
-
-extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyGeneralConfig(IPropertyObject** general, Bool scanOnAdd)
-{
-    OPENDAQ_PARAM_NOT_NULL(general);
-
-    return daqTry([&] { *general = createGeneralConfig(scanOnAdd).detach(); });
-}
-
-extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyAddDeviceConfig(IPropertyObject** config,
-                                                                IDict* deviceTypes,
-                                                                IDict* streamingTypes,
-                                                                Bool scanOnAdd)
-{
-    OPENDAQ_PARAM_NOT_NULL(config);
-    OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-    OPENDAQ_PARAM_NOT_NULL(streamingTypes);
-
-    return daqTry([&] { *config = createDefaultConfig(deviceTypes, streamingTypes, scanOnAdd).detach(); });
-}
-
-extern "C" PUBLIC_EXPORT ErrCode daqFromLegacyAddDeviceConfig(IAddDeviceConfig** config,
-                                                              IPropertyObject* legacyConfig,
-                                                              IDeviceType* deviceType,
-                                                              IDict* streamingTypes,
-                                                              Bool scanOnAdd,
-                                                              ILoggerComponent* loggerComponent)
-{
-    OPENDAQ_PARAM_NOT_NULL(config);
-
-    return daqTry([&] { *config = fromLegacy(legacyConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent).detach(); });
-}
-
-extern "C" PUBLIC_EXPORT ErrCode daqToLegacyAddDeviceConfig(IPropertyObject** legacyConfig, IAddDeviceConfig* config)
-{
-    OPENDAQ_PARAM_NOT_NULL(legacyConfig);
-
-    return daqTry([&] { *legacyConfig = toLegacy(config).detach(); });
 }
 
 END_NAMESPACE_OPENDAQ

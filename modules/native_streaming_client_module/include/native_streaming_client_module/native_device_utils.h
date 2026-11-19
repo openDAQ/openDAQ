@@ -16,6 +16,8 @@
 
 #pragma once
 #include <native_streaming_client_module/common.h>
+#include <opendaq/add_device_config_ptr.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/listobject_factory.h>
@@ -28,14 +30,14 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 /*!
  * Builds a list of reachable alternative addresses from the given server capability.
  *
- * Reads the optional "General.PrimaryAddressType" field from @p config to filter
- * addresses by type. Addresses with AddressReachabilityStatus::Unreachable are
- * always excluded.
+ * Orders the addresses as `sortAddressInfos` does.
+ * The primary address type is `PrimaryAddressType` of @p config when it is an add device config, and IPv4 otherwise.
+ * Addresses with AddressReachabilityStatus::Unreachable are always excluded.
  *
  * @param config        Component config property object (may be nullptr).
  * @param deviceInfo    Device info to query the server capability from.
  * @param capabilityName  Protocol ID of the server capability to use.
- * @param outAddresses  Receives the filtered list of addresses on success.
+ * @param outAddresses  Receives the ordered list of addresses on success.
  *
  * @returns OPENDAQ_SUCCESS with @p outAddresses populated,
  *          OPENDAQ_IGNORED when there is nothing to update (capability absent or
@@ -60,29 +62,13 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
     if (!addressInfos.assigned() || addressInfos.getCount() < 2)
         return OPENDAQ_IGNORED;
 
-    StringPtr primaryAddressType;
-    if (config.assigned() && config.hasProperty("General"))
-    {
-        const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
-        if (generalConfig.hasProperty("PrimaryAddressType"))
-        {
-            const StringPtr candidate = generalConfig.getPropertyValue("PrimaryAddressType");
-            if (candidate.getLength())
-                primaryAddressType = candidate;
-        }
-    }
+    const AddDeviceConfigPtr addDeviceConfig = config.assigned() ? config.asPtrOrNull<IAddDeviceConfig>(true) : nullptr;
+    const auto primaryAddressType = addDeviceConfig.assigned() ? addDeviceConfig.getPrimaryAddressType() : AddressType::IPv4;
 
     auto addresses = List<IString>();
-    for (const auto& addressInfo : addressInfos)
-    {
-        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
-            continue;
-
-        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
-            continue;
-
-        addresses.pushBack(addressInfo.getAddress());
-    }
+    for (const auto& addressInfo : sortAddressInfos(addressInfos, primaryAddressType))
+        if (addressInfo.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
+            addresses.pushBack(addressInfo.getAddress());
 
     outAddresses = std::move(addresses);
     return OPENDAQ_SUCCESS;

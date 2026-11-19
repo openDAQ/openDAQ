@@ -41,6 +41,7 @@ void defineICredentialProvider(pybind11::module_ m, PyDaqIntf<daq::ICredentialPr
     cls.doc() = "Supplies the credentials requested via a `ICredentialRequest` - e.g. by prompting the user, reading from a file, or fetching from a credential store.";
 
     m.def("CmdLineCredentialProvider", &daq::CmdLineCredentialProvider_Create);
+    m.def("FunctionCredentialProvider", &daq::FunctionCredentialProvider_Create);
 
     cls.def_property_readonly("description",
         [](daq::ICredentialProvider *object)

@@ -33,10 +33,6 @@
 
 PyDaqIntf<daq::IAddDeviceConfig, daq::IBaseObject> declareIAddDeviceConfig(pybind11::module_ m)
 {
-    py::enum_<daq::AddressType>(m, "AddressType")
-        .value("IPv4", daq::AddressType::IPv4)
-        .value("IPv6", daq::AddressType::IPv6);
-
     return wrapInterface<daq::IAddDeviceConfig, daq::IBaseObject>(m, "IAddDeviceConfig");
 }
 

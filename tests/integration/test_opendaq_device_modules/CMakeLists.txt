@@ -30,6 +30,7 @@ set(STREAMING_TEST_SOURCES test_app.cpp
                            test_streaming.cpp
                            test_subdevices.cpp
                            test_device_locking.cpp
+                           test_legacy_add_device_config.cpp
 )
 set(STREAMING_TEST_SHARDS 4)
 

@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_impl.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <opendaq/transport_option_impl.h>
@@ -8,6 +9,7 @@
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
+#include <opendaq/component_type_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,28 +26,14 @@ static const char* Port = "Port";
 
 static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
-static const char* ScanOnAddKey = "scanOnAdd";
 static const char* PropValuesKey = "propValues";
 static const char* TransportOptionsKey = "transportOptions";
-
-StringPtr toString(AddressType type)
-{
-    switch (type)
-    {
-        case AddressType::IPv4:
-            return "IPv4";
-        case AddressType::IPv6:
-            return "IPv6";
-    }
-
-    DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
-}
 
 DictPtr<Int, IString> addressTypeNames()
 {
     auto names = Dict<Int, IString>();
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
-        names.set(static_cast<Int>(type), toString(type));
+        names.set(static_cast<Int>(type), getAddressTypeName(type));
     return names;
 }
 }
@@ -203,9 +191,13 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
         const auto serializer = JsonSerializer();
         checkErrorInfo(serializeForUpdate(serializer));
 
+        const Bool scanOnAddDefault = objPtr.getProperty(add_device_config::ScanOnAdd).getDefaultValue();
         AddDeviceConfigPtr config;
-        JsonDeserializer().callCustomProc([&](const SerializedObjectPtr& saved) { config = Bind(saved, deviceTypes, streamingTypes); },
-                                          serializer.getOutput());
+        const auto bindSaved = [&](const SerializedObjectPtr& saved)
+        {
+            config = Bind(saved, deviceTypes, streamingTypes, scanOnAddDefault);
+        };
+        JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
         *bound = config.detach();
     });
 }
@@ -261,7 +253,8 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
 
 AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
-                                             const DictPtr<IString, IStreamingType>& streamingTypes)
+                                             const DictPtr<IString, IStreamingType>& streamingTypes,
+                                             Bool scanOnAdd)
 {
     if (!saved.hasKey("__type") || saved.readString("__type") != SerializeId())
         return nullptr;
@@ -284,8 +277,7 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                 selectedStreamingType.set(typeId, givenStreamingTypes.get(typeId));
         }
 
-        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
-            deviceType, selectedStreamingType, saved.readBool(add_device_config::ScanOnAddKey));
+        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, selectedStreamingType, scanOnAdd);
         checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
         return config;
     }
@@ -319,8 +311,6 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
 
         serializerPtr.key(add_device_config::DeviceTypeIdKey);
         serializerPtr.writeString(deviceType.getId());
-        serializerPtr.key(add_device_config::ScanOnAddKey);
-        serializerPtr.writeBool(objPtr.getPropertyValue(add_device_config::ScanOnAdd));
     });
 }
 
@@ -424,12 +414,13 @@ extern "C" ErrCode PUBLIC_EXPORT createAddDeviceConfig(IAddDeviceConfig** objTmp
 extern "C" ErrCode PUBLIC_EXPORT createBoundAddDeviceConfig(IAddDeviceConfig** objTmp,
                                                             ISerializedObject* saved,
                                                             IDict* deviceTypes,
-                                                            IDict* streamingTypes)
+                                                            IDict* streamingTypes,
+                                                            Bool scanOnAdd)
 {
     OPENDAQ_PARAM_NOT_NULL(objTmp);
     OPENDAQ_PARAM_NOT_NULL(saved);
 
-    return daqTry([&] { *objTmp = AddDeviceConfigImpl::Bind(saved, deviceTypes, streamingTypes).detach(); });
+    return daqTry([&] { *objTmp = AddDeviceConfigImpl::Bind(saved, deviceTypes, streamingTypes, scanOnAdd).detach(); });
 }
 
 #endif

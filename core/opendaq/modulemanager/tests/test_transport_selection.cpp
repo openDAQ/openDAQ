@@ -278,10 +278,24 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
 }
 
 // Adding a device with an add-device config comes with the new createDevice
-TEST_F(TransportSelectionTest, AddDeviceConfigNotImplemented)
+TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsSelection)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
 
-    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_ERR_NOTIMPLEMENTED);
-    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->connectionStrings[0], "dev://host:17422");
+    ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), "tls");
+    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 17422);
+}
+
+TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsPort)
+{
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setPort(9000);
+
+    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->connectionStrings[0], "dev://host:9000");
+    ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), "plain");
+    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 9000);
 }

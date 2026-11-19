@@ -104,14 +104,14 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * configuration - from a compatible registered credential provider.
      * @param[out] streaming The created streaming object.
      * @param connectionString Describes the connection parameters of the streaming.
-     * @param config A configuration object that contains parameters used to configure a streaming connection in the form of key-value pairs.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
      * @param owner The device the streaming connection is being attached to, its own `IDeviceInfo`
      * (manufacturer, serial number, model) identifies the connection endpoint.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      *
-     * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the
-     * provided connection string. There is no smart-string/discovery resolution here - streaming connection strings
-     * are always concrete, protocol-specific strings, not `daq://` smart ones - so `owner` is simply forwarded as
-     * given, defaulting to a null value when not known.
+     * With an add streaming config, the module that has its Streaming type creates the streaming connection.
+     * Otherwise the first module that has a Streaming type with the connection string's prefix creates it.
+     * Streaming connection strings are always protocol-specific, never `daq://`.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
                                                    IString* connectionString,
@@ -124,7 +124,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @brief Creates a config object for adding a device, with the default settings of all available Device and Streaming types.
      * @param[out] defaultConfig The default config
      *
-     * @deprecated Use createAddDeviceConfig instead.
+     * TODO: Temporarily not marked as deprecated - mark deprecated again (use createAddDeviceConfig instead) once all callers are migrated.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 
@@ -227,9 +227,17 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
+
+    /*!
+     * @brief Gets whether adding a device scans for devices when its config doesn't set `ScanOnAdd`.
+     * @param[out] scanOnAdd True when adding a device scans
+     *
+     * It is the `ModuleManager.ScanOnAdd` context option, or true when the option is not set.
+     */
+    virtual ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) = 0;
 };
 /*!@}*/
 

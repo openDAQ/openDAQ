@@ -268,9 +268,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param connectionString The connection string containing the address of the streaming. In example an
      * IPv4/IPv6 address. The connection string can be found in the Server Capability objects returned by
      * `getInfo().getServerCapabilities()`.
-     * @param config A config object to configure a streaming connection. This object can contain properties like
-     * various connection timeouts or other streaming protocol specific settings. Can be created from its corresponding
-     * Streaming type object. In case of a null value, it will use the default configuration.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      */
     virtual ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
@@ -287,7 +286,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *   - "Streaming": Same as device, but used to configure each individual streaming connection established
      *     when calling `addDevice`.
      *
-     * @deprecated Use createAddDeviceConfig instead.
+     * TODO: Temporarily not marked as deprecated - mark deprecated again (use createAddDeviceConfig instead) once all callers are migrated.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 
@@ -439,7 +438,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 
@@ -451,7 +450,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add streamings.
      *
      * With a connection string, the Streaming type is the loaded type with its prefix.
-     * Without one, it is the available streaming type linked to the device's mirrored device type, else the first available one.
+     * Without one, it is chosen from the available streaming types by `selectStreamingType`.
      * A device without available streaming types gets the loaded type linked to its mirrored device type.
      */
     virtual ErrCode INTERFACE_FUNC createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString = nullptr) = 0;

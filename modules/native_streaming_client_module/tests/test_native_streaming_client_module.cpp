@@ -1,6 +1,7 @@
 #include <testutils/testutils.h>
 #include <native_streaming_client_module/module_dll.h>
 #include <native_streaming_client_module/version.h>
+#include <native_streaming_client_module/native_device_utils.h>
 #include <gmock/gmock.h>
 
 #include <opendaq/module_ptr.h>
@@ -10,6 +11,8 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/address_info_factory.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
@@ -516,6 +519,26 @@ TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)
     ASSERT_NO_THROW(module = instance.getModuleManager().loadModule(NATIVE_STREAM_CL_MODULE_PATH));
     ASSERT_EQ(module.getModuleInfo().getId(), "OpenDAQNativeStreamingClientModule");
     ASSERT_EQ(instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().getCount(), 1u);
+}
+
+TEST_F(NativeStreamingClientModuleTest, CollectAlternativeAddresses)
+{
+    using Status = AddressReachabilityStatus;
+
+    auto capability = ServerCapability("cap", "cap", ProtocolType::Streaming);
+    for (const auto& [address, type, status] : {std::make_tuple("a", "IPv6", Status::Unknown),
+                                                std::make_tuple("b", "IPv4", Status::Unreachable),
+                                                std::make_tuple("c", "IPv4", Status::Unknown),
+                                                std::make_tuple("d", "IPv6", Status::Reachable)})
+        capability.addAddressInfo(
+            AddressInfoBuilder().setAddress(address).setConnectionString(address).setType(type).setReachabilityStatus(status).build());
+
+    const auto info = DeviceInfo("x://s");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+
+    ListPtr<IString> addresses;
+    ASSERT_EQ(modules::native_streaming_client_module::collectAlternativeAddresses(nullptr, info, "cap", addresses), OPENDAQ_SUCCESS);
+    ASSERT_EQ(addresses, List<IString>("d", "c", "a"));
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,

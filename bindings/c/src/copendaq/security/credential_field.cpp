@@ -50,12 +50,7 @@ daqErrCode daqCredentialField_isRequired(daqCredentialField* self, daqBool* requ
 daqErrCode daqCredentialField_createCredentialField(daqCredentialField** obj, daqString* id, daqCredentialFieldKind kind, daqString* name, daqBool required, daqDict* metadata)
 {
     daq::ICredentialField* ptr = nullptr;
-    daqErrCode err = daq::createCredentialField(&ptr,
-                                                reinterpret_cast<daq::IString*>(id),
-                                                static_cast<daq::CredentialFieldKind>(kind),
-                                                reinterpret_cast<daq::IString*>(name),
-                                                required,
-                                                reinterpret_cast<daq::IDict*>(metadata));
+    daqErrCode err = daq::createCredentialField(&ptr, reinterpret_cast<daq::IString*>(id), static_cast<daq::CredentialFieldKind>(kind), reinterpret_cast<daq::IString*>(name), required, reinterpret_cast<daq::IDict*>(metadata));
     *obj = reinterpret_cast<daqCredentialField*>(ptr);
     return err;
 }

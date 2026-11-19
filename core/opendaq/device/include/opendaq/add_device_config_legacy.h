@@ -20,75 +20,39 @@
 #include <opendaq/logger_component_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
-#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace LegacyAddDeviceConfig
-{
-inline constexpr const char* DeviceSection = "Device";
-inline constexpr const char* StreamingSection = "Streaming";
-inline constexpr const char* GeneralSection = "General";
-
-inline constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
-inline constexpr const char* MinConnections = "MinConnections";
-inline constexpr const char* MinHops = "MinHops";
-inline constexpr const char* NotConnected = "NotConnected";
-
-inline constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
-inline constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
-inline constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
-inline constexpr const char* ScanOnAdd = "ScanOnAdd";
-inline constexpr const char* Username = "Username";
-inline constexpr const char* Password = "Password";
-inline constexpr const char* ClientType = "ClientType";
-inline constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
-inline constexpr const char* PrimaryAddressType = "PrimaryAddressType";
-inline constexpr const char* IPv4 = "IPv4";
-inline constexpr const char* IPv6 = "IPv6";
-
-inline constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
-inline constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
-
-inline ListPtr<IString> defaultPrioritizedStreamingProtocols()
-{
-    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
-}
-}
-
 /*!
  * @brief Creates the legacy `General` section with its default values.
- * @param[out] general The `General` section
  * @param scanOnAdd The default of `ScanOnAdd`
+ * @returns The `General` section
  */
-extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyGeneralConfig(IPropertyObject** general, Bool scanOnAdd);
+PUBLIC_EXPORT PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd);
 
 /*!
  * @brief Creates a legacy config with `Device`, `Streaming` and `General` sections and their default values.
- * @param[out] config The legacy config
  * @param deviceTypes The Device types that get a `Device` entry
  * @param streamingTypes The Streaming types that get a `Streaming` entry
  * @param scanOnAdd The default of `ScanOnAdd`
- * @retval OPENDAQ_ERR_ARGUMENT_NULL when the Device or Streaming types are null.
+ * @returns The legacy config
  */
-extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyAddDeviceConfig(IPropertyObject** config,
-                                                                IDict* deviceTypes,
-                                                                IDict* streamingTypes,
-                                                                Bool scanOnAdd);
+PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                            const DictPtr<IString, IStreamingType>& streamingTypes,
+                                                            Bool scanOnAdd);
 
 /*!
  * @brief Translates a legacy config into an Add device config.
- * @param[out] config The Add device config
  * @param legacyConfig The legacy config
  * @param deviceType The Device type the config is created for
  * @param streamingTypes The loaded Streaming types
  * @param scanOnAdd The scan on add setting used when `General` has none
  * @param loggerComponent The logger component that warnings are written to
- * @retval OPENDAQ_ERR_ARGUMENT_NULL when the logger component is null.
- * @retval OPENDAQ_ERR_INVALIDVALUE when the Add device config rejects a value of the `Device` or `Streaming` section.
- * @retval OPENDAQ_ERR_NOINTERFACE when a section is not a property object.
- * @retval OPENDAQ_ERR_NOTFOUND when a `General` selection value is not in its selection.
- * @retval OPENDAQ_ERR_CONVERSIONFAILED when a `General` value can't be converted to its property's type.
+ * @returns The Add device config
+ * @throws InvalidValueException when the Add device config rejects a value of the `Device` or `Streaming` section.
+ * @throws NoInterfaceException when a section is not a property object.
+ * @throws NotFoundException when a `General` selection value is not in its selection.
+ * @throws ConversionFailedException when a `General` value can't be converted to its property's type.
  *
  * The legacy config has `Device`, `Streaming` and `General` sections, holds the type config and `General` keys itself, or is null.
  * A null legacy config is read as an empty one.
@@ -111,18 +75,45 @@ extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyAddDeviceConfig(IPropertyObject*
  * `NotConnected`, `AutomaticallyConnectStreaming` false and no pick give no selection.
  * A pick that is not a listed Streaming type gives no selection, and a warning is logged.
  */
-extern "C" PUBLIC_EXPORT ErrCode daqFromLegacyAddDeviceConfig(IAddDeviceConfig** config,
-                                                              IPropertyObject* legacyConfig,
-                                                              IDeviceType* deviceType,
-                                                              IDict* streamingTypes,
-                                                              Bool scanOnAdd,
-                                                              ILoggerComponent* loggerComponent);
+PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& legacyConfig,
+                                                           const DeviceTypePtr& deviceType,
+                                                           const DictPtr<IString, IStreamingType>& streamingTypes,
+                                                           Bool scanOnAdd,
+                                                           const LoggerComponentPtr& loggerComponent);
+
+/*!
+ * @brief Gets the `ScanOnAdd` value of a legacy config.
+ * @param legacyConfig The legacy config
+ * @param scanOnAdd The scan on add setting used when `General` has none
+ * @returns The `ScanOnAdd` value
+ * @throws ConversionFailedException when `ScanOnAdd` can't be converted to a Bool.
+ *
+ * The value is read as `fromLegacyAddDeviceConfig` reads it, without a Device type.
+ */
+PUBLIC_EXPORT Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd);
+
+/*!
+ * @brief Translates a legacy config into the type config of a Streaming type.
+ * @param config The config
+ * @param streamingType The Streaming type the config is created for
+ * @returns The type config, or the config as given when it isn't a legacy config
+ * @throws InvalidValueException when the type config rejects a value of the `Streaming` entry.
+ * @throws NotFoundException when a `General` selection value is not in its selection.
+ * @throws ConversionFailedException when a `General` value can't be converted to its property's type.
+ *
+ * A legacy config has `Device`, `Streaming` and `General` sections.
+ * Any other config, null included, is returned as given.
+ * The type config is the default config of the Streaming type.
+ * It takes the values of the type's entry in the `Streaming` section, copied as `fromLegacyAddDeviceConfig` copies them.
+ * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into it as in `fromLegacyAddDeviceConfig`.
+ * Without an entry for the type, the type config takes only the `General` keys.
+ */
+PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
 
 /*!
  * @brief Translates an Add device config into a legacy config with `Device`, `Streaming` and `General` sections.
- * @param[out] legacyConfig The legacy config
  * @param config The Add device config
- * @retval OPENDAQ_ERR_INVALIDPARAMETER when the config is null.
+ * @returns The legacy config
  *
  * The `Device` section holds a copy of the type config, keyed by the Device type ID.
  * The `Streaming` section holds a copy of each listed streaming config.
@@ -136,62 +127,6 @@ extern "C" PUBLIC_EXPORT ErrCode daqFromLegacyAddDeviceConfig(IAddDeviceConfig**
  * The streaming mode gives the `StreamingConnectionHeuristic` of the same name.
  * A Mirrored or Unspecified Device type without streaming options turns `AutomaticallyConnectStreaming` off.
  */
-extern "C" PUBLIC_EXPORT ErrCode daqToLegacyAddDeviceConfig(IPropertyObject** legacyConfig, IAddDeviceConfig* config);
-
-/*!
- * @brief Creates the legacy `General` section with its default values.
- * @param scanOnAdd The default of `ScanOnAdd`
- */
-inline PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
-{
-    PropertyObjectPtr general;
-    checkErrorInfo(daqCreateLegacyGeneralConfig(&general, scanOnAdd));
-    return general;
-}
-
-/*!
- * @brief Creates a legacy config with its default values, as `daqCreateLegacyAddDeviceConfig` does.
- * @param deviceTypes The Device types that get a `Device` entry
- * @param streamingTypes The Streaming types that get a `Streaming` entry
- * @param scanOnAdd The default of `ScanOnAdd`
- */
-inline PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
-                                                     const DictPtr<IString, IStreamingType>& streamingTypes,
-                                                     Bool scanOnAdd)
-{
-    PropertyObjectPtr config;
-    checkErrorInfo(daqCreateLegacyAddDeviceConfig(&config, deviceTypes, streamingTypes, scanOnAdd));
-    return config;
-}
-
-/*!
- * @brief Translates a legacy config into an Add device config, as `daqFromLegacyAddDeviceConfig` does.
- * @param legacyConfig The legacy config
- * @param deviceType The Device type the config is created for
- * @param streamingTypes The loaded Streaming types
- * @param scanOnAdd The scan on add setting used when `General` has none
- * @param loggerComponent The logger component that warnings are written to
- */
-inline AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& legacyConfig,
-                                                    const DeviceTypePtr& deviceType,
-                                                    const DictPtr<IString, IStreamingType>& streamingTypes,
-                                                    Bool scanOnAdd,
-                                                    const LoggerComponentPtr& loggerComponent)
-{
-    AddDeviceConfigPtr config;
-    checkErrorInfo(daqFromLegacyAddDeviceConfig(&config, legacyConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent));
-    return config;
-}
-
-/*!
- * @brief Translates an Add device config into a legacy config, as `daqToLegacyAddDeviceConfig` does.
- * @param config The Add device config
- */
-inline PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
-{
-    PropertyObjectPtr legacyConfig;
-    checkErrorInfo(daqToLegacyAddDeviceConfig(&legacyConfig, config));
-    return legacyConfig;
-}
+PUBLIC_EXPORT PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config);
 
 END_NAMESPACE_OPENDAQ

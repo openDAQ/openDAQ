@@ -16,6 +16,7 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <opendaq/streaming_type.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,6 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IAddStreamingConfig, GenericAddStreamingConfigPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IStreamingType, StreamingTypePtr, "<opendaq/streaming_type_ptr.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -37,6 +39,20 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The Streaming type is fixed when the config is created.
  * The type's settings are the `TypeConfig` child object, created from the type's default config.
+ *
+ * A Streaming type can list several transport options, each using another transport layer for the connection. The
+ * config selects one of them, and its port is the port of the selected option unless a port is set.
+ *
+ * The streaming connects at the first of these ports:
+ * 1. the port set on the config;
+ * 2. the port named by the connection string the streaming is added with (e.g. "daq.ns://127.0.0.1:7420");
+ * 3. for a streaming that comes with an added device, the port the server announces for the selected option in the
+ *    server capabilities of the connected device;
+ * 4. the port of the selected option.
+ *
+ * A streaming that comes with an added device connects by the connection string of a server capability, whose port is
+ * not taken. A port set and another port named by the connection string contradict each other: adding the streaming
+ * fails with OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -53,6 +69,55 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) = 0;
 
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
+
+    // [templateType(transportOptions, IString, ITransportOption)]
+    /*!
+     * @brief Gets the transport options the streaming can connect over.
+     * @param[out] transportOptions The options of the device info's server capability for the Streaming type that the
+     * Streaming type lists as well, keyed by their own ids in the server's order, with the ports the server announces
+     * and the security mode and certificate requirement of the Streaming type. The options of the Streaming type when
+     * the device info has no such capability. Empty for a Streaming type without options, and when the server announces
+     * none of the options of the Streaming type.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
+
+    /*!
+     * @brief Selects the transport option the streaming connects over.
+     * @param id The id of one of the options of getAvailableTransportOptions.
+     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id, as for a Streaming type without options.
+     *
+     * The selection is the `TransportOption` property, whose selection values are the ids of the options. A port set
+     * by setPort is kept and overrides the port of the newly selected option.
+     */
+    virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
+
+    /*!
+     * @brief Gets the selected transport option.
+     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it; null for a Streaming
+     * type without options.
+     */
+    virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
+
+    /*!
+     * @brief Sets the port the streaming connects to.
+     * @param port The port, used instead of the one the selected option lists whichever option is selected, even when
+     * it is the same; -1 to use the port of the selected option again.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port other than -1.
+     *
+     * The port set is the `Port` property, -1 while none is set. A Streaming type without options takes a port as well.
+     */
+    virtual ErrCode INTERFACE_FUNC setPort(Int port) = 0;
+
+    /*!
+     * @brief Gets the port the streaming connects to.
+     * @param[out] port The port set by setPort. Otherwise the port of the selected transport option: the one the
+     * device info's server capability announces for it, or the Streaming type's default port when there is no such
+     * capability. -1 for a Streaming type without options when no port is set.
+     *
+     * Unless a port is set, the port named by the connection string the streaming is added with, or else the port the
+     * server of the added device announces for the selected option, takes precedence (see the class description).
+     */
+    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };
 
 /*!@}*/

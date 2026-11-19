@@ -16,7 +16,10 @@
 #pragma once
 #include <opendaq/add_device_config_ptr.h>
 #include <opendaq/add_device_config_private.h>
+#include <opendaq/transport_option_ptr.h>
+#include <opendaq/transport_option_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/device_info_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
@@ -36,7 +39,14 @@ public:
     using Super = GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig, IAddDeviceConfigPrivate>;
 
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, IStreamingType>& streamingTypes, Bool scanOnAdd);
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial);
+
+    // Lists the transport options the server capabilities of `deviceInfo` announce, those the types list as well, instead
+    // of the ones of the types. A type its server announces no options for keeps its own; `deviceInfo` may be unassigned.
+    AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
+                        const DictPtr<IString, IStreamingType>& streamingTypes,
+                        Bool scanOnAdd,
+                        const DeviceInfoPtr& deviceInfo);
+    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
@@ -46,6 +56,11 @@ public:
     ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
+    ErrCode INTERFACE_FUNC setTransportOption(IString* id) override;
+    ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
+    ErrCode INTERFACE_FUNC setPort(Int port) override;
+    ErrCode INTERFACE_FUNC getPort(Int* port) override;
 
     ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) override;
 
@@ -65,7 +80,10 @@ protected:
 
 private:
     static bool takesStreamings(const DeviceTypePtr& deviceType);
+
     DeviceTypePtr deviceType;
+    // The options the server of the device announces, else the Device type's
+    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

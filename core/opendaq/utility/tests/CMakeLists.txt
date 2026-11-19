@@ -10,6 +10,7 @@ set(TEST_HEADERS
 set(TEST_SOURCES
     test_app.cpp
     test_ids_parser.cpp
+    test_connection_string_utils.cpp
     test_mem_pool_allocator.cpp
     test_packet_buffer.cpp
     test_device_update_options.cpp

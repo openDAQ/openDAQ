@@ -67,6 +67,34 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         options.streaming_mode = opendaq.StreamingMode.MinConnections
         self.assertEqual(options.streaming_mode, opendaq.StreamingMode.MinConnections)
 
+    def test_port_without_transport_options(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+
+        self.assertEqual(len(config.device_type.available_transport_options), 0)
+        self.assertEqual(len(config.available_transport_options), 0)
+        self.assertIsNone(config.selected_transport_option)
+        self.assertEqual(config.port, -1)
+        config.port = 7500
+        self.assertEqual(config.port, 7500)
+
+        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
+        self.assertEqual(len(streaming_config.available_transport_options), 0)
+        self.assertIsNone(streaming_config.selected_transport_option)
+        self.assertEqual(streaming_config.port, -1)
+        streaming_config.port = 7600
+        self.assertEqual(streaming_config.port, 7600)
+
+class TestTransportOption(opendaq_test.TestCase):
+
+    def test_create(self):
+        option = opendaq.TransportOption('tls', 7422, opendaq.SecurityMode.Encrypted, True)
+
+        self.assertEqual(option.id, 'tls')
+        self.assertEqual(option.port, 7422)
+        self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
+        self.assertTrue(option.certificate_required)
+
 class TestDeviceAddConfig(opendaq_test.TestCase):
 
     def test_create_add_device_config(self):

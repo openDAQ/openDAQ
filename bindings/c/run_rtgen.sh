@@ -153,6 +153,7 @@ run_rtgen copendaq/component opendaq/component opendaq component_status_containe
 run_rtgen copendaq/component opendaq/component opendaq component_status_container_private component_status_container_private
 run_rtgen copendaq/component opendaq/component opendaq component_type component_type
 run_rtgen copendaq/component opendaq/component opendaq component_type_builder component_type_builder #enum
+run_rtgen copendaq/component opendaq/component opendaq transport_option transport_option #enum
 run_rtgen copendaq/component opendaq/component opendaq component_type_private component_type_private
 run_rtgen copendaq/component opendaq/component opendaq component_update_context component_update_context
 run_rtgen copendaq/component opendaq/component opendaq deserialize_component deserialize_component

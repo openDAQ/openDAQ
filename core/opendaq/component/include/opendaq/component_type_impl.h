@@ -28,6 +28,9 @@
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/authentication_config_ptr.h>
 #include <coretypes/serializer_ptr.h>
+#include <opendaq/transport_option_ptr.h>
+#include <opendaq/container_utils.h>
+#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,7 +43,8 @@ public:
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
-                                      const DictPtr<IString, IBaseObject>& extraFields = nullptr);
+                                      const DictPtr<IString, IBaseObject>& extraFields = nullptr,
+                                      const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
@@ -48,7 +52,8 @@ public:
                                       const StringPtr& description,
                                       const StringPtr& prefix,
                                       const PropertyObjectPtr& defaultConfig,
-                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>());
+                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
+                                      const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -56,6 +61,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
@@ -80,6 +86,7 @@ protected:
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
+    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 template <class Intf, class... Interfaces>
@@ -116,7 +123,8 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
-                                                                        const DictPtr<IString, IBaseObject>& extraFields)
+                                                                        const DictPtr<IString, IBaseObject>& extraFields,
+                                                                        const DictPtr<IString, ITransportOption>& transportOptions)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
           type, createFields(type, id, name, description, extraFields))
     , id(id)
@@ -125,6 +133,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix("")
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(Dict<IString, IAuthenticationMethod>())
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
@@ -135,7 +144,8 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig,
-                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                                                                        const DictPtr<IString, ITransportOption>& transportOptions)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
@@ -143,6 +153,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix(prefix)
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
+    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
@@ -241,6 +252,15 @@ inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::get
     OPENDAQ_PARAM_NOT_NULL(moduleInfo);
 
     *moduleInfo = this->moduleInfo.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAvailableTransportOptions(IDict** transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    *transportOptions = this->transportOptions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

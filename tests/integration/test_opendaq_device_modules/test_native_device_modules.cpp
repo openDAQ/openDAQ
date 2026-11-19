@@ -3888,8 +3888,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     auto devices = restoredClient.getDevices()[0].getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 
-    auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_EQ(deviceConfig.getPropertyValue("Device.daqref.NumberOfChannels"), 1);
+    const AddDeviceConfigPtr deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_EQ(deviceConfig.getTypeConfig().getPropertyValue("NumberOfChannels"), 1);
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)

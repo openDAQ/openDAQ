@@ -49,7 +49,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@v4.1.0
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@v4
     with:
       repository: ${{ needs.resolve.outputs.repository }}
       ref: ${{ needs.resolve.outputs.ref }}

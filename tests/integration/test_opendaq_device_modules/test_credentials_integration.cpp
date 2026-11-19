@@ -250,6 +250,56 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
     ASSERT_THROW(device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)), AuthenticationFailedException);
 }
 
+// The login of an add-device config is used without a credential provider
+TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceUsesLoginOfAddDeviceConfig)
+{
+    auto instance = createClientInstance();
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    config.getStreamingOptions().setStreamingType(nullptr);
+    const auto authConfig = config.getAuthenticationConfig();
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, config));
+    const AuthenticationConfigPtr used = device.asPtr<IComponentPrivate>().getAuthenticationConfig();
+    ASSERT_EQ(used.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWithWrongLoginOfAddDeviceConfig)
+{
+    auto instance = createClientInstance();
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    config.getStreamingOptions().setStreamingType(nullptr);
+    const auto authConfig = config.getAuthenticationConfig();
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "wrong"}}));
+
+    ASSERT_ANY_THROW(instance.addDevice(DeviceConnectionString, config));
+}
+
+// The login of an add-streaming config is used without a credential provider
+TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingUsesLoginOfAddStreamingConfig)
+{
+    auto instance = createClientInstance();
+    auto device = addDeviceWithoutStreaming(instance);
+
+    for (const auto& [password, accepted] : {std::pair<const char*, bool>{"wrong", false}, {"pass", true}})
+    {
+        const auto config = device.createAddStreamingConfig(StreamingConnectionString);
+        const auto authConfig = config.getAuthenticationConfig();
+        authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", password}}));
+
+        if (accepted)
+            ASSERT_TRUE(device.addStreaming(StreamingConnectionString, config).assigned());
+        else
+            ASSERT_ANY_THROW(device.addStreaming(StreamingConnectionString, config));
+    }
+}
+
 TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptionsSucceeds)
 {
     auto instance = createClientInstance(); // No credential provider registered.

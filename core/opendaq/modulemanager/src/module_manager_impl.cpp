@@ -1052,7 +1052,12 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         checkErrorInfo(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
     }
 
-    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
+    // An IAddDeviceConfig input carries its own login; the bound copy has no supplied credentials, so it is read from the input
+    const AuthenticationConfigPtr loginConfig = authenticationConfig.assigned() || !inputAddDeviceConfig.assigned()
+                                                    ? authenticationConfig
+                                                    : inputAddDeviceConfig.getAuthenticationConfig();
+
+    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, loginConfig);
     if (device.assigned())
     {
         onCompleteCapabilities(device, discoveredDeviceInfo);
@@ -1880,10 +1885,15 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapability
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
                                                   const PropertyObjectPtr& config,
-                                                  const AuthenticationConfigPtr& authenticationConfig,
+                                                  const AuthenticationConfigPtr& extractedAuthenticationConfig,
                                                   const DevicePtr& owner) const
 {
     const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
+
+    // An IAddStreamingConfig carries its own login
+    const AuthenticationConfigPtr authenticationConfig = extractedAuthenticationConfig.assigned() || !addStreamingConfig.assigned()
+                                                             ? extractedAuthenticationConfig
+                                                             : addStreamingConfig.getAuthenticationConfig();
     const StreamingTypePtr configType = addStreamingConfig.assigned() ? addStreamingConfig.getStreamingType() : nullptr;
     const std::string prefix = getPrefixFromConnectionString(connectionString);
     if (configType.assigned() && configType.getConnectionStringPrefix() != prefix)

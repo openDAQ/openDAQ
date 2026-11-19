@@ -18,6 +18,7 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/component_type.h>
 #include <opendaq/device_type.h>
+#include <opendaq/server_type.h>
 #include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -267,6 +268,22 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] transportOptions The transport options, the default first. Empty if none were set.
      */
     virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the kind of the built Server type.
+     * @param kind The server kind.
+     *
+     * Only a builder created with ServerTypeBuilder uses the kind; other builders store it without effect.
+     * A Server type built without a kind is Unspecified.
+     */
+    virtual ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) = 0;
+
+    /*!
+     * @brief Gets the kind of the built Server type.
+     * @param[out] kind The server kind; Unspecified unless set.
+     */
+    virtual ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) = 0;
 };
 /*!@}*/
 

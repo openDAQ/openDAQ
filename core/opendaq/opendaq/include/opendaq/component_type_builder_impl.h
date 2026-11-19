@@ -64,6 +64,8 @@ public:
 
     ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
     ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) override;
+    ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) override;
 
 private:
     ComponentTypeSort sort;
@@ -77,6 +79,7 @@ private:
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
     ListPtr<ITransportOption> transportOptions;
+    ServerKind serverKind;
 };
 
 END_NAMESPACE_OPENDAQ

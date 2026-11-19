@@ -9,22 +9,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
-namespace
-{
-    ListPtr<ITransportOption> CreateTransportOptions()
-    {
-        using namespace opendaq_native_streaming_protocol;
-
-        auto options = List<ITransportOption>();
-        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, TransportProtection::None, False));
-#if NATIVE_STREAMING_ENABLE_TLS
-        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, TransportProtection::Encrypted, False));
-#endif
-        options.freeze();
-        return options;
-    }
-}
-
 NativeStreamingServerModule::NativeStreamingServerModule(ContextPtr context)
     : Module("OpenDAQNativeStreamingServerModule",
              daq::VersionInfo(NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION,
@@ -32,7 +16,7 @@ NativeStreamingServerModule::NativeStreamingServerModule(ContextPtr context)
                               NATIVE_STREAM_SRV_MODULE_PATCH_VERSION),
              std::move(context),
              "OpenDAQNativeStreamingServerModule")
-    , transportOptions(CreateTransportOptions())
+    , transportOptions(NativeStreamingServerImpl::createTransportOptions())
 {
 }
 

@@ -34,7 +34,7 @@ static constexpr size_t DEFAULT_POLLING_PERIOD = 20;
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
                                                      const PropertyObjectPtr& config,
                                                      const ContextPtr& context)
-    : Server(CONST_NATIVE_SERVER_TYPE_ID, config, rootDevice, context)
+    : Server(createType(context, createTransportOptions()), config, rootDevice, context)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
@@ -229,18 +229,29 @@ NativeStreamingServerImpl::~NativeStreamingServerImpl()
     stopServerInternal();
 }
 
+// Outputs of server function blocks are not advertised (see IServer); found by structure, so mirrored sub-devices' servers count too.
+static bool isServerFunctionBlockSignal(const ComponentPtr& signal)
+{
+    for (ComponentPtr child = signal, parent = signal.getParent(); parent.assigned(); child = parent, parent = parent.getParent())
+        if (child.getLocalId() == "FB" && parent.supportsInterface<IServer>())
+            return true;
+    return false;
+}
+
 void NativeStreamingServerImpl::addSignalsOfComponent(ComponentPtr& component)
 {
     if (component.supportsInterface<ISignal>())
     {
-        serverHandler->addSignal(component.asPtr<ISignal>(true));
+        if (!isServerFunctionBlockSignal(component))
+            serverHandler->addSignal(component.asPtr<ISignal>(true));
     }
     else if (component.supportsInterface<IFolder>())
     {
         auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
         for (const auto& nestedComponent : nestedComponents)
         {
-            if (nestedComponent.supportsInterface<ISignal>())
+            if (nestedComponent.supportsInterface<ISignal>() &&
+                !isServerFunctionBlockSignal(nestedComponent))
             {
                 LOG_I("Added Signal: {};", nestedComponent.getGlobalId());
                 serverHandler->addSignal(nestedComponent.asPtr<ISignal>(true));
@@ -734,6 +745,19 @@ ListPtr<IPropertyObject> NativeStreamingServerImpl::getDiscoveryConfigs()
     return discoveryConfigs;
 }
 
+ListPtr<ITransportOption> NativeStreamingServerImpl::createTransportOptions()
+{
+    using namespace opendaq_native_streaming_protocol;
+
+    auto options = List<ITransportOption>();
+    options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, TransportProtection::None, False));
+#if NATIVE_STREAMING_ENABLE_TLS
+    options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, TransportProtection::Encrypted, False));
+#endif
+    options.freeze();
+    return options;
+}
+
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context, const ListPtr<ITransportOption>& transportOptions)
 {
     return ServerTypeBuilder()
@@ -742,7 +766,9 @@ ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context, c
         .setDescription("Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol")
         .setDefaultConfig(NativeStreamingServerImpl::createDefaultConfig(context))
         .setTransportOptions(transportOptions)
-        .build();
+        .setServerKind(ServerKind::Mirror)
+        .build()
+        .asPtr<IServerType>();
 }
 
 void NativeStreamingServerImpl::onStopServer()

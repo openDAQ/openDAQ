@@ -14,6 +14,8 @@
 - [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types declare a kind with `setDeviceKind` on the device type builder. Root types can only be the root device, and Adapter and Mirrored types only sub-devices. Module load logs a message for each device type without a kind, and later releases raise its level.
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `createAddDeviceConfig` picks the default device type from the device's capabilities: native configuration first, else the first Mirrored type. The default streaming type is the one linked to the device type, else native streaming, else the first one the device advertises. `addDevice` without a config uses the same defaults.
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
 
 ## Python
 
@@ -45,6 +47,8 @@
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
 - [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
+- [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
+- [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
 
 ## Misc
 
@@ -109,6 +113,10 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 - Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
 - Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
 
+### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
+
+`loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
+
 ## Required module changes
 
 ### [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A public value signal cannot have a private domain signal
@@ -156,6 +164,7 @@ Read its values through the `IAddDeviceConfig` getters instead of property names
 + [interface] ISyncInterface
 + [interface] ISyncInterfaceInternal
 + [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
++ [enum] ServerKind
 ```
 
 ### Removed interfaces
@@ -214,4 +223,29 @@ Read its values through the `IAddDeviceConfig` getters instead of property names
 #### `IStreaming`
 ```diff
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
+```
+
+#### `IServer`
+```diff
++ IServer::getServerType(IServerType** type);
++ IServer::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr);
++ IServer::getAvailableFunctionBlockTypes(IDict** functionBlockTypes);
++ IServer::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
++ IServer::removeFunctionBlock(IFunctionBlock* functionBlock);
+```
+
+#### `IServerType`
+```diff
++ IServerType::getServerKind(ServerKind* kind);
+```
+
+#### `IComponentTypeBuilder`
+```diff
++ IComponentTypeBuilder::setServerKind(ServerKind kind);
++ IComponentTypeBuilder::getServerKind(ServerKind* kind);
+```
+
+#### `IComponentTypePrivate`
+```diff
++ IComponentTypePrivate::serializeWithoutDefaultConfig(ISerializer* serializer);
 ```

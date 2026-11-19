@@ -8,14 +8,31 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace detail
 {
     static const StructTypePtr serverTypeStructType = ServerTypeStructType();
+
+    // Kinds from newer peers that this version does not know read as Unspecified.
+    static ServerKind toServerKind(Int value)
+    {
+        if (value > static_cast<Int>(ServerKind::Unspecified) && value <= static_cast<Int>(ServerKind::Streaming))
+            return static_cast<ServerKind>(value);
+        return ServerKind::Unspecified;
+    }
 }
 
 ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
                                const StringPtr& name,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
+                               ServerKind serverKind,
                                const ListPtr<ITransportOption>& transportOptions)
-    : Super(detail::serverTypeStructType, id, name, description, defaultConfig, Dict<IString, IAuthenticationMethod>(), transportOptions)
+    : Super(detail::serverTypeStructType,
+            id,
+            name,
+            description,
+            defaultConfig,
+            Dict<IString, IAuthenticationMethod>(),
+            transportOptions,
+            Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}))
+    , serverKind(serverKind)
 {
 }
 
@@ -24,8 +41,17 @@ ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getName(),
                      builder.getDescription(),
                      builder.getDefaultConfig(),
+                     builder.getServerKind(),
                      builder.getTransportOptions())
 {
+}
+
+ErrCode ServerTypeImpl::getServerKind(ServerKind* kind)
+{
+    OPENDAQ_PARAM_NOT_NULL(kind);
+
+    *kind = this->serverKind;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode ServerTypeImpl::createAuthenticationConfig(IAuthenticationConfig** /*config*/)
@@ -43,49 +69,53 @@ ErrCode INTERFACE_FUNC ServerTypeImpl::serialize(ISerializer* serializer)
     OPENDAQ_PARAM_NOT_NULL(serializer);
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-    const ErrCode errCode = daqTry([this, &serializerPtr]
-    {
-        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
-        {
-            serializerPtr.key("id");
-            serializerPtr.writeString(id);
-
-            if (name.assigned())
-            {
-                serializerPtr.key("name");
-                serializerPtr.writeString(name);
-            }
-
-            if (description.assigned())
-            {
-                serializerPtr.key("description");
-                serializerPtr.writeString(description);
-            }
-
-            if (transportOptions.getCount() > 0)
-            {
-                serializerPtr.key("transportOptions");
-                transportOptions.serialize(serializerPtr);
-            }
-
-            if (defaultConfig.assigned())
-            {
-                serializerPtr.key("defaultConfig");
-                defaultConfig.serialize(serializerPtr);
-            }
-
-            if (moduleInfo.assigned())
-            {
-                serializerPtr.key("moduleInfo");
-                moduleInfo.serialize(serializerPtr);
-            }
-        }
-
-        serializerPtr.endObject();
-    });
+    const ErrCode errCode = daqTry([this, &serializerPtr] { serializeType(serializerPtr, true); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+void ServerTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig)
+{
+    serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+    {
+        serializerPtr.key("id");
+        serializerPtr.writeString(id);
+
+        if (name.assigned())
+        {
+            serializerPtr.key("name");
+            serializerPtr.writeString(name);
+        }
+
+        if (description.assigned())
+        {
+            serializerPtr.key("description");
+            serializerPtr.writeString(description);
+        }
+
+        if (transportOptions.getCount() > 0)
+        {
+            serializerPtr.key("transportOptions");
+            transportOptions.serialize(serializerPtr);
+        }
+
+        if (withDefaultConfig && defaultConfig.assigned())
+        {
+            serializerPtr.key("defaultConfig");
+            defaultConfig.serialize(serializerPtr);
+        }
+
+        if (moduleInfo.assigned())
+        {
+            serializerPtr.key("moduleInfo");
+            moduleInfo.serialize(serializerPtr);
+        }
+
+        serializerPtr.key("serverKind");
+        serializerPtr.writeInt(static_cast<Int>(serverKind));
+    }
+
+    serializerPtr.endObject();
 }
 
 ErrCode INTERFACE_FUNC ServerTypeImpl::getSerializeId(ConstCharPtr* serializedId) const
@@ -131,12 +161,14 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, transportOptions);
+        const auto serverKind =
+            serializedObj.hasKey("serverKind") ? detail::toServerKind(serializedObj.readInt("serverKind")) : ServerKind::Unspecified;
 
-        ModuleInfoPtr moduleInfo;
+        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, serverKind, transportOptions);
+
         if (serializedObj.hasKey("moduleInfo"))
         {
-            moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
+            const ModuleInfoPtr moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
             serverType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
         }
 

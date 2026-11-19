@@ -67,6 +67,8 @@ extern "C"
     daqErrCode EXPORTED daqComponentTypeBuilder_getLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType** deviceType);
     daqErrCode EXPORTED daqComponentTypeBuilder_setTransportOptions(daqComponentTypeBuilder* self, daqList* transportOptions);
     daqErrCode EXPORTED daqComponentTypeBuilder_getTransportOptions(daqComponentTypeBuilder* self, daqList** transportOptions);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setServerKind(daqComponentTypeBuilder* self, daqServerKind kind);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getServerKind(daqComponentTypeBuilder* self, daqServerKind* kind);
     daqErrCode EXPORTED daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj);

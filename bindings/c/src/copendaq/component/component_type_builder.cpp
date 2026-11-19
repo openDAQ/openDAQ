@@ -127,6 +127,16 @@ daqErrCode daqComponentTypeBuilder_getTransportOptions(daqComponentTypeBuilder* 
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getTransportOptions(reinterpret_cast<daq::IList**>(transportOptions));
 }
 
+daqErrCode daqComponentTypeBuilder_setServerKind(daqComponentTypeBuilder* self, daqServerKind kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setServerKind(static_cast<daq::ServerKind>(kind));
+}
+
+daqErrCode daqComponentTypeBuilder_getServerKind(daqComponentTypeBuilder* self, daqServerKind* kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getServerKind(reinterpret_cast<daq::ServerKind*>(kind));
+}
+
 daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;

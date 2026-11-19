@@ -31,9 +31,12 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
+                            ServerKind serverKind = ServerKind::Unspecified,
                             const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
+
+    ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) override;
 
     // IComponentType
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
@@ -44,9 +47,13 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* serializedId) const override;
+    void serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+private:
+    ServerKind serverKind;
 };
 
 END_NAMESPACE_OPENDAQ

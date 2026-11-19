@@ -87,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24, 25}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24, 25, 26}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -766,7 +766,8 @@ SerializerPtr ConfigProtocolServer::createSerializer()
         serializer = JsonSerializer();
     else if (protocolVersion < 11)
         serializer = JsonSerializerWithVersion(2);
-    else if (protocolVersion < 26)
+    // Version 26 is taken by server function block commands; clients read the new add device config from 27
+    else if (protocolVersion < 27)
         serializer = JsonSerializerWithVersion(3);
     else
         serializer = JsonSerializer();

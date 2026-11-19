@@ -16,6 +16,7 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     , deviceKind(DeviceKind::Unspecified)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
     , transportOptions(List<ITransportOption>())
+    , serverKind(ServerKind::Unspecified)
 {
 }
 
@@ -247,6 +248,20 @@ ErrCode ComponentTypeBuilderImpl::getTransportOptions(IList** transportOptions)
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
     *transportOptions = this->transportOptions.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setServerKind(ServerKind kind)
+{
+    this->serverKind = kind;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getServerKind(ServerKind* kind)
+{
+    OPENDAQ_PARAM_NOT_NULL(kind);
+
+    *kind = this->serverKind;
     return OPENDAQ_SUCCESS;
 }
 

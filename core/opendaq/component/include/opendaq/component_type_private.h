@@ -17,6 +17,7 @@
 #pragma once
 #include "opendaq/module_info.h"
 #include <coretypes/dictobject.h>
+#include <coretypes/serializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,9 +29,7 @@ struct IAuthenticationMethod;
  */
 
 /*!
- * @brief Private interface to component type. Allows for setting the module information, and reading the
- * raw authentication method dict a public `IComponentType::createAuthenticationConfig()` call builds its
- * config from.
+ * @brief Private interface to component type. Allows for setting the module information and serializing the type for components.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
 {
@@ -48,6 +47,13 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
      */
     // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
     virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
+
+    /*!
+     * @brief Serializes the type without its default configuration, in the form components of this type carry it.
+     * @param serializer The serializer to write to.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED The type sort is not carried by components.
+     */
+    virtual ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) = 0;
 };
 
 /*!@}*/

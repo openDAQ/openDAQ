@@ -41,6 +41,7 @@ public:
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     /// @param transportOptions the transport options the type lists, built once by the module
     static ServerTypePtr createType(const ContextPtr& context, const ListPtr<ITransportOption>& transportOptions);
+    static ListPtr<ITransportOption> createTransportOptions();
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:

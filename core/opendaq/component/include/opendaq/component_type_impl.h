@@ -30,6 +30,7 @@
 #include <opendaq/transport_option_ptr.h>
 #include <coretypes/listobject_factory.h>
 #include <unordered_set>
+#include <coretypes/serializer_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,7 +44,8 @@ public:
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
-                                      const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
+                                      const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>(),
+                                      const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
@@ -65,8 +67,19 @@ public:
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
     ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
+    ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) override;
+
+private:
+    static DictPtr<IString, IBaseObject> createFields(const StructTypePtr& type,
+                                                      const StringPtr& id,
+                                                      const StringPtr& name,
+                                                      const StringPtr& description,
+                                                      const DictPtr<IString, IBaseObject>& extraFields);
 
 protected:
+    // Writes the type as its own tagged object; sorts that components carry override it.
+    virtual void serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig);
+
     StringPtr id;
     StringPtr name;
     StringPtr description;
@@ -81,14 +94,44 @@ private:
 };
 
 template <class Intf, class... Interfaces>
+DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::createFields([[maybe_unused]] const StructTypePtr& type,
+    const StringPtr& id,
+    const StringPtr& name,
+    const StringPtr& description,
+    const DictPtr<IString, IBaseObject>& extraFields)
+{
+    auto fields = Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}});
+
+    if (extraFields.assigned())
+    {
+        for (const auto& [key, value] : extraFields)
+        {
+            if (fields.hasKey(key))
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Extra component type field \"{}\" is reserved", key);
+
+            fields.set(key, value);
+        }
+    }
+
+#ifndef NDEBUG
+    if (fields.getKeyList() != type.getFieldNames())
+        DAQ_THROW_EXCEPTION(InvalidTypeException, "Component type fields do not match the fields of struct type \"{}\"", type.getName());
+#endif
+
+    return fields;
+}
+
+template <class Intf, class... Interfaces>
 GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
                                                                         const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                                                        const ListPtr<ITransportOption>& transportOptions)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
+                                                                        const ListPtr<ITransportOption>& transportOptions,
+                                                                        const DictPtr<IString, IBaseObject>& extraFields)
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
+          type, createFields(type, id, name, description, extraFields))
     , id(id)
     , name(name)
     , description(description)
@@ -215,6 +258,23 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getSupportedAuthenticatio
 
     *authenticationMethods = this->supportedAuthenticationMethods.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::serializeWithoutDefaultConfig(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const auto serializerPtr = SerializerPtr::Borrow(serializer);
+    const ErrCode errCode = daqTry([this, &serializerPtr] { serializeType(serializerPtr, false); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename Intf, typename... Interfaces>
+void GenericComponentTypeImpl<Intf, Interfaces...>::serializeType(const SerializerPtr& /*serializerPtr*/, bool /*withDefaultConfig*/)
+{
+    DAQ_THROW_EXCEPTION(NotImplementedException, "Type {} is not carried by components", id);
 }
 
 template <typename Intf, typename... Interfaces>

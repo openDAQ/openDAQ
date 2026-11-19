@@ -15,7 +15,7 @@ jobs:
     name: Stagings and installers
     permissions:
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/staging-cleanup.yml@bundle/extract-each-artifact-into-its-dir
+    uses: openDAQ/openDAQ-CI/.github/workflows/staging-cleanup.yml@v4.1.0
     with:
       dry-run: ${{ inputs.dry-run || false }}
       staging-retentions: >-

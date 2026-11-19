@@ -152,13 +152,13 @@ TEST_F(LegacyAddDeviceConfigTest, AllowedNotPrioritized)
 {
     const auto config = legacyConfig({{"PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming")},
                                       {"AllowedStreamingProtocols", List<IString>("OpenDAQLTStreaming")}});
-    ASSERT_EQ(addAndGetStreamingConnectionStrings(config), ConnectionStrings{});
+    ASSERT_EQ(addAndGetStreamingConnectionStrings(config), ConnectionStrings{ltStreaming()});
 }
 
 TEST_F(LegacyAddDeviceConfigTest, EmptyPrioritized)
 {
     const auto config = legacyConfig({{"PrioritizedStreamingProtocols", List<IString>()}});
-    ASSERT_EQ(addAndGetStreamingConnectionStrings(config), ConnectionStrings{});
+    ASSERT_EQ(addAndGetStreamingConnectionStrings(config), ConnectionStrings{nativeStreaming()});
 }
 
 TEST_F(LegacyAddDeviceConfigTest, AutomaticallyConnectStreamingOff)

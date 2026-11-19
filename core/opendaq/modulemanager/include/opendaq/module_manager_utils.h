@@ -234,15 +234,18 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
     /*!
      * @brief Creates an add device config from its saved form, bound to the Device types of the parent device.
      * @param[out] config The add device config, or null when `saved` is not the save form of an add device config
-     * @param saved The config as written by `serializeForUpdate`
+     * @param saved The config as written by `serializeForUpdate`, as an `ISerializedObject`
      * @param parent The device the config adds a device to
+     * @retval OPENDAQ_ERR_INVALIDTYPE when `saved` is not an `ISerializedObject`.
      *
      * Without a parent, the config is bound to the loaded Device types.
      * Streaming types are bound to the loaded ones.
      * A `ScanOnAdd` that was not set when the config was saved takes the `ModuleManager.ScanOnAdd` context option.
+     *
+     * `saved` is declared as an `IBaseObject` because the .NET bindings have no `SerializedObject` type.
      */
     virtual ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
-                                                              ISerializedObject* saved,
+                                                              /* ISerializedObject */ IBaseObject* saved,
                                                               IDevice* parent = nullptr) = 0;
 };
 /*!@}*/

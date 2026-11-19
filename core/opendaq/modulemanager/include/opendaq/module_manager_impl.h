@@ -72,7 +72,7 @@ public:
     ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
     ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) override;
     ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
-                                                      ISerializedObject* saved,
+                                                      /* ISerializedObject */ IBaseObject* saved,
                                                       IDevice* parent = nullptr) override;
 
 private:

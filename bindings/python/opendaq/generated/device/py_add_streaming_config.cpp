@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IAddStreamingConfig, daq::IBaseObject> declareIAddStreamingConfig(pybind11::module_ m)
 {
@@ -67,4 +67,45 @@ void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreaming
         },
         py::return_value_policy::take_ownership,
         "");
+    cls.def_property_readonly("available_transport_options",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getAvailableTransportOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transport options the streaming can connect over.");
+    cls.def_property("transport_option",
+        nullptr,
+        [](daq::IAddStreamingConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            objectPtr.setTransportOption(getVariantValue<daq::IString*>(id));
+        },
+        "Selects the transport option the streaming connects over.");
+    cls.def_property_readonly("selected_transport_option",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getSelectedTransportOption().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the selected transport option.");
+    cls.def_property("port",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getPort();
+        },
+        [](daq::IAddStreamingConfig *object, daq::Int port)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            objectPtr.setPort(port);
+        },
+        "Gets the port the streaming connects to. / Sets the port the streaming connects to.");
 }

@@ -193,6 +193,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/component/component_status_container.h
     include/copendaq/component/component_type_builder.h
     include/copendaq/component/component_type.h
+    include/copendaq/component/transport_option.h
     include/copendaq/component/component.h
     include/copendaq/component/folder_config.h
     include/copendaq/component/folder.h
@@ -350,6 +351,7 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/component/component_status_container.cpp
     src/copendaq/component/component_type_builder.cpp
     src/copendaq/component/component_type.cpp
+    src/copendaq/component/transport_option.cpp
     src/copendaq/component/component.cpp
     src/copendaq/component/folder_config.cpp
     src/copendaq/component/folder.cpp

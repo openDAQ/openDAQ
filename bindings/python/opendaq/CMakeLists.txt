@@ -115,6 +115,7 @@ set(SRC_Cpp
     generated/synchronization/py_synchronization.cpp
     generated/modulemanager/py_module_info.cpp
     generated/component/py_component_type.cpp
+    generated/component/py_transport_option.cpp
     generated/utility/py_device_update_options.cpp
     generated/security/py_authentication_method.cpp
     generated/security/py_credential_field.cpp

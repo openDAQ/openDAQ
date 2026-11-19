@@ -37,11 +37,10 @@ static constexpr const char* IPv4 = "IPv4";
 static constexpr const char* IPv6 = "IPv6";
 
 static constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
-static constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
 
 static ListPtr<IString> defaultPrioritizedStreamingProtocols()
 {
-    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
+    return List<IString>(NativeStreamingProtocolId);
 }
 }
 
@@ -214,24 +213,20 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     const ListPtr<IString> prioritized = general.getPropertyValue(LegacyAddDeviceConfig::PrioritizedStreamingProtocols);
     const ListPtr<IString> allowed = general.getPropertyValue(LegacyAddDeviceConfig::AllowedStreamingProtocols);
-    const auto isAllowed = [&allowed](const StringPtr& protocol)
+    auto selectable = Dict<IString, IStreamingType>();
+    for (const auto& [typeId, streamingConfig] : streamingConfigs)
+        if ((allowed.getCount() == 0) || (std::find(allowed.begin(), allowed.end(), typeId) != allowed.end()))
+            selectable.set(typeId, streamingConfig.getStreamingType());
+
+    const auto isSelectable = [&selectable](const StringPtr& typeId)
     {
-        return (allowed.getCount() == 0) || (std::find(allowed.begin(), allowed.end(), protocol) != allowed.end());
+        return selectable.hasKey(typeId);
     };
+    const auto preferred = std::find_if(prioritized.begin(), prioritized.end(), isSelectable);
+    const auto selected = (preferred != prioritized.end()) ? selectable.get(*preferred) : selectStreamingType(selectable, deviceType);
+    if (selected.assigned())
+        options.setStreamingType(selected.getId());
 
-    const auto pick = std::find_if(prioritized.begin(), prioritized.end(), isAllowed);
-    if (pick == prioritized.end())
-        return config;
-
-    if (!streamingConfigs.hasKey(*pick))
-    {
-        LOG_W(R"(Streaming protocol "{}" is not a listed streaming type of device type "{}", no streaming type is selected)",
-              *pick,
-              deviceType.getId());
-        return config;
-    }
-
-    options.setStreamingType(*pick);
     return config;
 }
 

@@ -70,10 +70,10 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
  * Adapter and Root Device types get no streaming options, and the streaming keys of `General` are ignored.
  * Without listed Streaming types the config has no streaming options either.
  * The streaming mode is MinHops for the `MinHops` heuristic, and MinConnections otherwise.
- * The selected Streaming type is the first prioritized protocol that is allowed.
- * With an empty allowed list, it is the first prioritized protocol.
- * `NotConnected`, `AutomaticallyConnectStreaming` false and no pick give no selection.
- * A pick that is not a listed Streaming type gives no selection, and a warning is logged.
+ * The selected Streaming type is the first prioritized protocol among the listed types that `AllowedStreamingProtocols` allows.
+ * Without one, it is chosen from those types by `selectStreamingType`.
+ * An empty allowed list allows every type.
+ * `NotConnected` and `AutomaticallyConnectStreaming` false give no selection.
  */
 PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& legacyConfig,
                                                            const DeviceTypePtr& deviceType,

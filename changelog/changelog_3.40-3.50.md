@@ -83,6 +83,12 @@ A reachable address comes before an unreachable one of the preferred type.
 A blank `General.PrimaryAddressType`, the default, now prefers IPv4 on `daq://`, also for an add without a config.
 Before, `daq://` connected to the first address the device lists, which could be IPv6.
 
+### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) A legacy config connects another allowed streaming protocol
+
+`General.PrioritizedStreamingProtocols` defaults to `OpenDAQNativeStreaming` alone.
+When no prioritized protocol is loaded and allowed, `addDevice` picks a protocol with the new streaming protocol selection logic. This can lead to an existing `addDevice` call producing a device with attached streaming, where it had none before.
+Set `General.AutomaticallyConnectStreaming` to false to add a device without streaming.
+
 ### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) An add without a config uses the `MinHops` streaming mode
 
 `addDevice` without a config now streams in `MinHops` mode instead of `MinConnections`, so nested devices connect their own streaming where they can.

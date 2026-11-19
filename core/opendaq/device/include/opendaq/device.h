@@ -191,13 +191,16 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     // [templateType(device, IDevice)]
     /*!
      * @brief Connects to a device at the given connection string and returns it.
-     * @param[out] device The added device.
-     * @param connectionString The connection string containing the address of the device. In example an
-     * IPv4/IPv6 address. The connection string can be found in the Device Info objects returned by
-     * `getAvailableDevices`.
-     * @param config A config object to configure a client device. This object can contain properties like max sample rate,
-     * port to use for 3rd party communication, number of channels to generate, or other device specific settings. Can be
-     * created from its corresponding Device type object. In case of a null value, it will use the default configuration.
+     * @param[out] device The added device
+     * @param connectionString The connection string of the device, as found in the Device infos returned by `getAvailableDevices`
+     * @param config An `IAddDeviceConfig`, a legacy add device config, or a type config of the Device type the prefix names
+     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Device type fits the connection string or the add device config.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or its prefix differs from that of the connection string.
+     * @retval OPENDAQ_ERR_INVALIDVALUE when the values of an add device config don't fit the loaded types.
+     *
+     * An `IAddDeviceConfig` is created by `createAddDeviceConfig`. It must be cast to `IPropertyObject`.
+     * A legacy add device config is created by `createDefaultAddDeviceConfig` (deprecated).
+     * Without a config, the device is added with the config `createAddDeviceConfig` creates for the connection string.
      */
     virtual ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
@@ -397,9 +400,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * If a device connection or addition attempt fails, the value will be `nullptr` for that entry.
      *
      * @param connectionArgs A dictionary where each key is a connection string identifying the target device
-     * (e.g., IPv4/IPv6), and each value is a configuration object that customizes the connection.
-     * The configuration may specify parameters such as maximum sample rate, communication port, number of channels,
-     * or other device-specific settings. A `nullptr` value indicates that the default configuration should be used.
+     * (e.g., IPv4/IPv6), and each value is the config `addDevice` takes for it.
      *
      * @param[in,out] errCodes An optional dictionary used to populate error codes for failed connection or addition attempts.
      * For each failed attempt, the key is the connection string, and the value contains the error code.

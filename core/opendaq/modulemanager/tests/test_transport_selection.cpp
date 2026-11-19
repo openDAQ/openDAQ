@@ -289,6 +289,15 @@ TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsSelection)
     ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 17422);
 }
 
+TEST_F(TransportSelectionTest, AddDeviceConfigKeepsConnectionStringPortOfNoOption)
+{
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+
+    ASSERT_EQ(create("dev://host:9100", config), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->connectionStrings[0], "dev://host:9100");
+    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 9100);
+}
+
 TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsPort)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());

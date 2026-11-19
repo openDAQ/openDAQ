@@ -1039,8 +1039,21 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
             const auto selection = inputAddDeviceConfig.assigned() && inputAddDeviceConfig.getTransportOptions().getCount() > 0
                                        ? inputAddDeviceConfig
                                        : addDeviceConfig;
-            const IntegerPtr port = selection.getPort();
-            deviceTypeConfig.setPropertyValue(TransportOptionConfigProperty, selection.getSelectedTransportOption().getName());
+            const TransportOptionPtr selected = selection.getSelectedTransportOption();
+            IntegerPtr port = selection.getPort();
+
+            // A port the connection string names that is none of the options' ports is kept unless the config sets one
+            const auto connectionStringPort = GetConnectionStringPort(connectionStringPtr);
+            if (connectionStringPort.has_value() && static_cast<Int>(port) == selected.getPort())
+            {
+                bool isOptionPort = false;
+                for (const auto& option : selection.getTransportOptions())
+                    isOptionPort = isOptionPort || option.getPort() == connectionStringPort.value();
+                if (!isOptionPort)
+                    port = Integer(connectionStringPort.value());
+            }
+
+            deviceTypeConfig.setPropertyValue(TransportOptionConfigProperty, selected.getName());
             deviceTypeConfig.setPropertyValue(PortConfigProperty, port);
             connectionStringPtr = ReplaceConnectionStringPort(connectionStringPtr, port);
         }

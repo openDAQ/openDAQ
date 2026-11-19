@@ -269,15 +269,29 @@ TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
     ASSERT_EQ(config.getPort(), 17422);
 }
 
-// A server that announces only options the type does not know leaves the config without options
+// A server that announces only options the type does not know leaves the config without options, also once serialized
 TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
 {
-    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(
-        DeviceInfoAnnouncing(TransportOptionsById({TransportOption("quic", 17425), TransportOption("wss", 17443)})));
+    const auto unknownOptions = TransportOptionsById({TransportOption("quic", 17425), TransportOption("wss", 17443)});
+    const auto info = DeviceInfoAnnouncing(unknownOptions);
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("strproto", ProtocolType::Streaming, "str", unknownOptions));
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(info);
 
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
     ASSERT_FALSE(config.getSelectedTransportOption().assigned());
     ASSERT_EQ(config.getPort(), -1);
+
+    const auto serializer = JsonSerializer();
+    config.serialize(serializer);
+    const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
+
+    ASSERT_EQ(deserialized.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(deserialized.getSelectedTransportOption().assigned());
+    ASSERT_EQ(deserialized.getPort(), -1);
+
+    const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
+    ASSERT_EQ(streamingConfig.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(streamingConfig.getSelectedTransportOption().assigned());
 }
 
 // The config keeps the options the server announces; only a saved config selects among the type's again

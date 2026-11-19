@@ -281,12 +281,12 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         {
             const DeviceTypePtr deviceType = serialized.readObject(add_device_config::DeviceTypeKey, context, factoryCallback);
 
-            // A config serialized without options of its own lists the Device type's
+            // The key is left out for a config without options
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
                     ? DictPtr<IString, ITransportOption>(
                           serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback).asPtr<IDict>())
-                    : deviceType.getAvailableTransportOptions();
+                    : Dict<IString, ITransportOption>();
 
             return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, options, Partial());
         };

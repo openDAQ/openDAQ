@@ -191,12 +191,12 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
         {
             const StreamingTypePtr streamingType = serialized.readObject(add_streaming_config::StreamingTypeKey, context, factoryCallback);
 
-            // A config serialized without options of its own lists the Streaming type's
+            // The key is left out for a config without options
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
                     ? DictPtr<IString, ITransportOption>(
                           serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback).asPtr<IDict>())
-                    : streamingType.getAvailableTransportOptions();
+                    : Dict<IString, ITransportOption>();
 
             return createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType, options, Partial());
         };

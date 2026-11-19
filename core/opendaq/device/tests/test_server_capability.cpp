@@ -1,6 +1,7 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/property_object_protected.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <opendaq/context_factory.h>
@@ -286,6 +287,32 @@ TEST_F(ServerCapabilityTest, DeserializeWithoutTransportOptions)
 
     ASSERT_EQ(newCapability.getAvailableTransportOptions().getCount(), 0u);
     ASSERT_EQ(newCapability.getPort(), 7420);
+}
+
+// An entry that is not a transport option, as a peer of another version may send, is left out
+TEST_F(ServerCapabilityTest, EntryThatIsNotATransportOptionIsLeftOut)
+{
+    auto quic = PropertyObject();
+    quic.addProperty(StringProperty("Id", "quic"));
+    quic.addProperty(StringProperty("Port", "7425"));
+
+    auto tls = PropertyObject();
+    tls.addProperty(StringProperty("Id", "tls"));
+    tls.addProperty(IntProperty("Port", 7421));
+    tls.addProperty(IntProperty("SecurityMode", static_cast<Int>(SecurityMode::Encrypted)));
+    tls.addProperty(BoolProperty("CertificateRequired", False));
+
+    auto container = PropertyObject();
+    container.addProperty(ObjectProperty("quic", quic));
+    container.addProperty(ObjectProperty("tls", tls));
+
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+    capability.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(String("AvailableTransportOptions"), container);
+
+    const auto options = capability.getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>("tls"));
+    ASSERT_EQ(options.get("tls").getPort(), 7421);
+    ASSERT_EQ(options.get("tls").getSecurityMode(), SecurityMode::Encrypted);
 }
 
 TEST_F(ServerCapabilityTest, CloneTransportOptions)

@@ -582,8 +582,16 @@ inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransp
     {
         if (prop.getValueType() == ctObject)
         {
-            const auto option = TransportOptionFromObject(container.getPropertyValue(prop.getName()));
-            options.set(option.getId(), option);
+            // An entry that cannot be read, as another peer may send, is left out
+            try
+            {
+                const auto option = TransportOptionFromObject(container.getPropertyValue(prop.getName()));
+                options.set(option.getId(), option);
+            }
+            catch (...)
+            {
+                daqClearErrorInfo();
+            }
         }
     }
 

@@ -167,7 +167,7 @@ protected:
     struct Address
     {
         std::string type;
-        std::string name = type;
+        std::string name;
     };
 
     void addDiscoveredDevice(const std::vector<Address>& addresses)
@@ -182,9 +182,10 @@ protected:
                                   .setConnectionString("legdev://capability");
             for (const auto& address : addresses)
             {
+                const auto& name = address.name.empty() ? address.type : address.name;
                 capability.addAddressInfo(AddressInfoBuilder()
-                                              .setAddress(address.name)
-                                              .setConnectionString("legdev://" + address.name)
+                                              .setAddress(name)
+                                              .setConnectionString("legdev://" + name)
                                               .setType(address.type)
                                               .build());
             }
@@ -375,7 +376,8 @@ TEST_F(LegacyAddDeviceTest, ConnectionStringOptionsOverrideFlatConfig)
 
 TEST_F(LegacyAddDeviceTest, GeneralScanOnAdd)
 {
-    setUpManager(Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 0}})}}));
+    const auto options = Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 0}});
+    setUpManager(Dict<IString, IBaseObject>({{"ModuleManager", options}}));
     addDiscoveredDevice({{"IPv4"}});
 
     const auto config = legacyConfig();

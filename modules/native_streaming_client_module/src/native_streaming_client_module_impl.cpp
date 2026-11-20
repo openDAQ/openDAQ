@@ -30,13 +30,9 @@ namespace
 // The transport options of the native types, plain first.
 // - "wss" needs a build with TLS.
 // - "wss-mtls" also needs the client to present a certificate, which it cannot do under NATIVE_STREAMING_TLS_WITHOUT_SIGN.
-// The secure types connect by their own prefix and list no options.
-DictPtr<IString, ITransportOption> CreateTransportOptions(bool secure)
+DictPtr<IString, ITransportOption> CreateTransportOptions()
 {
     auto options = Dict<IString, ITransportOption>();
-    if (secure)
-        return options;
-
     options.set(CONST_NATIVE_TRANSPORT_WS, TransportOption(CONST_NATIVE_TRANSPORT_WS, DEFAULT_PORT));
 #if NATIVE_STREAMING_ENABLE_TLS
     options.set(CONST_NATIVE_TRANSPORT_WSS, TransportOption(CONST_NATIVE_TRANSPORT_WSS, DEFAULT_TLS_PORT, SecurityMode::Encrypted));
@@ -46,6 +42,20 @@ DictPtr<IString, ITransportOption> CreateTransportOptions(bool secure)
 #endif
 #endif
     return options;
+}
+
+// The option the "TransportOption" property of the config names, or the first option if the config has none
+TransportOptionPtr SelectedTransportOption(const PropertyObjectPtr& config)
+{
+    const auto options = CreateTransportOptions();
+    if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
+        return options.get(CONST_NATIVE_TRANSPORT_WS);
+
+    const StringPtr id = config.getPropertyValue(TransportOptionConfigProperty);
+    if (!options.hasKey(id))
+        DAQ_THROW_EXCEPTION(NotFoundException, "The native client has no transport option \"{}\"", id);
+
+    return options.get(id);
 }
 
 }
@@ -69,11 +79,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     const auto uuidBoost = gen();
     transportClientUuidBase = boost::uuids::to_string(uuidBoost);
 
-#if NATIVE_STREAMING_ENABLE_TLS
-    discoveryClient.initMdnsClient(List<IString>(CONST_NATIVE_SERVICE_NAME, CONST_NATIVE_TLS_SERVICE_NAME));
-#else
     discoveryClient.initMdnsClient(List<IString>(CONST_NATIVE_SERVICE_NAME));
-#endif
 }
 
 NativeStreamingClientModule::~NativeStreamingClientModule()
@@ -160,18 +166,11 @@ DictPtr<IString, IDeviceType> NativeStreamingClientModule::onGetAvailableDeviceT
 {
     auto result = Dict<IString, IDeviceType>();
 
-    for (bool secure : {false, true})
-    {
-#if !NATIVE_STREAMING_ENABLE_TLS
-        if (secure)
-            continue;
-#endif
-        auto pseudoDeviceType = createPseudoDeviceType(secure);
-        result.set(pseudoDeviceType.getId(), pseudoDeviceType);
+    auto pseudoDeviceType = createPseudoDeviceType();
+    result.set(pseudoDeviceType.getId(), pseudoDeviceType);
 
-        auto deviceType = createDeviceType(secure);
-        result.set(deviceType.getId(), deviceType);
-    }
+    auto deviceType = createDeviceType();
+    result.set(deviceType.getId(), deviceType);
 
     return result;
 }
@@ -180,15 +179,8 @@ DictPtr<IString, IStreamingType> NativeStreamingClientModule::onGetAvailableStre
 {
     auto result = Dict<IString, IStreamingType>();
 
-    for (bool secure : {false, true})
-    {
-#if !NATIVE_STREAMING_ENABLE_TLS
-        if (secure)
-            continue;
-#endif
-        auto streamingType = createStreamingType(secure);
-        result.set(streamingType.getId(), streamingType);
-    }
+    auto streamingType = createStreamingType();
+    result.set(streamingType.getId(), streamingType);
 
     return result;
 }
@@ -377,9 +369,9 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType, bool secure)
+PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType)
 {
-    auto defConfig = createConnectionDefaultConfig(nativeType, secure);
+    auto defConfig = createConnectionDefaultConfig(nativeType);
     for (const auto& prop : defConfig.getAllProperties())
     {
         const auto name = prop.getName();
@@ -419,18 +411,17 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException);
 
-    const auto kind = ParseConnectionKind(connectionString);
-    if (!kind.has_value())
+    const auto parsedType = ParseNativeType(connectionString);
+    if (!parsedType.has_value())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
 
-    const NativeType nativeType = kind->type;
-    const bool secure = kind->secure;
+    const NativeType nativeType = parsedType.value();
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
-        deviceConfig = createConnectionDefaultConfig(nativeType, secure);
+        deviceConfig = createConnectionDefaultConfig(nativeType);
     else
-        deviceConfig = populateDefaultConfig(config, nativeType, secure);
+        deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
@@ -438,8 +429,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
+    const TransportOptionPtr transportOption = SelectedTransportOption(deviceConfig);
+    const bool secure = transportOption.getSecurityMode() == SecurityMode::Encrypted;
+
     auto host = ConnectionStringUtils::GetHost(connectionString);
-    auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig);
+    auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, transportOption.getPort());
     auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
@@ -456,7 +450,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-        auto deviceType = createPseudoDeviceType(secure);
+        auto deviceType = createPseudoDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
         device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
@@ -478,14 +472,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                      .setConnectionString(connectionString)
                                      .build();
 
-        const auto protocolId = secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID;
-        connectionInfo.setProtocolId(protocolId)
-            .setProtocolName(protocolId)
+        connectionInfo.setProtocolId(CONST_NATIVE_STREAMING_ID)
+            .setProtocolName(CONST_NATIVE_STREAMING_ID)
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
             .setPort(std::stoi(port.toStdString()))
-            .setPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
+            .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo)
             .freeze();
@@ -495,7 +488,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion, secure);
 
-        auto deviceType = createDeviceType(secure);
+        auto deviceType = createDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
         device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
     }
@@ -524,19 +517,23 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
     return transportLayerConfig;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(NativeType nativeConfigType, bool secure)
+PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(NativeType nativeConfigType)
 {
     auto defaultConfig = PropertyObject();
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
-    defaultConfig.addProperty(IntProperty("Port", secure ? DEFAULT_TLS_PORT : DEFAULT_PORT));
+    // Declared here, so that a value given in the config of an add reaches the module (see TransportOptionConfigProperty)
+    defaultConfig.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_WS)
+                                  .setDescription("The id of the transport option to connect over, one of those the type lists.")
+                                  .build());
+    defaultConfig.addProperty(IntProperty("Port", DEFAULT_PORT));
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
 
     daq::ClientTypeTools::DefineConfigProperties(defaultConfig);
 
 #if NATIVE_STREAMING_ENABLE_TLS && !defined(NATIVE_STREAMING_TLS_WITHOUT_SIGN)
-    if (secure)
+    // Used only when the selected option is a TLS one
     {
         const std::string verifyingServer = std::string("$") + PROPERTY_VERIFY_SERVER_CERT_CLIENT + " == 1";
         const std::string mutualTls = std::string("$") + PROPERTY_ENABLE_MTLS_CLIENT + " == 1";
@@ -589,14 +586,14 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
                                                               const PropertyObjectPtr& config)
 {
-    const auto kind = ParseConnectionKind(connectionString);
-    if (!kind.has_value() || !ValidateConnectionString(connectionString))
+    const auto nativeType = ParseNativeType(connectionString);
+    if (!nativeType.has_value() || !ValidateConnectionString(connectionString))
     {
         return false;
     }
 
-    const bool pseudoDevicePrefixFound = kind->type == NativeType::streaming;
-    const bool devicePrefixFound = kind->type == NativeType::config;
+    const bool pseudoDevicePrefixFound = nativeType == NativeType::streaming;
+    const bool devicePrefixFound = nativeType == NativeType::config;
 
     if (config.assigned() &&
         ((pseudoDevicePrefixFound && !validateConnectionConfig(config)) || (devicePrefixFound && !validateDeviceConfig(config))))
@@ -615,8 +612,7 @@ bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const Str
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        const auto kind = ParseConnectionKind(connectionString);
-        return kind.has_value() && kind->type == NativeType::streaming && ValidateConnectionString(connectionString);
+        return ParseNativeType(connectionString) == NativeType::streaming && ValidateConnectionString(connectionString);
     }
     return false;
 }
@@ -714,8 +710,7 @@ void NativeStreamingClientModule::copyConfigPropertyValue(const StringPtr& propN
 
 StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr& connectionString,
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
-                                                                Int streamingInitTimeout,
-                                                                bool secure)
+                                                                Int streamingInitTimeout)
 {
     StreamingPtr nativeStreaming;
     if (transportClientHandler->supportsToDeviceStreaming())
@@ -724,8 +719,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
             context,
             transportClientHandler,
             addStreamingProcessingContext(connectionString),
-            streamingInitTimeout,
-            secure
+            streamingInitTimeout
         );
     else
         nativeStreaming = createWithImplementation<IStreaming, NativeStreamingBasicImpl>(
@@ -737,8 +731,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
             nullptr,
             nullptr,
             nullptr,
-            false,
-            secure
+            false
         );
     nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
     return nativeStreaming;
@@ -749,31 +742,27 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    const auto kind = ParseConnectionKind(connectionString);
-    const bool secure = kind.has_value() && kind->secure;
+    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming)
+                                                       : createConnectionDefaultConfig(NativeType::streaming);
 
-    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming, secure)
-                                                       : createConnectionDefaultConfig(NativeType::streaming, secure);
+    const TransportOptionPtr transportOption = SelectedTransportOption(parsedConfig);
+    const bool secure = transportOption.getSecurityMode() == SecurityMode::Encrypted;
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
-    StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig);
+    StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, transportOption.getPort());
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
     auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig, secure);
-    return createNativeStreaming(connectionString, transportClient, initTimeout, secure);
+    return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 
 Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
     const auto targetProtocolId = target.getProtocolId();
-    if (targetProtocolId != CONST_NATIVE_STREAMING_ID && targetProtocolId != CONST_NATIVE_CONFIG_ID
-#if NATIVE_STREAMING_ENABLE_TLS
-        && targetProtocolId != CONST_NATIVE_STREAMING_SECURE_ID && targetProtocolId != CONST_NATIVE_CONFIG_SECURE_ID
-#endif
-    )
+    if (targetProtocolId != CONST_NATIVE_STREAMING_ID && targetProtocolId != CONST_NATIVE_CONFIG_ID)
         return false;
 
     if (source.getConnectionType() != "TCP/IP")
@@ -795,9 +784,7 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     auto port = target.getPort();
     if (port == -1)
     {
-        const bool secure = targetProtocolId == CONST_NATIVE_STREAMING_SECURE_ID ||
-                            targetProtocolId == CONST_NATIVE_CONFIG_SECURE_ID;
-        port = secure ? DEFAULT_TLS_PORT : DEFAULT_PORT;
+        port = DEFAULT_PORT;
         target.setPort(port);
         LOG_W("Native server capability is missing port. Defaulting to {}.", port)
     }
@@ -848,60 +835,50 @@ StringPtr NativeStreamingClientModule::CreateUrlConnectionString(std::string pre
     return String(fmt::format("{}://{}:{}{}", prefix, host, port, path));
 }
 
-DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType(bool secure)
+DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
     return DeviceTypeBuilder()
-        .setId(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID)
+        .setId(CONST_NATIVE_STREAMING_ID)
         .setName("PseudoDevice")
-        .setDescription(secure ? "Pseudo device over a TLS-encrypted connection, provides only signals of the remote device as flat list"
-                               : "Pseudo device, provides only signals of the remote device as flat list")
-        .setConnectionStringPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming, secure))
+        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+        .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setDeviceKind(DeviceKind::Adapter)
-        .setAvailableTransportOptions(CreateTransportOptions(secure))
+        .setAvailableTransportOptions(CreateTransportOptions())
         .build();
 }
 
-DeviceTypePtr NativeStreamingClientModule::createDeviceType(bool secure)
+DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
     return DeviceTypeBuilder()
-        .setId(secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID)
+        .setId(CONST_NATIVE_CONFIG_ID)
         .setName("Device")
-        .setDescription(secure ? "Network device connected over Native configuration protocol and TLS encryption"
-                               : "Network device connected over Native configuration protocol")
-        .setConnectionStringPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config, secure))
+        .setDescription("Network device connected over Native configuration protocol")
+        .setConnectionStringPrefix(CONST_NATIVE_CONFIG_PREFIX)
+        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .setDeviceKind(DeviceKind::Mirrored)
-        .setAvailableTransportOptions(CreateTransportOptions(secure))
+        .setAvailableTransportOptions(CreateTransportOptions())
         .build();
 }
 
-StreamingTypePtr NativeStreamingClientModule::createStreamingType(bool secure)
+StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 {
     return StreamingTypeBuilder()
-        .setId(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID)
+        .setId(CONST_NATIVE_STREAMING_ID)
         .setName("NativeStreaming")
-        .setDescription(secure ? "openDAQ native streaming protocol client over a TLS-encrypted connection"
-                               : "openDAQ native streaming protocol client")
-        .setConnectionStringPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
-        .setLinkedDeviceType(createDeviceType(secure))
-        .setAvailableTransportOptions(CreateTransportOptions(secure))
+        .setDescription("openDAQ native streaming protocol client")
+        .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
+        .setLinkedDeviceType(createDeviceType())
+        .setAvailableTransportOptions(CreateTransportOptions())
         .build();
 }
 
-std::optional<NativeConnectionKind> NativeStreamingClientModule::ParseConnectionKind(const StringPtr& connectionString)
+std::optional<NativeType> NativeStreamingClientModule::ParseNativeType(const StringPtr& connectionString)
 {
     if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_STREAMING_PREFIX))
-        return NativeConnectionKind{NativeType::streaming, false};
+        return NativeType::streaming;
     if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_CONFIG_PREFIX))
-        return NativeConnectionKind{NativeType::config, false};
-
-#if NATIVE_STREAMING_ENABLE_TLS
-    if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_STREAMING_SECURE_PREFIX))
-        return NativeConnectionKind{NativeType::streaming, true};
-    if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_CONFIG_SECURE_PREFIX))
-        return NativeConnectionKind{NativeType::config, true};
-#endif
+        return NativeType::config;
 
     return std::nullopt;
 }
@@ -953,23 +930,11 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
     }
 }
 
-bool NativeStreamingClientModule::IsSecureService(const MdnsDiscoveredDevice& discoveredDevice)
-{
-#if NATIVE_STREAMING_ENABLE_TLS
-    return discoveredDevice.serviceName == CONST_NATIVE_TLS_SERVICE_NAME;
-#else
-    return false;
-#endif
-}
-
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    const bool secure = IsSecureService(discoveredDevice);
-    const auto protocolId = secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID;
+    auto cap = ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming);
 
-    auto cap = ServerCapability(protocolId, protocolId, ProtocolType::ConfigurationAndStreaming);
-
-    SetupProtocolAddresses(discoveredDevice, cap, secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX);
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX);
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
     cap.setCoreEventsEnabled(true);
@@ -978,24 +943,21 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
         cap.addAuthenticationMethod(id);
 
     return populateDiscoveredDeviceInfo(
-        DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType(secure));
+        DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    const bool secure = IsSecureService(discoveredDevice);
-    const auto protocolId = secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID;
+    auto cap = ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming);
 
-    auto cap = ServerCapability(protocolId, protocolId, ProtocolType::Streaming);
-
-    SetupProtocolAddresses(discoveredDevice, cap, secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX);
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX);
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 
     return populateDiscoveredDeviceInfo(
-        DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createPseudoDeviceType(secure));
+        DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createPseudoDeviceType());
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

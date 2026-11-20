@@ -22,6 +22,7 @@
 #include <config_protocol/config_client_device_impl.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/streaming_ptr.h>
@@ -138,11 +139,11 @@ class ConnectionStringUtils
 public:
     static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
-    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    /// @param defaultPort used when neither the connection string nor the config sets a port
+    static StringPtr GetPort(const StringPtr& url,
+                             const PropertyObjectPtr& config = nullptr,
+                             Int defaultPort = opendaq_native_streaming_protocol::DEFAULT_PORT);
     static StringPtr GetPath(const StringPtr& url);
-
-    /// @brief tells the encrypted channel from the plaintext one by the connection string prefix
-    static bool IsSecure(const StringPtr& url);
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

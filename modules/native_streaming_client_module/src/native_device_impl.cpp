@@ -582,17 +582,13 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    // the connection string is the only thing here which knows which channel was used
-    const bool secure = ConnectionStringUtils::IsSecure(connectionString);
-    const auto protocolId = secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID;
-
-    ServerCapabilityConfigPtr connectionInfo = ServerCapability(protocolId,
-                                                                protocolId,
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
+                                                                CONST_NATIVE_CONFIG_ID,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
                   .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-                  .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
+                  .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
                   .addAddressInfo(addressInfo)
@@ -627,7 +623,7 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
 {
     std::string urlString = url.toStdString();
     std::smatch match;
@@ -635,7 +631,7 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    Int port = IsSecure(url) ? DEFAULT_TLS_PORT : DEFAULT_PORT;
+    Int port = defaultPort;
 
     if (std::regex_search(suffix, match, RegexPort))
         port = std::stoi(match[1]);
@@ -643,23 +639,12 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
     if (config.assigned() && config.hasProperty("Port"))
     {
         const Int configuredPort = config.getPropertyValue("Port");
-        const Int defaultPort = config.getProperty("Port").getDefaultValue();
-        if (configuredPort != defaultPort)
+        const Int configDefaultPort = config.getProperty("Port").getDefaultValue();
+        if (configuredPort != configDefaultPort)
             port = configuredPort;
     }
 
     return String(std::to_string(port));
-}
-
-bool ConnectionStringUtils::IsSecure(const StringPtr& url)
-{
-    const std::string urlString = url.toStdString();
-    for (const auto& prefix : {CONST_NATIVE_CONFIG_SECURE_PREFIX, CONST_NATIVE_STREAMING_SECURE_PREFIX})
-    {
-        if (urlString.find(std::string(prefix) + "://") == 0)
-            return true;
-    }
-    return false;
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

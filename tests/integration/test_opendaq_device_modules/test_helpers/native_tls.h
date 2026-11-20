@@ -31,11 +31,14 @@ namespace test_helpers::native_tls
 
     inline constexpr const char* ServerTypeId = CONST_NATIVE_SERVER_TYPE_ID;
 
+    // the pseudo-device and the streaming share their protocol id
     inline constexpr const char* PlainStreamingId = CONST_NATIVE_STREAMING_ID;
     inline constexpr const char* PlainConfigId = CONST_NATIVE_CONFIG_ID;
-    // the pseudo-device and the streaming of a channel share their protocol id
+    // the protocol ids of the capabilities the server publishes for its TLS listener
     inline constexpr const char* SecureStreamingId = CONST_NATIVE_STREAMING_SECURE_ID;
     inline constexpr const char* SecureConfigId = CONST_NATIVE_CONFIG_SECURE_ID;
+
+    inline constexpr const char* WssOption = CONST_NATIVE_TRANSPORT_WSS;
 
     inline constexpr uint16_t PlainPort = DEFAULT_PORT;
     inline constexpr uint16_t TlsPort = DEFAULT_TLS_PORT;
@@ -76,31 +79,39 @@ namespace test_helpers::native_tls
 
 #ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
 
-    // The client has no certificate settings, so the helpers below hand out the configuration as it is.
+    // The client has no certificate settings, so the helpers below only select the TLS option.
     // They keep their signatures so that the tests which only need a working secure connection stay
     // as they are; the tests which depend on the certificate settings are left out of this build.
 
     /// @brief client configuration for a secure connection, which never verifies the server
+    /// @param deviceTypeId which of the types to configure, device or pseudo-device
     [[maybe_unused]]
     inline PropertyObjectPtr secureClientConfig(const InstancePtr& clientInstance,
                                                 const char* deviceTypeId,
                                                 bool /*mutualTls*/ = false,
                                                 const char* /*caCert*/ = CaCert)
     {
-        return clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
+        auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
+        config.setPropertyValue("TransportOption", WssOption);
+        return config;
     }
 
+    /// @brief selects the TLS option in the device and streaming sections of a general add-device configuration
     [[maybe_unused]]
-    inline void applySecureClientConfig(const PropertyObjectPtr& /*addDeviceConfig*/,
+    inline void applySecureClientConfig(const PropertyObjectPtr& addDeviceConfig,
                                         bool /*mutualTls*/ = false,
                                         const char* /*caCert*/ = CaCert)
     {
+        for (const auto& prefix : {std::string("Device.") + PlainConfigId + ".",
+                                   std::string("Device.") + PlainStreamingId + ".",
+                                   std::string("Streaming.") + PlainStreamingId + "."})
+            addDeviceConfig.setPropertyValue(prefix + "TransportOption", WssOption);
     }
 
 #else
 
     /// @brief client configuration which authenticates the server against the given authority
-    /// @param deviceTypeId which of the secure types to configure, device or streaming
+    /// @param deviceTypeId which of the types to configure, device or pseudo-device
     /// @param mutualTls presents ClientCert / ClientKey to a server which asks for one
     /// @param caCert the authority to verify the server against
     [[maybe_unused]]
@@ -110,6 +121,7 @@ namespace test_helpers::native_tls
                                                 const char* caCert = CaCert)
     {
         auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
+        config.setPropertyValue("TransportOption", mutualTls ? CONST_NATIVE_TRANSPORT_WSS_MTLS : WssOption);
         config.setPropertyValue("CaCertificateFilePath", caCert);
         config.setPropertyValue("EnableMutualTls", mutualTls);
         if (mutualTls)
@@ -125,6 +137,7 @@ namespace test_helpers::native_tls
     inline PropertyObjectPtr unverifiedClientConfig(const InstancePtr& clientInstance, const char* deviceTypeId)
     {
         auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
+        config.setPropertyValue("TransportOption", WssOption);
         config.setPropertyValue("VerifyServerCertificate", False);
         return config;
     }
@@ -136,10 +149,11 @@ namespace test_helpers::native_tls
                                         bool mutualTls = false,
                                         const char* caCert = CaCert)
     {
-        for (const auto& prefix : {std::string("Device.") + SecureConfigId + ".",
-                                   std::string("Device.") + SecureStreamingId + ".",
-                                   std::string("Streaming.") + SecureStreamingId + "."})
+        for (const auto& prefix : {std::string("Device.") + PlainConfigId + ".",
+                                   std::string("Device.") + PlainStreamingId + ".",
+                                   std::string("Streaming.") + PlainStreamingId + "."})
         {
+            addDeviceConfig.setPropertyValue(prefix + "TransportOption", mutualTls ? CONST_NATIVE_TRANSPORT_WSS_MTLS : WssOption);
             addDeviceConfig.setPropertyValue(prefix + "CaCertificateFilePath", caCert);
             addDeviceConfig.setPropertyValue(prefix + "EnableMutualTls", mutualTls);
             if (mutualTls)

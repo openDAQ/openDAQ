@@ -7,6 +7,8 @@
 #include <native_streaming_client_module/module_dll.h>
 #include <opendaq/device_private_ptr.h>
 #include <native_streaming_server_module/module_dll.h>
+#include <atomic>
+#include <thread>
 
 using namespace daq;
 
@@ -426,4 +428,53 @@ TEST_F(DeviceLockingTest, ForceUnlock)
     clientInstance.getRootDevice().asPtr<IDevicePrivate>().forceUnlock();
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_FALSE(devices[0].isLocked());
+}
+
+// An event of the device that arrives while a lock or unlock call waits for its reply must not hold up that reply
+TEST_F(DeviceLockingTest, LockUnlockWhileServerChangesDevice)
+{
+    auto serverInstance = createServerInstance();
+    const auto serverDevice = serverInstance.getRootDevice();
+    serverDevice.addProperty(IntProperty("Counter", 0));
+
+    auto clientInstance = connectClientInstance("tomaz", "tomaz");
+    const auto device = clientInstance.getDevices()[0];
+    ASSERT_TRUE(device.hasProperty("Counter"));
+
+    std::atomic<bool> stop{false};
+    std::thread writer(
+        [&serverDevice, &stop]
+        {
+            for (Int value = 1; !stop; ++value)
+            {
+                serverDevice.setPropertyValue("Counter", value);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        });
+
+    // Locks and unlocks until enough events of the device have arrived for some to have met a call in progress
+    const Int eventCount = 20;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+    std::string error;
+    try
+    {
+        while (static_cast<Int>(device.getPropertyValue("Counter")) < eventCount && std::chrono::steady_clock::now() < deadline)
+        {
+            device.lock();
+            device.unlock();
+            device.lock();
+            device.asPtr<IDevicePrivate>().forceUnlock();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        error = e.what();
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_TRUE(error.empty()) << error;
+    ASSERT_GE(static_cast<Int>(device.getPropertyValue("Counter")), eventCount);
+    ASSERT_FALSE(device.isLocked());
 }

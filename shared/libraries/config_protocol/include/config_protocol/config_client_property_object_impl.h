@@ -276,6 +276,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
+    OPENDAQ_PARAM_NOT_NULL(value);
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     return daqTry([this, &propertyNamePtr, &value]()
@@ -296,6 +297,47 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
             }
         }
     
+        // Selection values that the server computes are read from it here, before the lock of this object is taken
+        if (const PropertyPtr referenced = prop.getReferencedProperty(); referenced.assigned())
+            prop = referenced;
+        if (prop.asPtr<IPropertyInternal>().getHasOnGetSelectionValuesListeners())
+        {
+            BaseObjectPtr selected;
+            checkErrorInfo(Impl::getPropertyValue(propertyNamePtr, &selected));
+            // Read before the type, as only the values tell a sparse selection from an index selection
+            const BaseObjectPtr values = prop.getSelectionValues();
+            if (!values.assigned())
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_INVALIDPROPERTY,
+                    fmt::format(R"(Selection property "{}" has no selection values assigned)", propertyNamePtr));
+
+            const PropertyType type = prop.getPropertyType();
+            if (type == PropertyType::IndexSelection)
+            {
+                const auto valuesList = values.asPtrOrNull<IList>(true);
+                if (!valuesList.assigned())
+                    return DAQ_MAKE_ERROR_INFO(
+                        OPENDAQ_ERR_INVALIDPROPERTY,
+                        fmt::format(R"(Index selection property "{}" values is not a list)", propertyNamePtr));
+                selected = valuesList.getItemAt(selected);
+            }
+            else if (type == PropertyType::SparseSelection)
+            {
+                const auto valuesDict = values.asPtrOrNull<IDict>(true);
+                if (!valuesDict.assigned())
+                    return DAQ_MAKE_ERROR_INFO(
+                        OPENDAQ_ERR_INVALIDPROPERTY,
+                        fmt::format(R"(Sparse selection property "{}" values is not a dictionary)", propertyNamePtr));
+                selected = valuesDict.get(selected);
+            }
+            else if (type != PropertyType::Selection)
+            {
+                return Impl::getPropertySelectionValue(propertyNamePtr, value);
+            }
+            *value = selected.detach();
+            return OPENDAQ_SUCCESS;
+        }
+
         return Impl::getPropertySelectionValue(propertyNamePtr, value);
     });
 }

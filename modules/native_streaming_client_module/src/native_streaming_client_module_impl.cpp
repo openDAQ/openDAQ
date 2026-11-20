@@ -370,6 +370,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         
         auto deviceType = createDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
+        const auto callbacksHoldDevice = std::make_shared<std::atomic<bool>>(false);
         device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
@@ -378,8 +379,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             transportClient,
             addStreamingProcessingContext(connectionString),
             initTimeout,
-            deviceType
+            deviceType,
+            callbacksHoldDevice
             );
+        // The device is referenced from here on, so a streaming callback that cannot hold it belongs to a released device
+        *callbacksHoldDevice = true;
 
         // Set the connection info for the device
         ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();

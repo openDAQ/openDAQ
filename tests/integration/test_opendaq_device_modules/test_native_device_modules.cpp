@@ -5829,5 +5829,26 @@ TEST_F(NativeDeviceModulesTest, SelectionPropertyWithSelectionValuesListeners)
     writer.join();
     ASSERT_TRUE(error.empty()) << error;
 }
+
+// The client must apply a batched update of the device info locally, without starting an update on the server from the event
+TEST_F(NativeDeviceModulesTest, DeviceInfoBatchedUpdateOnServer)
+{
+    auto server = CreateServerInstance();
+    auto serverInfo = server.getDevices()[0].getInfo();
+    serverInfo.addProperty(StringProperty("CustomInfo", "before"));
+
+    // A request made while the client applies an event fails after this timeout
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, 3000);
+    auto clientInfo = client.getDevices()[0].getDevices()[0].getInfo();
+    ASSERT_EQ(clientInfo.getPropertyValue("CustomInfo"), "before");
+
+    serverInfo.beginUpdate();
+    serverInfo.setPropertyValue("CustomInfo", "updated");
+    serverInfo.endUpdate();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return clientInfo.getPropertyValue("CustomInfo") == "updated"; }));
+
+    serverInfo.setPropertyValue("CustomInfo", "written");
+    ASSERT_TRUE(test_helpers::waitFor([&] { return clientInfo.getPropertyValue("CustomInfo") == "written"; }));
+}
 }
 // namespace test_native_device_modules

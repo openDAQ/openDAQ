@@ -38,6 +38,11 @@ static constexpr const char* CONST_NATIVE_CONFIG_SECURE_ID = "OpenDAQNativeConfi
 
 static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
 
+// Transport option ids
+static constexpr const char* CONST_NATIVE_TRANSPORT_WS = "ws";
+static constexpr const char* CONST_NATIVE_TRANSPORT_WSS = "wss";
+static constexpr const char* CONST_NATIVE_TRANSPORT_WSS_MTLS = "wss-mtls";
+
 static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
 static constexpr const char* CONST_NATIVE_TLS_SERVICE_NAME = "_opendaq-streaming-native-tls._tcp.local.";
 static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";

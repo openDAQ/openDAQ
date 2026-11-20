@@ -279,6 +279,53 @@ TEST_F(NativeStreamingClientModuleTest, ConnectionStringPrefixes)
 #endif
 }
 
+// The plain types list "ws" first, then the TLS options this build supports
+TEST_F(NativeStreamingClientModuleTest, TypesListTransportOptions)
+{
+    const auto module = CreateModule();
+    const auto deviceTypes = module.getAvailableDeviceTypes();
+    const auto streamingTypes = module.getAvailableStreamingTypes();
+
+    auto expectedIds = List<IString>("ws");
+#if NATIVE_STREAMING_ENABLE_TLS
+    expectedIds.pushBack("wss");
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    expectedIds.pushBack("wss-mtls");
+#endif
+#endif
+
+    const std::vector<ComponentTypePtr> types{deviceTypes.get("OpenDAQNativeConfiguration").asPtr<IComponentType>(),
+                                              deviceTypes.get("OpenDAQNativeStreaming").asPtr<IComponentType>(),
+                                              streamingTypes.get("OpenDAQNativeStreaming").asPtr<IComponentType>()};
+    for (const auto& type : types)
+    {
+        const DictPtr<IString, ITransportOption> options = type.getAvailableTransportOptions();
+        ASSERT_EQ(options.getKeyList(), expectedIds) << type.getId();
+
+        const TransportOptionPtr ws = options.get("ws");
+        ASSERT_EQ(ws.getPort(), 7420) << type.getId();
+        ASSERT_EQ(ws.getSecurityMode(), SecurityMode::None) << type.getId();
+        ASSERT_FALSE(ws.getCertificateRequired()) << type.getId();
+
+#if NATIVE_STREAMING_ENABLE_TLS
+        const TransportOptionPtr wss = options.get("wss");
+        ASSERT_EQ(wss.getPort(), 7422) << type.getId();
+        ASSERT_EQ(wss.getSecurityMode(), SecurityMode::Encrypted) << type.getId();
+        ASSERT_FALSE(wss.getCertificateRequired()) << type.getId();
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+        const TransportOptionPtr mtls = options.get("wss-mtls");
+        ASSERT_EQ(mtls.getPort(), 7422) << type.getId();
+        ASSERT_EQ(mtls.getSecurityMode(), SecurityMode::Encrypted) << type.getId();
+        ASSERT_TRUE(mtls.getCertificateRequired()) << type.getId();
+#endif
+#endif
+    }
+
+    // The default "Port" of the device types is the port of their first option
+    for (const auto& id : {"OpenDAQNativeConfiguration", "OpenDAQNativeStreaming"})
+        ASSERT_EQ(deviceTypes.get(id).createDefaultConfig().getPropertyValue("Port"), 7420) << id;
+}
+
 #if NATIVE_STREAMING_ENABLE_TLS
 
 TEST_F(NativeStreamingClientModuleTest, SecureDefaultConfig)

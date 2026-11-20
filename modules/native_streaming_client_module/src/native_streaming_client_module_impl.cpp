@@ -16,12 +16,39 @@
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
+#include <opendaq/transport_option_factory.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
+
+namespace
+{
+
+// The transport options of the native types, plain first.
+// - "wss" needs a build with TLS.
+// - "wss-mtls" also needs the client to present a certificate, which it cannot do under NATIVE_STREAMING_TLS_WITHOUT_SIGN.
+// The secure types connect by their own prefix and list no options.
+DictPtr<IString, ITransportOption> CreateTransportOptions(bool secure)
+{
+    auto options = Dict<IString, ITransportOption>();
+    if (secure)
+        return options;
+
+    options.set(CONST_NATIVE_TRANSPORT_WS, TransportOption(CONST_NATIVE_TRANSPORT_WS, DEFAULT_PORT));
+#if NATIVE_STREAMING_ENABLE_TLS
+    options.set(CONST_NATIVE_TRANSPORT_WSS, TransportOption(CONST_NATIVE_TRANSPORT_WSS, DEFAULT_TLS_PORT, SecurityMode::Encrypted));
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    options.set(CONST_NATIVE_TRANSPORT_WSS_MTLS,
+                TransportOption(CONST_NATIVE_TRANSPORT_WSS_MTLS, DEFAULT_TLS_PORT, SecurityMode::Encrypted, True));
+#endif
+#endif
+    return options;
+}
+
+}
 
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     : Module("OpenDAQNativeStreamingClientModule",
@@ -831,6 +858,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType(bool secure)
         .setConnectionStringPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming, secure))
         .setDeviceKind(DeviceKind::Adapter)
+        .setAvailableTransportOptions(CreateTransportOptions(secure))
         .build();
 }
 
@@ -844,6 +872,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType(bool secure)
         .setConnectionStringPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config, secure))
         .setDeviceKind(DeviceKind::Mirrored)
+        .setAvailableTransportOptions(CreateTransportOptions(secure))
         .build();
 }
 
@@ -856,6 +885,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType(bool secure)
                                : "openDAQ native streaming protocol client")
         .setConnectionStringPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
         .setLinkedDeviceType(createDeviceType(secure))
+        .setAvailableTransportOptions(CreateTransportOptions(secure))
         .build();
 }
 

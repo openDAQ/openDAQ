@@ -36,6 +36,7 @@ set(TEST_SOURCES test_factories.cpp
                  multi_reader2/test_regressions_api.cpp
                  multi_reader2/test_ingest_task.cpp
                  multi_reader2/test_domain_and_queue.cpp
+                 multi_reader2/test_float_domain_rule.cpp
                  ../src/multi_reader2_ingest_task.cpp
                  ../src/multi_reader2_domain.cpp
                  ../src/multi_reader2_queue.cpp

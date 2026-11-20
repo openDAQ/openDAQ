@@ -77,8 +77,9 @@ struct TickDomain
         const auto seconds = parseOrigin(origin.toStdString());
         const NumberPtr deltaNum = rule.getParameters().get("delta");
         const NumberPtr startNum = rule.getParameters().get("start");
-        if (!seconds || deltaNum.getFloatValue() != std::floor(deltaNum.getFloatValue()) || deltaNum.getIntValue() <= 0 ||
-            startNum.getFloatValue() != std::floor(startNum.getFloatValue()))
+        const auto integral = [](const NumberPtr& n)
+        { return n.getFloatValue() == std::floor(n.getFloatValue()) && (n.getCoreType() == ctInt || std::abs(n.getFloatValue()) <= 9007199254740992.0); };
+        if (!seconds || !integral(deltaNum) || deltaNum.getIntValue() <= 0 || !integral(startNum))
             return std::nullopt;
         TickDomain d{*seconds, res.getNumerator(), res.getDenominator(), deltaNum.getIntValue(), startNum.getIntValue()};
         if (PsPerSecond % d.resDen != 0)

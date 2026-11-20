@@ -262,6 +262,16 @@ void MultiReaderDataManager::checkInput(SizeT i)
     Slot& slot = slots[i];
     slot.domainFault = nullptr;
     slot.domain = parseDomain(slot.current.domain, &slot.domainFault);
+    if (slot.domain && slot.domain->floatRule && slot.floatRuleWarned != slot.current.domain)
+    {
+        slot.floatRuleWarned = slot.current.domain;
+        const auto& loggerComponent = config.loggerComponent;
+        if (loggerComponent.assigned())
+            LOG_W("{}: the domain rule's delta and start are floating point; read as the integers {} and {}",
+                  config.inputs[i].getLocalId().toStdString(),
+                  slot.domain->delta,
+                  slot.domain->start);
+    }
     slot.rejectedByOwner = false;
     slot.sampleSize = 0;
 

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <limits>
 #include <numeric>
 #include <sstream>
@@ -17,6 +18,20 @@ namespace multi_reader2
 
 namespace
 {
+    // Above 2^53 a double no longer tells neighbouring integers apart, so a whole value there may not be the one meant
+    std::optional<std::int64_t> integralTick(const BaseObjectPtr& value)
+    {
+        if (value.getCoreType() == ctInt)
+            return static_cast<std::int64_t>(value);
+        if (value.getCoreType() != ctFloat)
+            return std::nullopt;
+        const auto number = static_cast<double>(value);
+        constexpr double exactLimit = 9007199254740992.0;
+        if (!std::isfinite(number) || std::trunc(number) != number || std::abs(number) > exactLimit)
+            return std::nullopt;
+        return static_cast<std::int64_t>(number);
+    }
+
     constexpr std::int64_t int64Max = std::numeric_limits<std::int64_t>::max();
     constexpr std::int64_t int64Min = std::numeric_limits<std::int64_t>::min();
 
@@ -153,16 +168,19 @@ std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain, const cha
     const auto parameters = rule.getParameters();
     if (!parameters.assigned() || !parameters.hasKey("delta") || !parameters.hasKey("start"))
         return fail("rule without a delta and a start");
-    const BaseObjectPtr delta = parameters.get("delta");
-    const BaseObjectPtr start = parameters.get("start");
-    if (delta.getCoreType() != ctInt || static_cast<std::int64_t>(delta) <= 0)
+    const BaseObjectPtr deltaParameter = parameters.get("delta");
+    const BaseObjectPtr startParameter = parameters.get("start");
+    const auto delta = integralTick(deltaParameter);
+    const auto start = integralTick(startParameter);
+    if (!delta || *delta <= 0)
         return fail("rule delta not an integer above 0");
-    if (start.getCoreType() != ctInt)
+    if (!start)
         return fail("rule start not an integer");
 
     TickDomain ticks;
-    ticks.delta = delta;
-    ticks.start = start;
+    ticks.floatRule = deltaParameter.getCoreType() == ctFloat || startParameter.getCoreType() == ctFloat;
+    ticks.delta = *delta;
+    ticks.start = *start;
 
     // Sampling rate: an integer number of samples per second
     const auto resolution = domain.getTickResolution();

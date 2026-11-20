@@ -34,7 +34,8 @@ std::optional<std::int64_t> checkedMul(std::int64_t a, std::int64_t b);
 bool exceeds(std::int64_t a, std::int64_t b, std::int64_t limit);
 
 // A domain descriptor that meets the constraints an input meets on its own: integer scalar ticks in seconds, a linear rule
-// with an integer delta above 0 and an integer start, an integer rate, and an ISO 8601 origin on a full second or none
+// with an integer delta above 0 and an integer start (or whole floating-point values up to 2^53), an integer rate, and an
+// ISO 8601 origin on a full second or none
 struct TickDomain
 {
     std::int64_t resolutionNum = 1;  // seconds per tick
@@ -44,6 +45,7 @@ struct TickDomain
     std::int64_t rate = 1;           // samples per second
     std::int64_t originSeconds = 0;  // since the Unix epoch
     bool relative = false;           // no origin: read only with other domains without one, on a shared time base
+    bool floatRule = false;          // delta or start arrived as a floating-point value
 
     // That many seconds of data in samples and in ticks; saturated, so a limit never wraps
     std::int64_t samplesIn(std::int64_t seconds) const;

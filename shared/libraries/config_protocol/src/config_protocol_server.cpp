@@ -83,7 +83,6 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
     , deserializer(JsonDeserializer())
-    , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , connectionType(connectionType)
@@ -92,7 +91,6 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
-    notificationSerializer.setUser(user);
 
     const auto listSerializer = JsonSerializer();
     List<IBaseObject>().serialize(listSerializer);
@@ -249,11 +247,10 @@ void ConfigProtocolServer::sendNotification(const BaseObjectPtr& obj)
     StringPtr jsonStr;
     try
     {
-        std::scoped_lock lock(notificationSerializerLock);
-        notificationSerializer.reset();
-        obj.serialize(notificationSerializer);
+        const auto serializer = createSerializer();
+        obj.serialize(serializer);
 
-        jsonStr = notificationSerializer.getOutput();
+        jsonStr = serializer.getOutput();
     }
     catch (const std::exception& e)
     {
@@ -718,12 +715,12 @@ CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsP
 
 CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
-    std::scoped_lock lock(notificationSerializerLock);
     auto dict = Dict<IString, IBaseObject>();
 
-    notificationSerializer.reset();
-    component.serialize(notificationSerializer);
-    dict.set("SerializedComponent", notificationSerializer.getOutput());
+    // A serializer of its own, as a shared one needs a lock that would be held while the locks of the component are taken
+    const auto serializer = createSerializer();
+    component.serialize(serializer);
+    dict.set("SerializedComponent", serializer.getOutput());
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
 }
@@ -767,12 +764,6 @@ uint16_t ConfigProtocolServer::getProtocolVersion() const
 void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
 {
     this->protocolVersion = protocolVersion;
-
-    // downgrade serializers
-    if (protocolVersion < 11)
-    {
-        notificationSerializer = createSerializer();
-    }
 }
 
 void ConfigProtocolServer::SendOutCoreEvents(bool waitForReported)

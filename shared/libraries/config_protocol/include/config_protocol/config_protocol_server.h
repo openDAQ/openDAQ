@@ -110,9 +110,7 @@ private:
     ContextPtr daqContext;
     NotificationReadyCallback notificationReadyCallback;
     DeserializerPtr deserializer;
-    SerializerPtr notificationSerializer;
     std::unordered_map<std::string, DispatchFunction> rpcDispatch;
-    std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
     ClientType connectionType;

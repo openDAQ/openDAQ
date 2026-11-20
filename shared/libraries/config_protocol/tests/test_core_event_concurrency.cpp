@@ -6,6 +6,7 @@
 #include <coretypes/json_serializer_factory.h>
 #include <gtest/gtest.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
 #include <opendaq/folder_config_ptr.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/function_block_type_factory.h>
@@ -506,6 +507,48 @@ TEST_F(ConfigCoreEventConcurrencyTest, EventsAreSentInTheOrderTheyWereReported)
     ASSERT_NE(sentPosition(connection, "ComponentAdded"), std::string::npos);
     ASSERT_NE(sentPosition(connection, "PropertyValueChanged"), std::string::npos);
     ASSERT_LT(sentPosition(connection, "ComponentAdded"), sentPosition(connection, "PropertyValueChanged"));
+}
+
+// A component is serialized for its update end event without a lock of the server, so that a second such event is not held up behind it
+TEST_F(ConfigCoreEventConcurrencyTest, UpdateEndEventIsReportedWhileAnotherIsStillBeingSerialized)
+{
+    const auto statePtr = createState();
+    auto& state = *statePtr;
+    connect(state);
+
+    SlowSerialization slow;
+    slow.proceed = true;
+    addSlowlySerializedFunctionBlock(state, slow).join();
+    slow.proceed = false;
+    slow.serializing = false;
+
+    const auto reportUpdateEnd = [](const ComponentPtr& component)
+    {
+        EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
+        checkErrorInfo(component.getContext()->getOnCoreEvent(&coreEvent));
+        const CoreEventArgsPtr args = CoreEventArgsComponentUpdateEnd();
+        coreEvent(component, args);
+    };
+
+    std::future_status reportStatus;
+    {
+        std::thread slowReporter(reportUpdateEnd, state.device.findComponent("FB/fb"));
+        const Finally finishReporting(
+            [&]
+            {
+                slow.proceed = true;
+                slowReporter.join();
+            });
+
+        while (!slow.serializing)
+            std::this_thread::yield();
+
+        auto reported = std::async(std::launch::async, reportUpdateEnd, state.device.findComponent(RootChannelPath));
+        reportStatus = reported.wait_for(std::chrono::seconds(5));
+        slow.proceed = true;
+    }
+
+    ASSERT_EQ(reportStatus, std::future_status::ready);
 }
 
 // The events of an RPC are sent before its reply also when an event that another thread reported earlier is still being serialized

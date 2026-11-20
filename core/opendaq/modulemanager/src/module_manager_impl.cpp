@@ -1055,7 +1055,12 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
 
             deviceTypeConfig.setPropertyValue(TransportOptionConfigProperty, selected.getName());
             deviceTypeConfig.setPropertyValue(PortConfigProperty, port);
-            connectionStringPtr = ReplaceConnectionStringPort(connectionStringPtr, port);
+
+            // A connection string without a port already means the type's default port of the selected option
+            const auto typeOption = FindTransportOption(ComponentTypeTransportOptions(deviceType), selected.getName());
+            const bool isTypeDefaultPort = typeOption.assigned() && typeOption.getPort() == static_cast<Int>(port);
+            if (connectionStringPort.has_value() || !isTypeDefaultPort)
+                connectionStringPtr = ReplaceConnectionStringPort(connectionStringPtr, port);
         }
         else
         {

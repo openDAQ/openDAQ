@@ -86,6 +86,13 @@ protected:
         }
     }
 
+    // A handler still running holds the block: released there, it takes the scheduler down on its own worker, which
+    // detaches the executor's teardown, and a process exiting meanwhile crashes
+    void TearDown() override
+    {
+        flush();
+    }
+
     // The recorder's ports run in Scheduler mode under its reader: statuses, port removals and writes follow on the scheduler
     void flush()
     {

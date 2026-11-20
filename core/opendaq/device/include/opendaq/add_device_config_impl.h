@@ -58,7 +58,8 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
     static AddDeviceConfigPtr Bind(const SerializedObjectPtr& saved,
                                    const DictPtr<IString, IDeviceType>& deviceTypes,
-                                   const DictPtr<IString, IStreamingType>& streamingTypes);
+                                   const DictPtr<IString, IStreamingType>& streamingTypes,
+                                   Bool scanOnAdd);
 
 protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;

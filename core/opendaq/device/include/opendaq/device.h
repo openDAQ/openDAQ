@@ -191,13 +191,16 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     // [templateType(device, IDevice)]
     /*!
      * @brief Connects to a device at the given connection string and returns it.
-     * @param[out] device The added device.
-     * @param connectionString The connection string containing the address of the device. In example an
-     * IPv4/IPv6 address. The connection string can be found in the Device Info objects returned by
-     * `getAvailableDevices`.
-     * @param config A config object to configure a client device. This object can contain properties like max sample rate,
-     * port to use for 3rd party communication, number of channels to generate, or other device specific settings. Can be
-     * created from its corresponding Device type object. In case of a null value, it will use the default configuration.
+     * @param[out] device The added device
+     * @param connectionString The connection string of the device, as found in the Device infos returned by `getAvailableDevices`
+     * @param config An `IAddDeviceConfig`, a legacy add device config, or a type config of the Device type the prefix names
+     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Device type fits the connection string or the add device config.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or its prefix differs from that of the connection string.
+     * @retval OPENDAQ_ERR_INVALIDVALUE when the values of an add device config don't fit the loaded types.
+     *
+     * An `IAddDeviceConfig` is created by `createAddDeviceConfig`. It must be cast to `IPropertyObject`.
+     * A legacy add device config is created by `createDefaultAddDeviceConfig` (deprecated).
+     * Without a config, the device is added with the config `createAddDeviceConfig` creates for the connection string.
      */
     virtual ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
@@ -268,9 +271,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param connectionString The connection string containing the address of the streaming. In example an
      * IPv4/IPv6 address. The connection string can be found in the Server Capability objects returned by
      * `getInfo().getServerCapabilities()`.
-     * @param config A config object to configure a streaming connection. This object can contain properties like
-     * various connection timeouts or other streaming protocol specific settings. Can be created from its corresponding
-     * Streaming type object. In case of a null value, it will use the default configuration.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      */
     virtual ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
@@ -398,9 +400,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * If a device connection or addition attempt fails, the value will be `nullptr` for that entry.
      *
      * @param connectionArgs A dictionary where each key is a connection string identifying the target device
-     * (e.g., IPv4/IPv6), and each value is a configuration object that customizes the connection.
-     * The configuration may specify parameters such as maximum sample rate, communication port, number of channels,
-     * or other device-specific settings. A `nullptr` value indicates that the default configuration should be used.
+     * (e.g., IPv4/IPv6), and each value is the config `addDevice` takes for it.
      *
      * @param[in,out] errCodes An optional dictionary used to populate error codes for failed connection or addition attempts.
      * For each failed attempt, the key is the connection string, and the value contains the error code.
@@ -439,7 +439,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 
@@ -451,7 +451,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add streamings.
      *
      * With a connection string, the Streaming type is the loaded type with its prefix.
-     * Without one, it is the available streaming type linked to the device's mirrored device type, else the first available one.
+     * Without one, it is chosen from the available streaming types by `selectStreamingType`.
      * A device without available streaming types gets the loaded type linked to its mirrored device type.
      */
     virtual ErrCode INTERFACE_FUNC createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString = nullptr) = 0;

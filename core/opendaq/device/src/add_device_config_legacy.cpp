@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
@@ -7,9 +8,41 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/listobject_factory.h>
 #include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+namespace LegacyAddDeviceConfig
+{
+static constexpr const char* DeviceSection = "Device";
+static constexpr const char* StreamingSection = "Streaming";
+static constexpr const char* GeneralSection = "General";
+
+static constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
+static constexpr const char* MinConnections = "MinConnections";
+static constexpr const char* MinHops = "MinHops";
+static constexpr const char* NotConnected = "NotConnected";
+
+static constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
+static constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
+static constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
+static constexpr const char* ScanOnAdd = "ScanOnAdd";
+static constexpr const char* Username = "Username";
+static constexpr const char* Password = "Password";
+static constexpr const char* ClientType = "ClientType";
+static constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
+static constexpr const char* PrimaryAddressType = "PrimaryAddressType";
+static constexpr const char* IPv4 = "IPv4";
+static constexpr const char* IPv6 = "IPv6";
+
+static constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
+
+static ListPtr<IString> defaultPrioritizedStreamingProtocols()
+{
+    return List<IString>(NativeStreamingProtocolId);
+}
+}
 
 namespace detail
 {
@@ -48,6 +81,11 @@ static PropertyObjectPtr createGeneral(const PropertyObjectPtr& source, Bool sca
     auto general = createLegacyGeneralConfig(scanOnAdd);
     copyValues(general, source);
     return general;
+}
+
+static PropertyObjectPtr generalOf(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    return createGeneral(sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
 }
 
 static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyObjectPtr& source, const PropertyObjectPtr& general)
@@ -136,8 +174,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const LoggerComponentPtr& loggerComponent)
 {
     const auto legacyConfig = input.assigned() ? input : PropertyObject();
-    const auto general =
-        detail::createGeneral(detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+    const auto general = detail::generalOf(legacyConfig, scanOnAdd);
     const auto streamingSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
     const auto loadedTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
 
@@ -176,25 +213,27 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     const ListPtr<IString> prioritized = general.getPropertyValue(LegacyAddDeviceConfig::PrioritizedStreamingProtocols);
     const ListPtr<IString> allowed = general.getPropertyValue(LegacyAddDeviceConfig::AllowedStreamingProtocols);
-    const auto isAllowed = [&allowed](const StringPtr& protocol)
+    auto selectable = Dict<IString, IStreamingType>();
+    for (const auto& [typeId, streamingConfig] : streamingConfigs)
+        if ((allowed.getCount() == 0) || (std::find(allowed.begin(), allowed.end(), typeId) != allowed.end()))
+            selectable.set(typeId, streamingConfig.getStreamingType());
+
+    const auto isSelectable = [&selectable](const StringPtr& typeId)
     {
-        return (allowed.getCount() == 0) || (std::find(allowed.begin(), allowed.end(), protocol) != allowed.end());
+        return selectable.hasKey(typeId);
     };
+    const auto preferred = std::find_if(prioritized.begin(), prioritized.end(), isSelectable);
+    const auto selected = (preferred != prioritized.end()) ? selectable.get(*preferred) : selectStreamingType(selectable, deviceType);
+    if (selected.assigned())
+        options.setStreamingType(selected.getId());
 
-    const auto pick = std::find_if(prioritized.begin(), prioritized.end(), isAllowed);
-    if (pick == prioritized.end())
-        return config;
-
-    if (!streamingConfigs.hasKey(*pick))
-    {
-        LOG_W(R"(Streaming protocol "{}" is not a listed streaming type of device type "{}", no streaming type is selected)",
-              *pick,
-              deviceType.getId());
-        return config;
-    }
-
-    options.setStreamingType(*pick);
     return config;
+}
+
+Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    const auto general = detail::generalOf(legacyConfig.assigned() ? legacyConfig : PropertyObject(), scanOnAdd);
+    return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
 }
 
 PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
@@ -224,8 +263,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     auto streamingSection = PropertyObject();
     auto general = createLegacyGeneralConfig(config.getScanOnAdd());
 
-    const auto addressType =
-        (config.getPrimaryAddressType() == AddressType::IPv6) ? LegacyAddDeviceConfig::IPv6 : LegacyAddDeviceConfig::IPv4;
+    const auto addressType = getAddressTypeName(config.getPrimaryAddressType());
     general.setPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType, addressType);
 
     const auto options = config.getStreamingOptions();

@@ -3259,7 +3259,6 @@ TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv4Streaming)
     auto config = client.createDefaultAddDeviceConfig();
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("StreamingConnectionHeuristic", 1); // MIN HOPS
-    //general.setPropertyValue("PrimaryAddressType", "IPv4"); // don't use this setting otherwise it will skip any v6 streaming connection
     const auto dev = client.addDevice("daq.nd://127.0.0.1:7421/", config);
 
     dev.addDevice("daq.nd://127.0.0.1");
@@ -3369,7 +3368,6 @@ TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv6Streaming)
     auto config = client.createDefaultAddDeviceConfig();
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("StreamingConnectionHeuristic", 1); // MIN HOPS
-    //general.setPropertyValue("PrimaryAddressType", "IPv6"); // don't use this setting otherwise it will skip any v4 streaming connection
     const auto dev = client.addDevice("daq.nd://[::1]:7421/", config);
 
     dev.addDevice("daq.nd://[::1]");
@@ -3890,8 +3888,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     auto devices = restoredClient.getDevices()[0].getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 
-    auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_EQ(deviceConfig.getPropertyValue("Device.daqref.NumberOfChannels"), 1);
+    const AddDeviceConfigPtr deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_EQ(deviceConfig.getTypeConfig().getPropertyValue("NumberOfChannels"), 1);
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)

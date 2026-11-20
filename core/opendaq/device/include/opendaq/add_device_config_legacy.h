@@ -20,41 +20,8 @@
 #include <opendaq/logger_component_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
-#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-namespace LegacyAddDeviceConfig
-{
-inline constexpr const char* DeviceSection = "Device";
-inline constexpr const char* StreamingSection = "Streaming";
-inline constexpr const char* GeneralSection = "General";
-
-inline constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
-inline constexpr const char* MinConnections = "MinConnections";
-inline constexpr const char* MinHops = "MinHops";
-inline constexpr const char* NotConnected = "NotConnected";
-
-inline constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
-inline constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
-inline constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
-inline constexpr const char* ScanOnAdd = "ScanOnAdd";
-inline constexpr const char* Username = "Username";
-inline constexpr const char* Password = "Password";
-inline constexpr const char* ClientType = "ClientType";
-inline constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
-inline constexpr const char* PrimaryAddressType = "PrimaryAddressType";
-inline constexpr const char* IPv4 = "IPv4";
-inline constexpr const char* IPv6 = "IPv6";
-
-inline constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
-inline constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
-
-inline ListPtr<IString> defaultPrioritizedStreamingProtocols()
-{
-    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
-}
-}
 
 /*!
  * @brief Creates the legacy `General` section with its default values.
@@ -103,16 +70,27 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
  * Adapter and Root Device types get no streaming options, and the streaming keys of `General` are ignored.
  * Without listed Streaming types the config has no streaming options either.
  * The streaming mode is MinHops for the `MinHops` heuristic, and MinConnections otherwise.
- * The selected Streaming type is the first prioritized protocol that is allowed.
- * With an empty allowed list, it is the first prioritized protocol.
- * `NotConnected`, `AutomaticallyConnectStreaming` false and no pick give no selection.
- * A pick that is not a listed Streaming type gives no selection, and a warning is logged.
+ * The selected Streaming type is the first prioritized protocol among the listed types that `AllowedStreamingProtocols` allows.
+ * Without one, it is chosen from those types by `selectStreamingType`.
+ * An empty allowed list allows every type.
+ * `NotConnected` and `AutomaticallyConnectStreaming` false give no selection.
  */
 PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& legacyConfig,
                                                            const DeviceTypePtr& deviceType,
                                                            const DictPtr<IString, IStreamingType>& streamingTypes,
                                                            Bool scanOnAdd,
                                                            const LoggerComponentPtr& loggerComponent);
+
+/*!
+ * @brief Gets the `ScanOnAdd` value of a legacy config.
+ * @param legacyConfig The legacy config
+ * @param scanOnAdd The scan on add setting used when `General` has none
+ * @returns The `ScanOnAdd` value
+ * @throws ConversionFailedException when `ScanOnAdd` can't be converted to a Bool.
+ *
+ * The value is read as `fromLegacyAddDeviceConfig` reads it, without a Device type.
+ */
+PUBLIC_EXPORT Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd);
 
 /*!
  * @brief Translates a legacy config into the type config of a Streaming type.

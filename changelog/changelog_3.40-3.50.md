@@ -14,6 +14,7 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
 
 ## Python
 
@@ -126,6 +127,10 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 - `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
 - Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
 - `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
+### [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default
+
+A device that does not override `onGetAvailableOperationModes` lists `Operation` as its only mode instead of `SafeOperation`. A device that lists `Operation` and does not override `onGetDefaultOperationMode` starts in `Operation` instead of `SafeOperation`; override `onGetDefaultOperationMode` to keep starting in `SafeOperation`. A device that does not list `Operation` still starts in `SafeOperation`.
 
 ## Interface API changes
 

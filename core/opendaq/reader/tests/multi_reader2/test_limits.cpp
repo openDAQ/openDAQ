@@ -7,9 +7,14 @@ class MultiReader2Limits : public MultiReader2Test
 {
 };
 
+constexpr bool addressSpaceTooSmall = sizeof(void*) < 8;
+constexpr const char* tooSmallReason = "packets of 64 MB and more fail to allocate in a fragmented 32-bit address space";
+
 // S1.LIM.01
 TEST_F(MultiReader2Limits, ByteLimitDropsTheInputsQueuedDataAndReadsGoOnFromTheNewest)
 {
+    if constexpr (addressSpaceTooSmall)
+        GTEST_SKIP() << tooSmallReason;
     // in2's 160 MB packets each pass the 100 MB critical bytes together with the one before
     setupBase([&] { read(100); });
     announce(in2, Value().dims({2000000}));
@@ -26,6 +31,8 @@ TEST_F(MultiReader2Limits, ByteLimitDropsTheInputsQueuedDataAndReadsGoOnFromTheN
 // S1.LIM.02
 TEST_F(MultiReader2Limits, ByteLimitKeepsTheEventsQueuedOnTheClearedInput)
 {
+    if constexpr (addressSpaceTooSmall)
+        GTEST_SKIP() << tooSmallReason;
     setupBase([&] { read(100); });
     announce(in2, Value().dims({2000000}));
     expect(read(0), count(0).descChanged(in2).size(in2, 16000000));
@@ -40,6 +47,8 @@ TEST_F(MultiReader2Limits, ByteLimitKeepsTheEventsQueuedOnTheClearedInput)
 // S1.LIM.09
 TEST_F(MultiReader2Limits, ByteLimitOnOneInputDropsEveryQueue)
 {
+    if constexpr (addressSpaceTooSmall)
+        GTEST_SKIP() << tooSmallReason;
     // in2's 64 MB packets pass the 100 MB critical bytes together with the one before: every queue goes, in1's too, and
     // reading goes on from in2's newest packet
     setupBase([&] { read(100); });

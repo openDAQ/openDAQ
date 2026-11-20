@@ -19,6 +19,7 @@
 
 ## Bug fixes
 
+- [#1399](https://github.com/openDAQ/openDAQ/pull/1399) Harden the native server's connection accept path against slow, silent or malformed clients
 - [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client

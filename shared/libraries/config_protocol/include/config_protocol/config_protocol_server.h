@@ -22,6 +22,9 @@
 
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/client_type.h>
+#include <condition_variable>
+#include <deque>
+#include <optional>
 
 namespace daq::config_protocol
 {
@@ -117,8 +120,13 @@ private:
     const std::set<uint16_t> supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;
     std::atomic<uint64_t> activeRpcCounter{0};
-    ListPtr<IBaseObject> packedCoreEvents;
+    // The core events not sent yet, in the order they were reported; an event has no value until its reporter has serialized it
+    std::deque<std::optional<std::string>> packedCoreEvents;
+    uint64_t sentCoreEventCount{0};
+    // An empty serialized list; the events are sent between its head and its two closing brackets
+    std::string emptyCoreEventList;
     std::mutex coreEventsLock;
+    std::condition_variable coreEventSerialized;
 
     PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);
     void processNoReplyPacket(const PacketBuffer& packetBuffer);
@@ -145,11 +153,11 @@ private:
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     bool isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     
-    void packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    std::string packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processAttributeChangedCoreEvent(const CoreEventArgsPtr& args);
-    void SendOutCoreEvents();
+    void SendOutCoreEvents(bool waitForReported = false);
 };
 
 }

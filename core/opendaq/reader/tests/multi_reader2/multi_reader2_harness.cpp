@@ -1912,7 +1912,6 @@ void MultiReader2Test::checkInvariants(const Result& result)
     if (muted || !statusInvariants)
         return;
     const auto& st = result.status;
-    SCOPED_TRACE("status invariants");
 
     const auto inputsList = st.getInputs();
     std::vector<int> slots;

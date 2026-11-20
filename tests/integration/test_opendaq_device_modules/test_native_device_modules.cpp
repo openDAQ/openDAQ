@@ -5806,5 +5806,29 @@ TEST_F(NativeDeviceModulesTest, NestedDeviceUpdateRestoresStreaming)
     ASSERT_EQ(sources.getCount(), 1u);
     ASSERT_EQ(sources[0].getConnectionString(), leafStreaming);
 }
+
+TEST_F(NativeDeviceModulesTest, UpdateKeepsExistingStreaming)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    auto server = CreateServerInstance();
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1");
+    ASSERT_EQ(dev.getStreamingSources().getCount(), 1u);
+    dev.removeStreamingSource(dev.getStreamingSources()[0].getConnectionString());
+    dev.addStreaming("daq.ns://[::1]:7420");
+
+    triggerUpdateEnd(client, dev).get();
+
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://[::1]:7420");
+}
 }
 // namespace test_native_device_modules

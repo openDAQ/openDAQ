@@ -32,7 +32,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
-                                       Int reconnectionPeriod)
+                                       Int reconnectionPeriod,
+                                       const TransportOptionPtr& transportOption)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
@@ -44,6 +45,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
+    , transportOption(transportOption)
 {
 }
 
@@ -530,6 +532,11 @@ NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() 
     return transportClientHandler;
 }
 
+TransportOptionPtr NativeDeviceHelper::getTransportOption() const
+{
+    return transportOption;
+}
+
 void NativeDeviceImpl::disconnectAndCleanUp()
 {
     if (this->deviceHelper)
@@ -591,8 +598,17 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                   .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
-                  .addAddressInfo(addressInfo)
-                  .freeze();
+                  .addAddressInfo(addressInfo);
+
+    // The connection info lists only the option the connection uses, at the port it is connected to
+    if (const TransportOptionPtr transportOption = deviceHelper ? deviceHelper->getTransportOption() : nullptr; transportOption.assigned())
+    {
+        auto options = Dict<IString, ITransportOption>();
+        options.set(transportOption.getId(), transportOption);
+        connectionInfo.setAvailableTransportOptions(options);
+    }
+
+    connectionInfo.freeze();
 
     auto deviceInfoProtected = deviceInfo.asPtr<IPropertyObjectProtected>(true);
     deviceInfoProtected.setProtectedPropertyValue("connectionString", connectionString);

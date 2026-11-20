@@ -2949,6 +2949,11 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
+
+    // only the option the connection uses
+    const DictPtr<IString, ITransportOption> options = connectionInfo.getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>("ws"));
+    ASSERT_EQ(TransportOptionPtr(options.get("ws")).getPort(), 7420);
 }
 
 TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv6)

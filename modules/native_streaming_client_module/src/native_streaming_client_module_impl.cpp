@@ -44,18 +44,30 @@ DictPtr<IString, ITransportOption> CreateTransportOptions()
     return options;
 }
 
-// The option the "TransportOption" property of the config names, or the first option if the config has none
+// The option the "TransportOption" property of the config names. The property is required.
 TransportOptionPtr SelectedTransportOption(const PropertyObjectPtr& config)
 {
-    const auto options = CreateTransportOptions();
     if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
-        return options.get(CONST_NATIVE_TRANSPORT_WS);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The config has no \"{}\" property", TransportOptionConfigProperty);
 
+    const auto options = CreateTransportOptions();
     const StringPtr id = config.getPropertyValue(TransportOptionConfigProperty);
     if (!options.hasKey(id))
         DAQ_THROW_EXCEPTION(NotFoundException, "The native client has no transport option \"{}\"", id);
 
     return options.get(id);
+}
+
+// True for the options that connect over TLS
+bool IsTlsTransport(const StringPtr& id)
+{
+    return id == CONST_NATIVE_TRANSPORT_WSS || id == CONST_NATIVE_TRANSPORT_WSS_MTLS;
+}
+
+// The option at the port the connection is made to, for the connection info
+TransportOptionPtr ConnectedTransportOption(const TransportOptionPtr& option, const StringPtr& port)
+{
+    return TransportOption(option.getId(), std::stoi(port.toStdString()), option.getSecurityMode(), option.getCertificateRequired());
 }
 
 }
@@ -193,9 +205,9 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& port,
                                                           const StringPtr& path,
                                                           uint16_t& protocolVersion,
-                                                          bool secure)
+                                                          const TransportOptionPtr& transportOption)
 {
-    auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, secure);
+    auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, IsTlsTransport(transportOption.getId()));
 
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
@@ -233,7 +245,8 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
-                                                                 reconnectionPeriod);
+                                                                 reconnectionPeriod,
+                                                                 ConnectedTransportOption(transportOption, port));
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
         device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
@@ -430,7 +443,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
     const TransportOptionPtr transportOption = SelectedTransportOption(deviceConfig);
-    const bool secure = transportOption.getSecurityMode() == SecurityMode::Encrypted;
 
     auto host = ConnectionStringUtils::GetHost(connectionString);
     auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, transportOption.getPort());
@@ -445,7 +457,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
         }
 
-        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, secure);
+        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, IsTlsTransport(transportOption.getId()));
 
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
@@ -480,13 +492,18 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             .setPort(std::stoi(port.toStdString()))
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
-            .addAddressInfo(addressInfo)
-            .freeze();
+            .addAddressInfo(addressInfo);
+
+        // The connection info lists only the option the connection uses, at the port it is connected to
+        const auto connectedOption = ConnectedTransportOption(transportOption, port);
+        auto connectedOptions = Dict<IString, ITransportOption>();
+        connectedOptions.set(connectedOption.getId(), connectedOption);
+        connectionInfo.setAvailableTransportOptions(connectedOptions).freeze();
     }
     else if (nativeType == NativeType::config)
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
-        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion, secure);
+        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion, transportOption);
 
         auto deviceType = createDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
@@ -746,7 +763,6 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
                                                        : createConnectionDefaultConfig(NativeType::streaming);
 
     const TransportOptionPtr transportOption = SelectedTransportOption(parsedConfig);
-    const bool secure = transportOption.getSecurityMode() == SecurityMode::Encrypted;
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
     StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, transportOption.getPort());
@@ -755,7 +771,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig, secure);
+    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig, IsTlsTransport(transportOption.getId()));
     return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 
@@ -797,10 +813,13 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
             continue;
 
+        // The connection string of the capability names the port of its default option. The string of the
+        // connection is taken over only if it names that port too: the connection may use another option.
         const auto prefix = target.getPrefix();
+        const auto sourceConnectionString = addrInfo.getConnectionString();
         StringPtr connectionString;
-        if (source.getPrefix() == prefix)
-            connectionString = addrInfo.getConnectionString();
+        if (source.getPrefix() == prefix && ConnectionStringUtils::GetPort(sourceConnectionString) == std::to_string(static_cast<Int>(port)))
+            connectionString = sourceConnectionString;
         else
             connectionString = CreateUrlConnectionString(prefix, address, port, path);
 

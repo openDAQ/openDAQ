@@ -160,10 +160,34 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     ASSERT_EQ(connectionInfo.getProtocolId(), PlainConfigId);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+
+    // only the option the connection uses
+    const DictPtr<IString, ITransportOption> options = connectionInfo.getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>(WssOption));
+    ASSERT_EQ(TransportOptionPtr(options.get(WssOption)).getPort(), TlsPort);
+}
+
+// The capabilities of the server keep the port of their default option, even though the connection
+// is made over another one
+TEST_F(NativeTlsTest, CompletedCapabilitiesNameTheirOwnPort)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
+                                   secureClientConfig(client, PlainConfigId));
+
+    for (const auto& id : {PlainConfigId, PlainStreamingId})
+    {
+        const auto capability = device.getInfo().getServerCapability(id);
+        const std::string capabilityConnectionString = capability.getConnectionString().toStdString();
+        ASSERT_EQ(capability.getPort(), PlainPort) << id;
+        ASSERT_NE(capabilityConnectionString.find(":" + std::to_string(PlainPort)), std::string::npos) << id << " " << capabilityConnectionString;
+    }
 }
 
 // no port in the connection string: the TLS option has to fall back to its own port, not to the
-// plaintext one. Nothing listens in plaintext on the TLS port, so the connection shows which one was used.
+// plaintext one
 TEST_F(NativeTlsTest, ConnectDeviceWithoutExplicitPort)
 {
     auto server = createServerInstance();
@@ -172,7 +196,9 @@ TEST_F(NativeTlsTest, ConnectDeviceWithoutExplicitPort)
     auto device = client.addDevice("daq.nd://127.0.0.1/", secureClientConfig(client, PlainConfigId));
 
     ASSERT_TRUE(device.assigned());
-    ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+    ASSERT_EQ(connectionInfo.getAvailableTransportOptions().getKeyList(), List<IString>(WssOption));
 }
 
 TEST_F(NativeTlsTest, ConnectPseudoDeviceWithoutExplicitPort)
@@ -183,7 +209,9 @@ TEST_F(NativeTlsTest, ConnectPseudoDeviceWithoutExplicitPort)
     auto device = client.addDevice("daq.ns://127.0.0.1/", secureClientConfig(client, PlainStreamingId));
 
     ASSERT_TRUE(device.assigned());
-    ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getPort(), TlsPort);
+    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+    ASSERT_EQ(connectionInfo.getAvailableTransportOptions().getKeyList(), List<IString>(WssOption));
 }
 
 TEST_F(NativeTlsTest, ConnectPseudoDevice)

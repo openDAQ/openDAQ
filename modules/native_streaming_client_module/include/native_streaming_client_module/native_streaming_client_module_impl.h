@@ -20,6 +20,7 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 
 #include <boost/asio/io_context.hpp>
 
@@ -93,7 +94,7 @@ private:
                                  const StringPtr& port,
                                  const StringPtr& path,
                                  uint16_t& protocolVersion,
-                                 bool secure);
+                                 const TransportOptionPtr& transportOption);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);

@@ -460,8 +460,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             .setPort(std::stoi(port.toStdString()))
             .setPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
-            .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
-            .setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL)
             .addAddressInfo(addressInfo)
             .freeze();
     }
@@ -946,8 +944,6 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
         cap.setPort(discoveredDevice.servicePort);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
-    cap.setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID);
-    cap.setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 
@@ -965,8 +961,6 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(con
     SetupProtocolAddresses(discoveredDevice, cap, secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX);
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
-    cap.setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID);
-    cap.setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 

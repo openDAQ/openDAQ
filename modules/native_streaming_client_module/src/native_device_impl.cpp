@@ -595,8 +595,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                   .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
-                  .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
-                  .setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL)
                   .addAddressInfo(addressInfo)
                   .freeze();
 

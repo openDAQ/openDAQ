@@ -141,8 +141,6 @@ TEST_F(NativeTlsTest, ServerPublishesBothChannels)
         if (id != SecureStreamingId && id != SecureConfigId)
             continue;
 
-        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming");
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 10) << id;
         ASSERT_EQ(capability.getPort(), TlsPort) << id;
     }
 }
@@ -162,7 +160,6 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     ASSERT_EQ(connectionInfo.getProtocolId(), SecureConfigId);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nds");
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(connectionInfo.getProtocolSecurityLevel(), 10);
 }
 
 // no port in the connection string: the secure channel has to fall back to its own default, not to
@@ -463,7 +460,7 @@ TEST_F(NativeTlsTest, CapabilitiesRemovedForTlsOnlyServer)
     const auto capabilities = instance.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 10) << capability.getProtocolId();
+        ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
 
     instance.removeServer(server);
     ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 0u);
@@ -542,9 +539,6 @@ TEST_F(NativeTlsTest, DiscoveringSecureServer)
     {
         const bool secure = id == SecureConfigId || id == SecureStreamingId;
         const auto port = secure ? TlsPort : PlainPort;
-
-        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming") << id;
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), secure ? 10 : 0) << id;
 
         // each service advertises the port of the channel it belongs to, and both the property and the
         // connection strings built from it have to carry that port

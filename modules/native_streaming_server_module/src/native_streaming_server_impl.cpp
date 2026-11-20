@@ -182,7 +182,6 @@ void NativeStreamingServerImpl::addServerCapabilities(const DeviceInfoInternalPt
                                                       const StringPtr& path,
                                                       bool secure) const
 {
-    const auto securityLevel = secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL;
     const StringPtr publishedPath = path == "/" ? "" : path;
 
     ServerCapabilityConfigPtr streamingCapability =
@@ -191,9 +190,7 @@ void NativeStreamingServerImpl::addServerCapabilities(const DeviceInfoInternalPt
                          ProtocolType::Streaming)
             .setPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionType("TCP/IP")
-            .setPort(port)
-            .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
-            .setProtocolSecurityLevel(securityLevel);
+            .setPort(port);
 
     streamingCapability.addProperty(StringProperty("Path", publishedPath));
     infoInternal.addServerCapability(streamingCapability);
@@ -205,9 +202,7 @@ void NativeStreamingServerImpl::addServerCapabilities(const DeviceInfoInternalPt
             .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
             .setConnectionType("TCP/IP")
             .setPort(port)
-            .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()))
-            .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
-            .setProtocolSecurityLevel(securityLevel);
+            .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
 
     configCapability.addProperty(StringProperty("Path", publishedPath));
     infoInternal.addServerCapability(configCapability);

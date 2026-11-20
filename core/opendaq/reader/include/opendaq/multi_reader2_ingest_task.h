@@ -1,0 +1,61 @@
+/*
+ * Copyright 2022-2026 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#pragma once
+#include <coretypes/common.h>
+
+#include <atomic>
+#include <functional>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @brief Internal to MultiReader2: a sending thread takes its packets in itself while no run is scheduled and the locks are
+ * free; otherwise it marks its port, and one scheduled task ingests every marked port. A burst of packets on any number of
+ * ports costs one task. The onDataAvailable call is scheduled as work of its own, so packets that arrive during the call
+ * start the next run and the queue limits keep applying.
+ */
+namespace multi_reader2
+{
+
+class IngestTask
+{
+public:
+    // After a port is marked, or for queues to free: true when the caller schedules a run
+    bool notify();
+
+    // The scheduled run: drains once; true when packets came in meanwhile and the caller schedules the next run. A drain
+    // that throws leaves the task idle and the exception to the caller
+    bool run(const std::function<void()>& drain);
+
+    // A run that could not be scheduled: the next notification schedules again
+    void cancel();
+
+    // No run is scheduled or running
+    bool idle() const;
+
+private:
+    enum State : int
+    {
+        Idle,
+        Scheduled,
+        Running,
+        RunningDirty
+    };
+    std::atomic<int> state{Idle};
+};
+}
+
+END_NAMESPACE_OPENDAQ

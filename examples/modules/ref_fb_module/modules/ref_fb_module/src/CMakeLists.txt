@@ -122,6 +122,7 @@ target_link_libraries(${LIB_NAME}
         ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq
     PRIVATE
         kissfft::kissfft
+        reader_fb_base
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)

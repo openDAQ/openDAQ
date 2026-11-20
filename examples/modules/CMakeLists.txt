@@ -44,6 +44,11 @@ if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
     add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
 endif()
 
+# The MultiReader2 block base the reader blocks of ref_fb_module and the CSV recorder share
+if (DAQMODULES_REF_FB_MODULE OR DAQMODULES_BASIC_CSV_RECORDER_MODULE)
+    add_subdirectory(reader_fb_base)
+endif()
+
 if (DAQMODULES_EMPTY_MODULE)
     message(STATUS "Empty module")
     set(EMPTY_MODULE_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")

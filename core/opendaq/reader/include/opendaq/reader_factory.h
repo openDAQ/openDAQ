@@ -27,6 +27,7 @@
 
 #include <opendaq/multi_reader_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
+#include <opendaq/multi_reader2_factory.h>
 #include <opendaq/multi_reader_status_ptr.h>
 
 #include <opendaq/stream_reader_ptr.h>

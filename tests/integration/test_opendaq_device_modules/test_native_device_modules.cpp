@@ -5762,5 +5762,72 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
         removed.get();
     }
 }
+
+// The client must not ask the server for the selection values while it applies a value that the server sent, as no reply could arrive
+TEST_F(NativeDeviceModulesTest, SelectionPropertyWithSelectionValuesListeners)
+{
+    auto server = CreateServerInstance();
+    auto serverRefDevice = server.getDevices()[0];
+
+    auto selectionProp = SelectionProperty("Selection", List<IString>("a", "b", "c"), 0);
+    selectionProp.getOnSelectionValuesRead() +=
+        [](const PropertyPtr&, const PropertyMetadataReadArgsPtr& args) { args.setValue(List<IString>("x", "y", "z")); };
+    serverRefDevice.addProperty(selectionProp);
+
+    // A selection property whose value is the selected item itself, not an index
+    auto valueSelectionProp = StringPropertyBuilder("Mode", "slow").setSelectionValues(List<IString>("slow", "fast")).build();
+    valueSelectionProp.getOnSelectionValuesRead() +=
+        [](const PropertyPtr&, const PropertyMetadataReadArgsPtr& args) { args.setValue(List<IString>("slow", "fast", "auto")); };
+    serverRefDevice.addProperty(valueSelectionProp);
+    serverRefDevice.addProperty(ReferenceProperty("SelectionRef", EvalValue("%Selection")));
+    serverRefDevice.addProperty(IntProperty("Counter", 0));
+
+    // A request whose reply waits behind an event that the client cannot apply fails after this timeout
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, 3000);
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+
+    ASSERT_NO_THROW(refDevice.setPropertyValue("Selection", 1));
+    ASSERT_EQ(serverRefDevice.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(refDevice.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(refDevice.getPropertySelectionValue("Selection"), "y");
+
+    serverRefDevice.setPropertyValue("Selection", 2);
+    ASSERT_TRUE(test_helpers::waitFor([&] { return refDevice.getPropertyValue("Selection") == 2; }));
+    ASSERT_EQ(refDevice.getPropertySelectionValue("Selection"), "z");
+
+    ASSERT_NO_THROW(refDevice.setPropertyValue("Mode", "auto"));
+    ASSERT_EQ(serverRefDevice.getPropertyValue("Mode"), "auto");
+    ASSERT_EQ(refDevice.getPropertySelectionValue("Mode"), "auto");
+
+    // The client must not hold the lock of the device while it asks for the selection values, as an event of the device needs it
+    std::atomic<bool> stop{false};
+    std::thread writer(
+        [&]
+        {
+            for (Int counter = 1; !stop; ++counter)
+            {
+                serverRefDevice.setPropertyValue("Counter", counter);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        });
+
+    std::string error;
+    try
+    {
+        for (int i = 0; i < 200 && error.empty(); ++i)
+        {
+            if (refDevice.getPropertySelectionValue(i % 2 ? "Selection" : "SelectionRef") != "z")
+                error = "Wrong selection value";
+        }
+    }
+    catch (const std::exception& e)
+    {
+        error = e.what();
+    }
+
+    stop = true;
+    writer.join();
+    ASSERT_TRUE(error.empty()) << error;
+}
 }
 // namespace test_native_device_modules

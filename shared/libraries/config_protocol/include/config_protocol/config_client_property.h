@@ -141,6 +141,13 @@ inline ErrCode ConfigClientPropertyImpl::getSelectionValuesInternal(IBaseObject*
 
     OPENDAQ_PARAM_NOT_NULL(values);
 
+    // Asked by the owner while it holds its lock: no call to the server is made there, and the server checks a written value itself
+    if (!lock)
+    {
+        *values = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
+
     return daqTry([this, values] 
     {
         auto ownerPtr = getOwner();

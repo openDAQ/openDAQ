@@ -416,20 +416,17 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    auto sorted = sortAddressInfos(availableAddressesInfo, primaryAddressType);
+    auto addresses = availableAddressesInfo.toVector();
     if (deviceConnectionAddress.assigned())
     {
         const auto isConnectionAddress = [&deviceConnectionAddress](const AddressInfoPtr& addressInfo)
         {
             return addressInfo.getAddress() == deviceConnectionAddress.getAddress();
         };
-        std::stable_partition(sorted.begin(), sorted.end(), isConnectionAddress);
+        std::stable_partition(addresses.begin(), addresses.end(), isConnectionAddress);
     }
 
-    auto result = List<IAddressInfo>();
-    for (const auto& addressInfo : sorted)
-        result.pushBack(addressInfo);
-    return result;
+    return sortAddressInfos(addresses, primaryAddressType);
 }
 
 inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const DevicePtr& device)
@@ -493,8 +490,23 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     // Build a map of discovered addresses by protocol ID for quick lookup
     const auto discoveredAddrsByProtocol = buildDiscoveredStreamingAddrsByProtocol(device);
 
+    const auto connect = [&managerUtils, &device, this](const StringPtr& connectionString)
+    {
+        StreamingPtr streaming;
+        const auto errCode = daqTry(
+            [&]()
+            {
+                streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
+                return OPENDAQ_SUCCESS;
+            });
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        return streaming;
+    };
+
     // Keeps the only streaming connection to be established here
     StreamingPtr establishedStreaming;
+    bool advertised = false;
 
     // connect via all allowed streaming capabilities which are not connected yet
     for (const auto& cap : device.getInfo().getServerCapabilities())
@@ -516,6 +528,8 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
 
+        advertised = true;
+
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
             (discoveredAddrsByProtocol.count(capabilityProtocolId) > 0) ? discoveredAddrsByProtocol.at(capabilityProtocolId) : cap.getAddressInfo();
@@ -534,28 +548,44 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             if (!connectionString.assigned())
                 continue;
 
-            StreamingPtr streaming;
-            auto errCode = daqTry(
-                [&]()
-                {
-                    streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
-                    return OPENDAQ_SUCCESS;
-                });
-            if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo();
-            if (!streaming.assigned())
-            {
-                continue;
-            }
-            else
-            {
-                establishedStreaming = streaming;
+            establishedStreaming = connect(connectionString);
+            if (establishedStreaming.assigned())
                 break;
-            }
         }
         if (establishedStreaming.assigned())
             break;
     }
+
+    const auto tryUnadvertisedStreaming = [this, &device, &deviceConnectionAddress, &connect]() -> StreamingPtr
+    {
+        const auto ownerDevice = ownerDeviceRef.assigned() ? ownerDeviceRef.getRef() : nullptr;
+        const auto configurationConnectionInfo = device.getInfo().getConfigurationConnectionInfo();
+        const bool isOwner = ownerDevice.assigned() && device.getGlobalId() == ownerDevice.getGlobalId();
+        if (!isOwner || !configurationConnectionInfo.assigned())
+            return nullptr;
+
+        auto hosts = List<IString>();
+        for (const auto& addressInfo : getSuitableAddressesInfo(configurationConnectionInfo.getAddressInfo(), deviceConnectionAddress))
+            hosts.pushBack(addressInfo.getAddress());
+        if (hosts.empty())
+            hosts = configurationConnectionInfo.getAddresses();
+
+        const PropertyObjectPtr typeConfig = streamingConfig.getTypeConfig();
+        const std::string port = typeConfig.hasProperty("Port") ? fmt::format(":{}", typeConfig.getPropertyValue("Port")) : "";
+
+        for (const auto& host : hosts)
+        {
+            const StringPtr connectionString = fmt::format("{}://{}{}", requiredStreamingPrefix, host, port);
+            LOG_I("Device {} does not advertise {} streaming, trying {}", device.getGlobalId(), requiredStreamingPrefix, connectionString);
+            if (const auto streaming = connect(connectionString); streaming.assigned())
+                return streaming;
+        }
+
+        return nullptr;
+    };
+
+    if (!advertised)
+        establishedStreaming = tryUnadvertisedStreaming();
 
     // add single established streaming source
     if (establishedStreaming.assigned())

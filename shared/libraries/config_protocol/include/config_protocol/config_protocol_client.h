@@ -19,6 +19,8 @@
 #include <config_protocol/config_protocol.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/device_ptr.h>
+#include <opendaq/add_device_config_ptr.h>
+#include <opendaq/device_info_ptr.h>
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/deserialize_component_ptr.h>
@@ -129,6 +131,7 @@ public:
 
     PropertyObjectPtr getComponentConfig(const std::string& globalId);
     PropertyObjectPtr getDefaultAddDeviceConfig(const std::string& globalId);
+    AddDeviceConfigPtr createAddDeviceConfig(const std::string& globalId, const DeviceInfoPtr& info, const StringPtr& prefix);
 
     void startRecording(const std::string& globalId);
     void stopRecording(const std::string& globalId);

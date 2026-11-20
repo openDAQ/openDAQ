@@ -251,10 +251,10 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 }
 
 template <class TDeviceBase>
-AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& /*info*/,
-                                                                                       const StringPtr& /*prefix*/)
+AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& info,
+                                                                                       const StringPtr& prefix)
 {
-    DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config is not supported on a config client device.");
+    return this->clientComm->createAddDeviceConfig(this->remoteGlobalId, info, prefix);
 }
 
 template <class TDeviceBase>

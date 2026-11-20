@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/device_ptr.h>
+#include <coretypes/json_serializer_factory.h>
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/component_holder_factory.h>
 #include <opendaq/search_filter_factory.h>
@@ -50,6 +51,7 @@ public:
     static BaseObjectPtr setOperationModeRecursive(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getDefaultAddDeviceConfig(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr createAddDeviceConfig(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
@@ -326,6 +328,21 @@ inline BaseObjectPtr ConfigServerDevice::getOperationMode(const RpcContext& cont
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return OperationModeTypeToString(device.getOperationMode());
+}
+
+inline BaseObjectPtr ConfigServerDevice::createAddDeviceConfig(const RpcContext& context,
+                                                               const DevicePtr& device,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const DeviceInfoPtr info = params.get("Info");
+    const StringPtr prefix = params.getOrDefault("Prefix");
+
+    // Sent as JSON, so the client deserializes a local config rather than objects bound to this device
+    const auto serializer = JsonSerializer();
+    device.createAddDeviceConfig(info, prefix).serialize(serializer);
+    return serializer.getOutput();
 }
 
 inline BaseObjectPtr ConfigServerDevice::getDefaultAddDeviceConfig(const RpcContext& context,

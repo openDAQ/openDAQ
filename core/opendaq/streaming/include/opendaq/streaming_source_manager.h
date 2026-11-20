@@ -187,7 +187,7 @@ inline void StreamingSourceManager::componentUpdated(const ComponentPtr& sender,
         }
         else
         {
-            if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredSignalConfig>();
+            if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredDeviceConfig>();
                 updatedDevice.assigned() && streamingMode == StreamingMode::MinHops)
                 completeStreamingConnections(updatedDevice);
             enableStreamingForUpdatedComponent(updatedComponent);

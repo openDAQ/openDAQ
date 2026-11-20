@@ -5768,5 +5768,43 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
         removed.get();
     }
 }
+
+TEST_F(NativeDeviceModulesTest, NestedDeviceUpdateRestoresStreaming)
+{
+    SKIP_TEST_MAC_CI;
+
+    auto server = test_helpers::createInstance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+    server.setRootDevice("daqref.root://device0");
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto gateway = test_helpers::createInstance("[[none]]", "gateway");
+    addNativeClientModule(gateway);
+    addNativeServerModule(gateway);
+    const auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addServer("OpenDAQNativeStreaming", gatewayServerConfig);
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const StringPtr connectionString = "daq.nd://127.0.0.1:7421/";
+    const auto config = client.createAddDeviceConfig(DeviceInfo(connectionString));
+    config.getStreamingOptions().setStreamingMode(StreamingMode::MinHops);
+    const auto dev = client.addDevice(connectionString, config);
+    dev.addDevice("daq.nd://127.0.0.1");
+
+    const MirroredDeviceConfigPtr leaf = dev.getDevices()[0];
+    ASSERT_EQ(leaf.getStreamingSources().getCount(), 1u);
+    const auto leafStreaming = leaf.getStreamingSources()[0].getConnectionString();
+    leaf.removeStreamingSource(leafStreaming);
+
+    triggerUpdateEnd(client, leaf).get();
+
+    const auto sources = leaf.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), leafStreaming);
+}
 }
 // namespace test_native_device_modules

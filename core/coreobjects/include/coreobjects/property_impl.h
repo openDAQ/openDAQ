@@ -1351,6 +1351,12 @@ public:
             {
                 serializer->key("HasSelectionValuesListeners");
                 serializer->writeBool(true);
+
+                // The selection values are not written, so the reader cannot deduce the kind of selection from them
+                PropertyType type;
+                OPENDAQ_RETURN_IF_FAILED(getPropertyType(&type));
+                serializer->key("propertyType");
+                serializer->writeInt(static_cast<Int>(type));
             }
             else
             {

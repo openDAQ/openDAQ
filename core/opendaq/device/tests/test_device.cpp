@@ -694,6 +694,32 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
 }
 
+class AllOpModesDevice final : public daq::Device
+{
+public:
+    AllOpModesDevice()
+        : daq::Device(daq::NullContext(), nullptr, "dev")
+    {
+    }
+
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override
+    {
+        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation};
+    }
+};
+
+TEST_F(DeviceTest, DefaultOperationMode)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, daq::Device>(daq::NullContext(), nullptr, "dev");
+    device.asPtr<daq::IDevicePrivate>(true).setAsRoot();
+    ASSERT_EQ(device.getAvailableOperationModes(), daq::List<daq::IInteger>(static_cast<daq::Int>(daq::OperationModeType::Operation)));
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+
+    const auto allModesDevice = daq::createWithImplementation<daq::IDevice, AllOpModesDevice>();
+    allModesDevice.asPtr<daq::IDevicePrivate>(true).setAsRoot();
+    ASSERT_EQ(allModesDevice.getOperationMode(), daq::OperationModeType::Operation);
+}
+
 TEST_F(DeviceTest, DefaultFolderLockingStrategy)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();

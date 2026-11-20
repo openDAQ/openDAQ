@@ -1214,12 +1214,15 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::SafeOperation};
+    return {OperationModeType::Operation};
 }
 
 template <typename TInterface, typename... Interfaces>
 OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
 {
+    // Devices that do not list Operation start in SafeOperation
+    if (this->onGetAvailableOperationModes().count(OperationModeType::Operation))
+        return OperationModeType::Operation;
     return OperationModeType::SafeOperation;
 }
 

@@ -43,12 +43,23 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
+                                          const ComponentPtr& parent,
+                                          const PropertyObjectPtr& config,
+                                          const LoginParametersPtr& loginParameters) override;
+    StreamingPtr onCreateAuthenticatedStreaming(const StringPtr& connectionString,
+                                                const PropertyObjectPtr& config,
+                                                const LoginParametersPtr& loginParameters) override;
     Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
+
+    /// @brief a copy of `config` (or the default config) with the login's user name and password; a login without
+    /// credentials keeps the "Username" and "Password" the config sets
+    PropertyObjectPtr applyLogin(const PropertyObjectPtr& config, NativeType nativeType, const LoginParametersPtr& loginParameters);
 
     /// @brief reads the transport option the type config names in its "TransportOption" property
     /// (TransportOptionConfigProperty)

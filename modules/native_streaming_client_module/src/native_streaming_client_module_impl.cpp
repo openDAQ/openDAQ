@@ -16,6 +16,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
+#include <opendaq/authentication_method_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
 #include <native_streaming_protocol/async_exception_guard.h>
@@ -775,6 +776,44 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 
+PropertyObjectPtr NativeStreamingClientModule::applyLogin(const PropertyObjectPtr& config,
+                                                          NativeType nativeType,
+                                                          const LoginParametersPtr& loginParameters)
+{
+    PropertyObjectPtr loginConfig = config.assigned() ? populateDefaultConfig(config, nativeType) : createConnectionDefaultConfig(nativeType);
+
+    const auto credentials = loginParameters.assigned() ? loginParameters.getCredentials() : nullptr;
+    if (credentials.assigned() && credentials.hasKey("UserName"))
+    {
+        loginConfig.setPropertyValue("Username", credentials.get("UserName"));
+        loginConfig.setPropertyValue("Password", credentials.hasKey("Password") ? credentials.get("Password") : String(""));
+    }
+
+    return loginConfig;
+}
+
+DevicePtr NativeStreamingClientModule::onCreateAuthenticatedDevice(const StringPtr& connectionString,
+                                                                   const ComponentPtr& parent,
+                                                                   const PropertyObjectPtr& config,
+                                                                   const LoginParametersPtr& loginParameters)
+{
+    if (!connectionString.assigned())
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
+
+    const auto parsedType = ParseConnectionType(connectionString);
+    if (!parsedType.has_value())
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
+
+    return onCreateDevice(connectionString, parent, applyLogin(config, *parsedType, loginParameters));
+}
+
+StreamingPtr NativeStreamingClientModule::onCreateAuthenticatedStreaming(const StringPtr& connectionString,
+                                                                         const PropertyObjectPtr& config,
+                                                                         const LoginParametersPtr& loginParameters)
+{
+    return onCreateStreaming(connectionString, applyLogin(config, NativeType::streaming, loginParameters));
+}
+
 Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
     const auto targetProtocolId = target.getProtocolId();
@@ -879,6 +918,8 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setDeviceKind(DeviceKind::Adapter)
+        .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+        .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
         .setTransportOptions(transportOptions)
         .build();
 }
@@ -892,6 +933,8 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_CONFIG_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .setDeviceKind(DeviceKind::Mirrored)
+        .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+        .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
         .setTransportOptions(transportOptions)
         .build();
 }

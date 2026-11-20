@@ -10,6 +10,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/component_type_private_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
@@ -3875,6 +3876,65 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     auto signal = fb.getInputPorts()[0].getSignal();
     ASSERT_TRUE(signal.assigned());
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+static InstancePtr CreateServerInstanceWithUser()
+{
+    auto serverInstance = test_helpers::instanceBuilder()
+        .setModulePath("[[none]]")
+        .setAuthenticationProvider(StaticAuthenticationProvider(false, List<IUser>(User("jure", "jure123"))))
+        .build();
+    addNativeServerModule(serverInstance);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    return serverInstance;
+}
+
+static AddDeviceConfigPtr CreateLoginConfig(const InstancePtr& client, const StringPtr& password)
+{
+    const AddDeviceConfigPtr config = client.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
+    const auto login = config.getAuthenticationConfig();
+    login.setAuthenticationMethod("UserNamePassword");
+    login.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", password}}));
+    return config;
+}
+
+TEST_F(NativeDeviceModulesTest, NativeTypesOfferAnonymousAndUserNamePassword)
+{
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    ASSERT_TRUE(client.getAvailableDeviceTypes().hasKey("OpenDAQNativeConfiguration"));
+    const auto deviceMethods = client.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").asPtr<IComponentTypePrivate, ComponentTypePrivatePtr>().getSupportedAuthenticationMethods();
+    ASSERT_EQ(deviceMethods.getKeyList()[0], "Anonymous");
+    ASSERT_EQ(deviceMethods.getKeyList()[1], "UserNamePassword");
+
+    const auto streamingMethods = client.getAvailableDeviceTypes().get("OpenDAQNativeStreaming").asPtr<IComponentTypePrivate, ComponentTypePrivatePtr>().getSupportedAuthenticationMethods();
+    ASSERT_EQ(streamingMethods.getKeyList()[0], "Anonymous");
+    ASSERT_EQ(streamingMethods.getKeyList()[1], "UserNamePassword");
+}
+
+TEST_F(NativeDeviceModulesTest, LogInWithAddDeviceConfig)
+{
+    auto server = CreateServerInstanceWithUser();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    ASSERT_ANY_THROW(client.addDevice("daq.nd://127.0.0.1"));
+    ASSERT_ANY_THROW(client.addDevice("daq.nd://127.0.0.1", CreateLoginConfig(client, "wrongPass")));
+    ASSERT_NO_THROW(client.addDevice("daq.nd://127.0.0.1", CreateLoginConfig(client, "jure123")));
+}
+
+TEST_F(NativeDeviceModulesTest, AnonymousLoginKeepsUsernameOfTypeConfig)
+{
+    auto server = CreateServerInstanceWithUser();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const AddDeviceConfigPtr config = client.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
+    ASSERT_EQ(config.getAuthenticationConfig().getSelectedAuthenticationMethod().getId(), "Anonymous");
+    config.getTypeConfig().setPropertyValue("Username", "jure");
+    config.getTypeConfig().setPropertyValue("Password", "jure123");
+    ASSERT_NO_THROW(client.addDevice("daq.nd://127.0.0.1", config));
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)

@@ -24,6 +24,7 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 #include <tsl/ordered_map.h>
 #include <boost/asio/thread_pool.hpp>
 #include <config_protocol/config_protocol_server.h>
@@ -58,9 +59,8 @@ protected:
     /// @brief publishes the streaming and the configuration capability of one channel
     /// @param secure selects the secure identifiers, prefixes and security level
     void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
-                               uint16_t port,
-                               const StringPtr& path,
-                               bool secure) const;
+                               const DictPtr<IString, ITransportOption>& transportOptions,
+                               const StringPtr& path) const;
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
 

@@ -27,6 +27,8 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 using namespace daq;
 using namespace daq::test_helpers::native_tls;
@@ -74,6 +76,18 @@ InstancePtr createDiscoverableServerInstance(const std::string& path, bool plain
     return instance;
 }
 
+/// @brief checks the ids, order and ports of the transport options of a capability
+void expectOptions(const ServerCapabilityPtr& capability, const std::vector<std::pair<std::string, Int>>& expected)
+{
+    const DictPtr<IString, ITransportOption> options = capability.getAvailableTransportOptions();
+
+    std::vector<std::pair<std::string, Int>> actual;
+    for (const auto& [id, option] : options)
+        actual.emplace_back(id.toStdString(), TransportOptionPtr(option).getPort());
+
+    ASSERT_EQ(actual, expected) << capability.getProtocolId();
+}
+
 /// @brief the native capabilities discovered under the given path, by protocol id
 /// @param required stops the search as soon as these are all in; a missing one only costs the timeout,
 /// so that the test can report which of them never showed up
@@ -115,34 +129,25 @@ TEST_F(NativeTlsTest, TypesListTlsOption)
     auto client = createClientInstance();
     const auto deviceTypes = client.getAvailableDeviceTypes();
 
-    ASSERT_FALSE(deviceTypes.hasKey(SecureConfigId));
-    ASSERT_FALSE(deviceTypes.hasKey(SecureStreamingId));
     for (const auto& id : {PlainConfigId, PlainStreamingId})
         ASSERT_TRUE(deviceTypes.get(id).getAvailableTransportOptions().hasKey(WssOption)) << id;
 }
 
-TEST_F(NativeTlsTest, ServerPublishesBothChannels)
+// The server publishes one capability per protocol, with an option for each listener, plaintext first
+TEST_F(NativeTlsTest, ServerPublishesOptionPerListener)
 {
     auto server = createServerInstance();
     const auto capabilities = server.getInfo().getServerCapabilities();
 
     std::set<std::string> ids;
     for (const auto& capability : capabilities)
-        ids.insert(capability.getProtocolId().toStdString());
-
-    ASSERT_EQ(ids.count(PlainStreamingId), 1u);
-    ASSERT_EQ(ids.count(PlainConfigId), 1u);
-    ASSERT_EQ(ids.count(SecureStreamingId), 1u);
-    ASSERT_EQ(ids.count(SecureConfigId), 1u);
-
-    for (const auto& capability : capabilities)
     {
-        const auto id = capability.getProtocolId().toStdString();
-        if (id != SecureStreamingId && id != SecureConfigId)
-            continue;
-
-        ASSERT_EQ(capability.getPort(), TlsPort) << id;
+        ids.insert(capability.getProtocolId().toStdString());
+        expectOptions(capability, {{WsOption, PlainPort}, {WssOption, TlsPort}});
+        ASSERT_EQ(capability.getPort(), PlainPort) << capability.getProtocolId();
     }
+
+    ASSERT_EQ(ids, (std::set<std::string>{PlainStreamingId, PlainConfigId}));
 }
 
 TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
@@ -361,12 +366,12 @@ TEST_F(NativeTlsTest, TlsOnlyServer)
 
     std::set<std::string> ids;
     for (const auto& capability : server.getInfo().getServerCapabilities())
+    {
         ids.insert(capability.getProtocolId().toStdString());
-
-    ASSERT_EQ(ids.count(SecureStreamingId), 1u);
-    ASSERT_EQ(ids.count(SecureConfigId), 1u);
-    ASSERT_EQ(ids.count(PlainStreamingId), 0u);
-    ASSERT_EQ(ids.count(PlainConfigId), 0u);
+        expectOptions(capability, {{WssOption, TlsPort}});
+        ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
+    }
+    ASSERT_EQ(ids, (std::set<std::string>{PlainStreamingId, PlainConfigId}));
 
     auto client = createClientInstance();
     auto device = client.addDevice(connectionString("daq.nd", TlsPort),
@@ -467,13 +472,13 @@ TEST_F(NativeTlsTest, PortFromConfigurationOverridesConnectionString)
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
 }
 
-TEST_F(NativeTlsTest, CapabilitiesRemovedPerChannel)
+TEST_F(NativeTlsTest, CapabilitiesRemovedForBothListeners)
 {
     auto instance = Instance("[[none]]");
     addNativeServerModule(instance);
 
     auto server = instance.addServer(ServerTypeId, secureServerConfig(instance));
-    ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 4u);
+    ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 2u);
 
     instance.removeServer(server);
     ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 0u);
@@ -492,7 +497,10 @@ TEST_F(NativeTlsTest, CapabilitiesRemovedForTlsOnlyServer)
     const auto capabilities = instance.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
+    {
+        expectOptions(capability, {{WssOption, TlsPort}});
         ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
+    }
 
     instance.removeServer(server);
     ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 0u);
@@ -553,51 +561,49 @@ TEST_F(NativeTlsTest, SubscribeReadUnsubscribeOverTls)
 }
 
 // The discovery tests below are disabled: the client reads only the plaintext mDNS service, and the
-// server does not announce its TLS listener there yet.
-TEST_F(NativeTlsTest, DISABLED_DiscoveringSecureServer)
+// server does not announce its options there yet.
+TEST_F(NativeTlsTest, DISABLED_DiscoveringServerWithBothListeners)
 {
     const std::string path = "/test/native_tls/discovery/";
     auto server = createDiscoverableServerInstance(path);
     auto client = createClientInstance();
 
-    const auto found = discoverNativeCapabilities(client, path, {SecureConfigId, SecureStreamingId});
-
-    ASSERT_EQ(found.count(SecureConfigId), 1u) << "the TLS service was not discovered";
-    ASSERT_EQ(found.count(SecureStreamingId), 1u) << "the TLS service was not discovered";
-
-    // the plaintext listener is advertised as a service of its own, alongside
+    const auto found = discoverNativeCapabilities(client, path, {PlainConfigId, PlainStreamingId});
     ASSERT_EQ(found.count(PlainConfigId), 1u);
     ASSERT_EQ(found.count(PlainStreamingId), 1u);
 
     for (const auto& [id, capability] : found)
     {
-        const bool secure = id == SecureConfigId || id == SecureStreamingId;
-        const auto port = secure ? TlsPort : PlainPort;
-
-        // each service advertises the port of the channel it belongs to, and both the property and the
-        // connection strings built from it have to carry that port
-        ASSERT_EQ(capability.getPort(), port) << id;
+        // one service, with an option for each listener; its port and connection strings are those of the first one
+        expectOptions(capability, {{WsOption, PlainPort}, {WssOption, TlsPort}});
+        ASSERT_EQ(capability.getPort(), PlainPort) << id;
 
         const std::string connectionString = capability.getConnectionString().toStdString();
-        ASSERT_NE(connectionString.find(":" + std::to_string(port)), std::string::npos)
-            << id << " " << connectionString;
+        ASSERT_NE(connectionString.find(":" + std::to_string(PlainPort)), std::string::npos) << id << " " << connectionString;
     }
 
-    ASSERT_EQ(found.at(SecureConfigId).getPrefix(), "daq.nds");
-    ASSERT_EQ(found.at(SecureStreamingId).getPrefix(), "daq.nss");
+    ASSERT_EQ(found.at(PlainConfigId).getPrefix(), "daq.nd");
+    ASSERT_EQ(found.at(PlainStreamingId).getPrefix(), "daq.ns");
 }
 
-TEST_F(NativeTlsTest, DISABLED_ConnectToDiscoveredSecureServer)
+// The connection string of a discovered server names the port of its first option, so a client which selects
+// another one also sets its port
+TEST_F(NativeTlsTest, DISABLED_ConnectToDiscoveredServerOverTls)
 {
     const std::string path = "/test/native_tls/discovery_connect/";
     auto server = createDiscoverableServerInstance(path);
     auto client = createClientInstance();
 
-    const auto found = discoverNativeCapabilities(client, path, {SecureConfigId});
-    ASSERT_EQ(found.count(SecureConfigId), 1u) << "the TLS service was not discovered";
+    const auto found = discoverNativeCapabilities(client, path, {PlainConfigId});
+    ASSERT_EQ(found.count(PlainConfigId), 1u);
 
-    auto device = client.addDevice(found.at(SecureConfigId).getConnectionString(),
-                                   secureClientConfig(client, PlainConfigId));
+    const auto capability = found.at(PlainConfigId);
+    const TransportOptionPtr wss = capability.getAvailableTransportOptions().get(WssOption);
+
+    auto config = secureClientConfig(client, PlainConfigId);
+    config.setPropertyValue("Port", wss.getPort());
+
+    auto device = client.addDevice(capability.getConnectionString(), config);
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -609,14 +615,16 @@ TEST_F(NativeTlsTest, DISABLED_DiscoveringTlsOnlyServer)
     auto server = createDiscoverableServerInstance(path, /*plainPortEnabled*/ false);
     auto client = createClientInstance();
 
-    const auto found = discoverNativeCapabilities(client, path, {SecureConfigId, SecureStreamingId});
+    const auto found = discoverNativeCapabilities(client, path, {PlainConfigId, PlainStreamingId});
+    ASSERT_EQ(found.count(PlainConfigId), 1u);
+    ASSERT_EQ(found.count(PlainStreamingId), 1u);
 
-    ASSERT_EQ(found.count(SecureConfigId), 1u) << "the TLS service was not discovered";
-    ASSERT_EQ(found.count(SecureStreamingId), 1u) << "the TLS service was not discovered";
-
-    // with no plaintext listener there is nothing to advertise on the plaintext service
-    ASSERT_EQ(found.count(PlainConfigId), 0u);
-    ASSERT_EQ(found.count(PlainStreamingId), 0u);
+    // with no plaintext listener the TLS one is the only option
+    for (const auto& [id, capability] : found)
+    {
+        expectOptions(capability, {{WssOption, TlsPort}});
+        ASSERT_EQ(capability.getPort(), TlsPort) << id;
+    }
 }
 
 // The mirrored device is meant to get its streaming source over the option it is connected over.

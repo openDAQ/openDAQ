@@ -16,7 +16,7 @@
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
-#include <opendaq/transport_option_factory.h>
+#include <native_streaming_protocol/native_streaming_transport_options.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -27,30 +27,13 @@ using namespace config_protocol;
 namespace
 {
 
-// The transport options of the native types, plain first.
-// - "wss" needs a build with TLS.
-// - "wss-mtls" also needs the client to present a certificate, which it cannot do under NATIVE_STREAMING_TLS_WITHOUT_SIGN.
-DictPtr<IString, ITransportOption> CreateTransportOptions()
-{
-    auto options = Dict<IString, ITransportOption>();
-    options.set(CONST_NATIVE_TRANSPORT_WS, TransportOption(CONST_NATIVE_TRANSPORT_WS, DEFAULT_PORT));
-#if NATIVE_STREAMING_ENABLE_TLS
-    options.set(CONST_NATIVE_TRANSPORT_WSS, TransportOption(CONST_NATIVE_TRANSPORT_WSS, DEFAULT_TLS_PORT, SecurityMode::Encrypted));
-#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
-    options.set(CONST_NATIVE_TRANSPORT_WSS_MTLS,
-                TransportOption(CONST_NATIVE_TRANSPORT_WSS_MTLS, DEFAULT_TLS_PORT, SecurityMode::Encrypted, True));
-#endif
-#endif
-    return options;
-}
-
 // The option the "TransportOption" property of the config names. The property is required.
 TransportOptionPtr SelectedTransportOption(const PropertyObjectPtr& config)
 {
     if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The config has no \"{}\" property", TransportOptionConfigProperty);
 
-    const auto options = CreateTransportOptions();
+    const auto options = DefaultNativeTransportOptions();
     const StringPtr id = config.getPropertyValue(TransportOptionConfigProperty);
     if (!options.hasKey(id))
         DAQ_THROW_EXCEPTION(NotFoundException, "The native client has no transport option \"{}\"", id);
@@ -863,7 +846,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setDeviceKind(DeviceKind::Adapter)
-        .setAvailableTransportOptions(CreateTransportOptions())
+        .setAvailableTransportOptions(DefaultNativeTransportOptions())
         .build();
 }
 
@@ -876,7 +859,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_CONFIG_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .setDeviceKind(DeviceKind::Mirrored)
-        .setAvailableTransportOptions(CreateTransportOptions())
+        .setAvailableTransportOptions(DefaultNativeTransportOptions())
         .build();
 }
 
@@ -888,7 +871,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setLinkedDeviceType(createDeviceType())
-        .setAvailableTransportOptions(CreateTransportOptions())
+        .setAvailableTransportOptions(DefaultNativeTransportOptions())
         .build();
 }
 

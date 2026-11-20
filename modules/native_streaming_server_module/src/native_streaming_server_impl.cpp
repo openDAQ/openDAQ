@@ -13,6 +13,7 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 #include <native_streaming_protocol/native_streaming_constants.h>
+#include <native_streaming_protocol/native_streaming_transport_options.h>
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
@@ -62,16 +63,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
                                 fmt::format("Device \"{}\" already has an {} server capability.", info.getName(), protocolId));
     };
 
-    if (plainChannelEnabled)
-    {
-        refuseExisting(CONST_NATIVE_STREAMING_ID);
-        refuseExisting(CONST_NATIVE_CONFIG_ID);
-    }
-    if (tlsChannelEnabled)
-    {
-        refuseExisting(CONST_NATIVE_STREAMING_SECURE_ID);
-        refuseExisting(CONST_NATIVE_CONFIG_SECURE_ID);
-    }
+    refuseExisting(CONST_NATIVE_STREAMING_ID);
+    refuseExisting(CONST_NATIVE_CONFIG_ID);
 
     initWorkerPool();
 
@@ -88,11 +81,14 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         const StringPtr path = config.getPropertyValue(PROPERTY_PATH_SERVER);
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>(true);
 
+        // One option per listener, plain first
+        auto transportOptions = Dict<IString, ITransportOption>();
+
         if (plainChannelEnabled)
         {
             const uint16_t port = config.getPropertyValue(PROPERTY_PORT_SERVER);
             serverHandler->startServer(port);
-            addServerCapabilities(infoInternal, port, path, false);
+            transportOptions.set(CONST_NATIVE_TRANSPORT_WS, NativeTransportOption(CONST_NATIVE_TRANSPORT_WS, port));
         }
 
 #if NATIVE_STREAMING_ENABLE_TLS
@@ -103,6 +99,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
             { return StringPtr(config.getPropertyValue(name)).toStdString(); };
 
 #ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+            const bool mutualTls = false;
             const std::string caFile;
 #else
             const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
@@ -114,9 +111,14 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
                                           readPath(PROPERTY_CERT_FILE_PATH_SERVER),
                                           readPath(PROPERTY_KEY_FILE_PATH_SERVER),
                                           caFile);
-            addServerCapabilities(infoInternal, tlsPort, path, true);
+
+            // The TLS listener asks for a client certificate or not, so it serves one of the two options
+            const auto tlsOptionId = mutualTls ? CONST_NATIVE_TRANSPORT_WSS_MTLS : CONST_NATIVE_TRANSPORT_WSS;
+            transportOptions.set(tlsOptionId, NativeTransportOption(tlsOptionId, tlsPort));
         }
 #endif
+
+        addServerCapabilities(infoInternal, transportOptions, path);
 
         this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
@@ -177,31 +179,27 @@ void NativeStreamingServerImpl::validateChannelConfig(const PropertyObjectPtr& c
 #endif
 }
 
+// The port of each capability is the port of its first option (see IServerCapabilityConfig::setAvailableTransportOptions)
 void NativeStreamingServerImpl::addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
-                                                      uint16_t port,
-                                                      const StringPtr& path,
-                                                      bool secure) const
+                                                      const DictPtr<IString, ITransportOption>& transportOptions,
+                                                      const StringPtr& path) const
 {
     const StringPtr publishedPath = path == "/" ? "" : path;
 
     ServerCapabilityConfigPtr streamingCapability =
-        ServerCapability(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID,
-                         secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID,
-                         ProtocolType::Streaming)
-            .setPrefix(secure ? CONST_NATIVE_STREAMING_SECURE_PREFIX : CONST_NATIVE_STREAMING_PREFIX)
+        ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming)
+            .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionType("TCP/IP")
-            .setPort(port);
+            .setAvailableTransportOptions(transportOptions);
 
     streamingCapability.addProperty(StringProperty("Path", publishedPath));
     infoInternal.addServerCapability(streamingCapability);
 
     ServerCapabilityConfigPtr configCapability =
-        ServerCapability(secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID,
-                         secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID,
-                         ProtocolType::ConfigurationAndStreaming)
-            .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
+        ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming)
+            .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
             .setConnectionType("TCP/IP")
-            .setPort(port)
+            .setAvailableTransportOptions(transportOptions)
             .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
 
     configCapability.addProperty(StringProperty("Path", publishedPath));
@@ -428,16 +426,8 @@ void NativeStreamingServerImpl::stopServerInternal()
                     infoInternal.removeServerCapability(protocolId);
             };
 
-            if (plainChannelEnabled)
-            {
-                removeIfPresent(CONST_NATIVE_STREAMING_ID);
-                removeIfPresent(CONST_NATIVE_CONFIG_ID);
-            }
-            if (tlsChannelEnabled)
-            {
-                removeIfPresent(CONST_NATIVE_STREAMING_SECURE_ID);
-                removeIfPresent(CONST_NATIVE_CONFIG_SECURE_ID);
-            }
+            removeIfPresent(CONST_NATIVE_STREAMING_ID);
+            removeIfPresent(CONST_NATIVE_CONFIG_ID);
             for (const auto& [_, clientNumber] : registeredClientIds)
             {
                 if (clientNumber != 0)
@@ -729,7 +719,7 @@ ListPtr<IPropertyObject> NativeStreamingServerImpl::getDiscoveryConfigs()
 
 #if NATIVE_STREAMING_ENABLE_TLS
     if (tlsChannelEnabled)
-        discoveryConfigs.pushBack(makeRecord(CONST_NATIVE_TLS_SERVICE_NAME, PROPERTY_TLS_PORT_SERVER, CONST_NATIVE_CONFIG_SECURE_ID));
+        discoveryConfigs.pushBack(makeRecord(CONST_NATIVE_TLS_SERVICE_NAME, PROPERTY_TLS_PORT_SERVER, CONST_NATIVE_CONFIG_ID));
 #endif
 
     return discoveryConfigs;
@@ -743,6 +733,7 @@ ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
         .setDescription("Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol")
         .setDefaultConfig(NativeStreamingServerImpl::createDefaultConfig(context))
         .setServerKind(ServerKind::Mirror)
+        .setAvailableTransportOptions(DefaultNativeTransportOptions())
         .build()
         .asPtr<IServerType>();
 }

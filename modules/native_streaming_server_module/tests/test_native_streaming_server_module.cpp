@@ -170,6 +170,16 @@ TEST_F(NativeStreamingServerModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
 
+    // the server type lists the options this build can serve, plain first
+    auto expectedIds = List<IString>("ws");
+#if NATIVE_STREAMING_ENABLE_TLS
+    expectedIds.pushBack("wss");
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    expectedIds.pushBack("wss-mtls");
+#endif
+#endif
+    ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getAvailableTransportOptions().getKeyList(), expectedIds);
+
     // Check module info for module
     ModuleInfoPtr moduleInfo;
     ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
@@ -286,6 +296,14 @@ TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
 
     const auto capabilities = device.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
+
+    // the plaintext listener is the only option, at the configured port
+    for (const auto& capability : capabilities)
+    {
+        const DictPtr<IString, ITransportOption> options = capability.getAvailableTransportOptions();
+        ASSERT_EQ(options.getKeyList(), List<IString>("ws")) << capability.getProtocolId();
+        ASSERT_EQ(TransportOptionPtr(options.get("ws")).getPort(), 0) << capability.getProtocolId();
+    }
 }
 
 // Opening the listener fails after the server has started its threads. The failure has to reach the

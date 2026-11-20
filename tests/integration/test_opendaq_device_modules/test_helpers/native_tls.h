@@ -34,10 +34,8 @@ namespace test_helpers::native_tls
     // the pseudo-device and the streaming share their protocol id
     inline constexpr const char* PlainStreamingId = CONST_NATIVE_STREAMING_ID;
     inline constexpr const char* PlainConfigId = CONST_NATIVE_CONFIG_ID;
-    // the protocol ids of the capabilities the server publishes for its TLS listener
-    inline constexpr const char* SecureStreamingId = CONST_NATIVE_STREAMING_SECURE_ID;
-    inline constexpr const char* SecureConfigId = CONST_NATIVE_CONFIG_SECURE_ID;
 
+    inline constexpr const char* WsOption = CONST_NATIVE_TRANSPORT_WS;
     inline constexpr const char* WssOption = CONST_NATIVE_TRANSPORT_WSS;
 
     inline constexpr uint16_t PlainPort = DEFAULT_PORT;

@@ -27,14 +27,10 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 static constexpr const char* CONST_NATIVE_STREAMING_PREFIX = "daq.ns";
-static constexpr const char* CONST_NATIVE_STREAMING_SECURE_PREFIX = "daq.nss";
 static constexpr const char* CONST_NATIVE_CONFIG_PREFIX = "daq.nd";
-static constexpr const char* CONST_NATIVE_CONFIG_SECURE_PREFIX = "daq.nds";
 
 static constexpr const char* CONST_NATIVE_STREAMING_ID = "OpenDAQNativeStreaming";
-static constexpr const char* CONST_NATIVE_STREAMING_SECURE_ID = "OpenDAQNativeStreamingSecure";
 static constexpr const char* CONST_NATIVE_CONFIG_ID = "OpenDAQNativeConfiguration";
-static constexpr const char* CONST_NATIVE_CONFIG_SECURE_ID = "OpenDAQNativeConfigurationSecure";
 
 static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
 

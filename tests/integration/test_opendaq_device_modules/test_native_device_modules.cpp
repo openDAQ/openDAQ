@@ -3528,6 +3528,37 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }
 
+TEST_F(NativeDeviceModulesTest, PrimaryAddressTypeBeforeConnectionAddress)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    const auto server = test_helpers::createInstance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+
+    server.setRootDevice("daqref.root://device0");
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    const auto mockModule = createWithImplementation<IModule, MockNativeModule>(client.getContext());
+    client.getModuleManager().addModule(mockModule);
+
+    client.getAvailableDevices();
+    const StringPtr connectionString = "daq.nd://127.0.0.1:7420/";
+    const auto config = client.createAddDeviceConfig(DeviceInfo(connectionString));
+    config.setPrimaryAddressType(AddressType::IPv6);
+
+    const MirroredDeviceConfigPtr dev = client.addDevice(connectionString, config);
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://[::1]:7420/");
+}
+
 TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
 {
     SKIP_TEST_MAC_CI;

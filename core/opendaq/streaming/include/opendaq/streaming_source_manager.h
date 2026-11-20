@@ -416,20 +416,17 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    auto sorted = sortAddressInfos(availableAddressesInfo, primaryAddressType);
+    auto addresses = availableAddressesInfo.toVector();
     if (deviceConnectionAddress.assigned())
     {
         const auto isConnectionAddress = [&deviceConnectionAddress](const AddressInfoPtr& addressInfo)
         {
             return addressInfo.getAddress() == deviceConnectionAddress.getAddress();
         };
-        std::stable_partition(sorted.begin(), sorted.end(), isConnectionAddress);
+        std::stable_partition(addresses.begin(), addresses.end(), isConnectionAddress);
     }
 
-    auto result = List<IAddressInfo>();
-    for (const auto& addressInfo : sorted)
-        result.pushBack(addressInfo);
-    return result;
+    return sortAddressInfos(addresses, primaryAddressType);
 }
 
 inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const DevicePtr& device)

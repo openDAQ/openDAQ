@@ -289,7 +289,9 @@ TEST_F(MultiReader2Concurrency, ReleaseInsideHandlerDestroysReaderSafely)
                     }
                 });
             startEndlessWriters();
-            EXPECT_TRUE(waitForHandler([&] { return released.load(); })) << "the handler released the reader on call " << releaseOn;
+            EXPECT_TRUE(waitForHandler([&] { return released.load(); }))
+                << "the handler released the reader on call " << releaseOn << "; calls started " << handlerCallsStarted()
+                << "; last statuses:" << handlerStatusTrail(6);
             pause(50);
             stopEndlessWriters();
         },

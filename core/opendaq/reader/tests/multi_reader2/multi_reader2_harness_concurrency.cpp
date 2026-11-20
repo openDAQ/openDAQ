@@ -21,6 +21,22 @@ SizeT MultiReader2Test::handlerCallsStarted()
     return handlerState->started;
 }
 
+std::string MultiReader2Test::handlerStatusTrail(SizeT last)
+{
+    std::scoped_lock lock(handlerState->mutex);
+    std::string trail;
+    SizeT shown = 0;
+    for (auto it = handlerState->log.results.rbegin(); it != handlerState->log.results.rend() && shown < last; ++it)
+    {
+        if (!it->status.assigned())
+            continue;
+        trail += "\n  " + it->step + " count " + std::to_string(it->count) + " level " +
+                 std::to_string(static_cast<int>(it->status.getStatus())) + " '" + it->status.getStatusMessage().toStdString() + "'";
+        ++shown;
+    }
+    return trail;
+}
+
 void MultiReader2Test::waitUntilHandlerSaw(Input in, InputError error)
 {
     const bool seen = waitForHandler(

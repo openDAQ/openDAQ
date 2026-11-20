@@ -542,6 +542,7 @@ protected:
     void startEndlessWriters();  // every input writes packets of 10 without end, one thread each
     void stopEndlessWriters();
     SizeT handlerCallsStarted();
+    std::string handlerStatusTrail(SizeT last);  // the handler's last statuses, newest first, for a failure message
     void expectReleasedCleanly(SizeT callsAtRelease, SizeT inFlight);  // INV6: at most callsAtRelease + inFlight calls started
 
     void TearDown() override;

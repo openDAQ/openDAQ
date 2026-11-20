@@ -11,6 +11,7 @@
 #include <deque>
 #include <future>
 #include <limits>
+#include <thread>
 
 namespace daq::mr2test
 {
@@ -1486,13 +1487,31 @@ void MultiReader2Test::joinScript()
 void MultiReader2Test::startEndlessWriters()
 {
     writers->stop = false;
+    const std::vector<int> slots = slotsInForce();
+    // Unpaced, one writer can run seconds of signal time ahead on a busy machine: the reader fails sync and never recovers
+    const int64_t maxLead = config->reference.resDen / config->reference.resNum / 2;
+    auto written = std::make_shared<std::vector<std::atomic<int64_t>>>(slots.size());
+    for (auto& w : *written)
+        w = 0;
+    const auto slowest = [written]
+    {
+        int64_t low = std::numeric_limits<int64_t>::max();
+        for (const auto& w : *written)
+            low = std::min(low, w.load());
+        return low;
+    };
     Script s;
-    for (int slot : slotsInForce())
-        s.push_back({Input{slot},
-                     [this, slot]
+    for (SizeT k = 0; k < slots.size(); ++k)
+        s.push_back({Input{slots[k]},
+                     [this, k, slot = slots[k], written, slowest, maxLead]
                      {
                          for (int64_t t = 0; !writers->stop; t += 10)
+                         {
+                             while (!writers->stop && t - slowest() > maxLead)
+                                 std::this_thread::yield();
                              writePackets(Input{slot}, t, t + 9);
+                             (*written)[k] = t + 10;
+                         }
                      }});
     startScript(s);
 }

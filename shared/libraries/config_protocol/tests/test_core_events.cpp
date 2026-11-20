@@ -56,7 +56,7 @@ public:
     }
 
     // (Re)creates the server and a client using clientContext, and connects the client.
-    void connectClient()
+    void connectClient(uint16_t protocolVersion = GetLatestConfigProtocolVersion())
     {
         const auto anonymousUser = User("", "");
         server =
@@ -76,7 +76,7 @@ public:
                 nullptr
             );
 
-        clientDevice = client->connect();
+        clientDevice = client->connect(nullptr, protocolVersion);
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
@@ -501,7 +501,7 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
 
     const auto serverFb = serverDevice.getDevices()[0].getFunctionBlocks()[0];
     setAddDeviceConfig(serverFb);
-    connectClient();
+    connectClient(25);
 
     const auto clientFb = clientDevice.getDevices()[0].getFunctionBlocks()[0];
     ASSERT_TRUE(isLegacy(clientFb.asPtr<IComponentPrivate>().getComponentConfig()));

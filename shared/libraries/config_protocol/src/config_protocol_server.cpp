@@ -766,8 +766,7 @@ SerializerPtr ConfigProtocolServer::createSerializer()
         serializer = JsonSerializer();
     else if (protocolVersion < 11)
         serializer = JsonSerializerWithVersion(2);
-    // Version 26 is taken by server function block commands; clients read the new add device config from 27
-    else if (protocolVersion < 27)
+    else if (protocolVersion < 26)
         serializer = JsonSerializerWithVersion(3);
     else
         serializer = JsonSerializer();

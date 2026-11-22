@@ -73,7 +73,7 @@ static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponen
 template <typename ConfigPtr>
 AuthenticationConfigPtr GetAuthenticationConfig(const ConfigPtr& addConfig, const ComponentTypePtr& type)
 {
-    if (!addConfig.assigned() || type.template asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
+    if (type.template asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
         return nullptr;
     return addConfig.getAuthenticationConfig();
 }
@@ -753,15 +753,6 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-AuthenticationConfigPtr ModuleManagerImpl::resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const
-{
-    if (authenticationConfig.assigned())
-        return authenticationConfig;
-    if (!componentType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
-        return nullptr;
-    return componentType.createAuthenticationConfig();
-}
-
 DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const
 {
     // A field-less method (e.g. "Anonymous") needs no credentials at all - no provider consultation, no
@@ -993,27 +984,22 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
         if (!hasDeviceType(library.module))
             continue;
 
-        const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
-        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
-        const AuthenticationConfigPtr resolvedAuthConfig =
-            authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-
         DevicePtr device;
         DictPtr<IString, IString> credentials;
         ErrCode err;
-        if (authenticationSupported)
+        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
+        if (authenticationConfig.assigned())
         {
             const auto credentialRequest = CredentialRequestBuilder()
                                                .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
-                                               .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                               .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                .setComponentType(deviceType)
                                                .build();
-            credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+            credentials = resolveCredentials(authenticationConfig, credentialRequest);
 
             auto loginParameters = LoginParametersBuilder()
-                                       .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                       .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                        .setCredentials(credentials)
                                        .build();
             err = library.module->createAuthenticatedDevice(&device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
@@ -1037,10 +1023,10 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
                     deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
             }
 
-            if (authenticationSupported)
+            if (authenticationConfig.assigned())
             {
                 if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
+                    componentPrivate.setAuthenticationConfig(authenticationConfig);
 
                 // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
                 // mechanism (e.g. a vault) is ready.
@@ -1737,17 +1723,21 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         const auto streamingTypeConfig =
             addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
 
-        const AuthenticationConfigPtr resolvedAuthConfig =
-            resolveDefaultAuthenticationConfig(GetAuthenticationConfig(addStreamingConfig, streamingType), streamingType);
-        if (!addStreamingConfig.assigned())
-            applyLegacyCredentials(resolvedAuthConfig, streamingTypeConfig);
+        AuthenticationConfigPtr authenticationConfig;
+        if (addStreamingConfig.assigned())
+            authenticationConfig = GetAuthenticationConfig(addStreamingConfig, streamingType);
+        else if (streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+        {
+            // A legacy config has no authentication config of its own
+            authenticationConfig = streamingType.createAuthenticationConfig();
+            applyLegacyCredentials(authenticationConfig, streamingTypeConfig);
+        }
+
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
-        const bool authenticated = resolvedAuthConfig.assigned();
-
         try
         {
-            if (authenticated)
+            if (authenticationConfig.assigned())
             {
                 StringPtr manufacturer, serialNumber, model, displayName;
                 if (owner.assigned())
@@ -1767,13 +1757,13 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                    .setSerialNumber(serialNumber)
                                                    .setModel(model)
                                                    .setDisplayName(displayName)
-                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                   .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                    .setComponentType(streamingType)
                                                    .build();
-                const DictPtr<IString, IString> credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+                const DictPtr<IString, IString> credentials = resolveCredentials(authenticationConfig, credentialRequest);
 
                 const auto loginParameters = LoginParametersBuilder()
-                                                 .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                 .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                  .setCredentials(credentials)
                                                  .build();
                 streaming = module.createAuthenticatedStreaming(connectionString, streamingTypeConfig, loginParameters);

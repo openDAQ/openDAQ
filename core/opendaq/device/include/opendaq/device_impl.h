@@ -2363,18 +2363,27 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 deviceConfig.template asPtr<IUpdatable>(true).updateInternal(savedConfig, context);
         }
 
+        // FIXME: DeviceUpdateOptions could hold the whole IAddDeviceConfig, open for editing, instead of only its authentication config
+        const auto addDeviceConfig = deviceConfig.template asPtrOrNull<IAddDeviceConfig>(true);
+        DictPtr<IString, IAuthenticationMethod> authenticationMethods;
+        if (addDeviceConfig.assigned())
+            checkErrorInfo(addDeviceConfig.getDeviceType().template asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&authenticationMethods));
+        if (authenticationMethods.assigned() && authenticationMethods.getCount() > 0)
         {
-            // Stashed under "__AuthenticationConfig" as an ordinary Object-type property. Prefer the one already
-            // parsed onto the matching DeviceUpdateOptions node, if any - a caller may have changed the authentication method or/and called
-            // `setSuppliedCredential` on it directly, to bulk-supply credentials across a whole device tree
-            // without needing a registered ICredentialProvider.
+            // Prefer the one already parsed onto the matching DeviceUpdateOptions node, if any - a caller may have changed the
+            // authentication method or/and called `setSuppliedCredential` on it directly, to bulk-supply credentials across
+            // a whole device tree without needing a registered ICredentialProvider.
             AuthenticationConfigPtr authenticationConfig;
             if (options.assigned())
                 authenticationConfig = options.getAuthenticationConfig();
             if (!authenticationConfig.assigned() && serializedDevice.hasKey("AuthenticationConfig"))
                 authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
             if (authenticationConfig.assigned())
-                deviceConfig.addProperty(ObjectProperty("__AuthenticationConfig", authenticationConfig));
+            {
+                const auto addDeviceAuthenticationConfig = addDeviceConfig.getAuthenticationConfig();
+                addDeviceAuthenticationConfig.setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod().getId());
+                addDeviceAuthenticationConfig.setSuppliedCredential(authenticationConfig.getSuppliedCredential());
+            }
         }
 
         DeviceInfoPtr discoveredDeviceInfo;

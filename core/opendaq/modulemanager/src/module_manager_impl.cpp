@@ -69,21 +69,13 @@ static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
-// Temporary bridge, until `IAuthenticationConfig` becomes a real part of the add-device/add-streaming
-// config schema (see `IDevice::createDefaultAddDeviceConfig`). Until then, a caller smuggles the `IAuthenticationConfig`
-// through the plain `config` property object under this property name instead. Not part of the public add-device config schema - a hack,
-// deliberately, until the real integration replaces it. Any other place that needs to smuggle one through
-// (e.g. an application, or `GenericDevice::updateDevice`'s reload path)
-// must match this exact key.
-static constexpr const char* AuthenticationConfigConfigKey = "__AuthenticationConfig";
-
-// The module manager's own extraction of the `IAuthenticationConfig` smuggled onto an add-device/add-streaming
-// `config` (see `AuthenticationConfigConfigKey`) - returns unassigned if `config` is unassigned or carries none.
-inline AuthenticationConfigPtr ExtractAuthenticationConfig(const PropertyObjectPtr& config)
+// The authentication config of an add-device/add-streaming config - unassigned if its type supports no authentication method.
+template <typename ConfigPtr>
+AuthenticationConfigPtr GetAuthenticationConfig(const ConfigPtr& addConfig, const ComponentTypePtr& type)
 {
-    if (!config.assigned() || !config.hasProperty(AuthenticationConfigConfigKey))
+    if (!addConfig.assigned() || type.template asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
         return nullptr;
-    return config.getPropertyValue(AuthenticationConfigConfigKey).asPtrOrNull<IAuthenticationConfig>();
+    return addConfig.getAuthenticationConfig();
 }
 
 // Only Root devices are created as the root. Unspecified devices can be created either way.
@@ -819,11 +811,6 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
                                             const PropertyObjectPtr& inputConfig)
 {
-    // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
-    // smuggles an `IAuthenticationConfig` onto the top-level `config` it passes in, rather than a dedicated
-    // parameter.
-    const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(inputConfig);
-
     // Parse the connection string
     const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);
     auto connectionStringPtr = String(pureConnectionString);
@@ -969,6 +956,10 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
     PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
 
+    // Taken from the caller's provided config directly, as the supplied credentials are lost when making a copy
+    const AuthenticationConfigPtr authenticationConfig =
+        GetAuthenticationConfig(inputAddDeviceConfig.assigned() ? inputAddDeviceConfig : addDeviceConfig, deviceType);
+
     const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
     if (device.assigned())
     {
@@ -985,8 +976,6 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
                                            const PropertyObjectPtr& deviceTypeConfig,
                                            const AuthenticationConfigPtr& authenticationConfig)
 {
-    const bool authenticationConfigSupplied = authenticationConfig.assigned();
-
     const auto hasDeviceType = [&deviceType](const ModulePtr& module)
     {
         DictPtr<IString, IDeviceType> types;
@@ -1005,11 +994,6 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
             continue;
 
         const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-        if (authenticationConfigSupplied && !authenticationSupported)
-        {
-            LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
-        }
 
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
@@ -1351,13 +1335,9 @@ ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming,
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
-    // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
-    // smuggles an `IAuthenticationConfig` onto `config`, rather than a dedicated parameter.
-    const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(PropertyObjectPtr::Borrow(config));
-
     StreamingPtr streamingPtr;
     const ErrCode errCode = wrapHandlerReturn(
-        this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config, authenticationConfig, DevicePtr::Borrow(owner));
+        this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config, DevicePtr::Borrow(owner));
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *streaming = streamingPtr.detach();
@@ -1716,7 +1696,6 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapability
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
                                                   const PropertyObjectPtr& config,
-                                                  const AuthenticationConfigPtr& authenticationConfig,
                                                   const DevicePtr& owner) const
 {
     const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
@@ -1758,12 +1737,8 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         const auto streamingTypeConfig =
             addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
 
-        if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
-        {
-            LOG_W("Streaming with given connection string '{}' does not support authentication; creating it without authentication.", connectionString);
-        }
-
-        const AuthenticationConfigPtr resolvedAuthConfig = resolveDefaultAuthenticationConfig(authenticationConfig, streamingType);
+        const AuthenticationConfigPtr resolvedAuthConfig =
+            resolveDefaultAuthenticationConfig(GetAuthenticationConfig(addStreamingConfig, streamingType), streamingType);
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
         const bool authenticated = resolvedAuthConfig.assigned();

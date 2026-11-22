@@ -439,11 +439,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
-// Temporary tests for the authenticated create path - `IAuthenticationConfig` is not yet part of `IAddDeviceConfig`,
-// so it's injected via `test_helpers::withAuthenticationConfig`. To be removed once `IAddDeviceConfig` is integrated
-// into the create path.
-
-TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousProhibited)
+TEST_F(NativeDeviceModulesTest, AuthConfigAnonymousProhibited)
 {
     auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(false, List<IUser>(User("jure", "jure123")))));
 
@@ -452,27 +448,29 @@ TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousProhibited)
 
     // Anonymous - rejected by the server
     {
-        auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+        const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
+        auto authConfig = config.getAuthenticationConfig();
         authConfig.setAuthenticationMethod("Anonymous");
-        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)), AuthenticationFailedException);
+        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
     }
 
     // Username/password supplied via the authentication config - native configuration device
     {
-        auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+        const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
+        auto authConfig = config.getAuthenticationConfig();
         authConfig.setAuthenticationMethod("UserNamePassword");
 
         authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "wrongPass"}}));
-        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig)), AuthenticationFailedException);
+        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
         authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "jure123"}}));
-        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig));
+        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
         ASSERT_TRUE(device.assigned());
         clientInstance.removeDevice(device);
     }
 }
 
-TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousAllowed)
+TEST_F(NativeDeviceModulesTest, AuthConfigAnonymousAllowed)
 {
     auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(true, List<IUser>(User("jure", "jure123")))));
 
@@ -484,9 +482,10 @@ TEST_F(NativeDeviceModulesTest, AuthConfigWorkaroundAnonymousAllowed)
     ASSERT_TRUE(deviceDefault.assigned());
     clientInstance.removeDevice(deviceDefault);
 
-    auto authConfig = clientInstance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createAuthenticationConfig();
+    const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.setAuthenticationMethod("Anonymous");
-    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1", test_helpers::withAuthenticationConfig(authConfig));
+    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceAnonymous.assigned());
 }
 

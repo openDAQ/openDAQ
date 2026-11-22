@@ -18,6 +18,7 @@
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
 
@@ -42,6 +43,16 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
                                                             Bool scanOnAdd);
 
 /*!
+ * @brief Applies the legacy `Username` and `Password` of a type config to an authentication config.
+ * @param authenticationConfig The authentication config, or null
+ * @param typeConfig The type config, or null
+ *
+ * With a non-empty `Username`, the `UserNamePassword` method is selected and the user name and password are supplied as its credential.
+ * Nothing changes without a `Username`, or when the authentication config has no `UserNamePassword` method.
+ */
+PUBLIC_EXPORT void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig);
+
+/*!
  * @brief Translates a legacy config into an Add device config.
  * @param legacyConfig The legacy config
  * @param deviceType The Device type the config is created for
@@ -64,6 +75,7 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
  * A missing `General` key takes the default of the legacy `General` section.
  * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into the type configs.
  * They replace only values that equal the `General` default.
+ * The `Username` and `Password` of each type config also go into its authentication config, see `applyLegacyCredentials`.
  * `PrimaryAddressType` `IPv6` gives IPv6, and any other value gives IPv4.
  * A `PrimaryAddressType` other than `IPv4`, `IPv6` or blank logs a warning.
  *

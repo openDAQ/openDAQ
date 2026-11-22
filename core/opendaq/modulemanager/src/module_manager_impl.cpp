@@ -1739,6 +1739,8 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 
         const AuthenticationConfigPtr resolvedAuthConfig =
             resolveDefaultAuthenticationConfig(GetAuthenticationConfig(addStreamingConfig, streamingType), streamingType);
+        if (!addStreamingConfig.assigned())
+            applyLegacyCredentials(resolvedAuthConfig, streamingTypeConfig);
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
         const bool authenticated = resolvedAuthConfig.assigned();

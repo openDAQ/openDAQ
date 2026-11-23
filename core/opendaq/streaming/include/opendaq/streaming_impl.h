@@ -777,15 +777,9 @@ void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const Pac
 template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::onPackets(const std::vector<StreamingPacket>& packets)
 {
-    struct ResolvedSignal
-    {
-        MirroredSignalConfigPtr signal;
-        bool forward = false;
-    };
-
     // Keyed by string identity; a different object for the same id only costs a second resolution.
     std::unordered_map<IString*, size_t> resolvedIndex;
-    std::vector<ResolvedSignal> resolved;
+    std::vector<MirroredSignalConfigPtr> resolved;
     resolvedIndex.reserve(packets.size());
 
     {
@@ -799,35 +793,29 @@ void StreamingImpl<Interfaces...>::onPackets(const std::vector<StreamingPacket>&
             if (!packet.assigned() || resolvedIndex.count(signalId.getObject()) != 0)
                 continue;
 
-            ResolvedSignal entry;
+            MirroredSignalConfigPtr signal;
             if (auto it = streamingSignalsItems.find(signalId); it != streamingSignalsItems.end())
-                entry.signal = it->second.second.getRef();
+                signal = it->second.second.getRef();
             resolvedIndex.emplace(signalId.getObject(), resolved.size());
-            resolved.push_back(std::move(entry));
+            resolved.push_back(std::move(signal));
         }
-    }
-
-    // The signal's lock is taken outside the streaming lock, as in onPacket, once per signal.
-    for (auto& entry : resolved)
-    {
-        entry.forward = entry.signal.assigned() &&
-                        entry.signal.getStreamed() &&
-                        entry.signal.getActiveStreamingSource() == connectionString;
     }
 
     for (const auto& [signalId, packet] : packets)
     {
         if (!packet.assigned())
             continue;
-        const auto& entry = resolved[resolvedIndex[signalId.getObject()]];
-        if (!entry.forward)
+
+        // Checked for each packet right before it is sent, as in onPacket: both can change while a burst is processed.
+        const auto& signal = resolved[resolvedIndex[signalId.getObject()]];
+        if (!signal.assigned() || !signal.getStreamed() || signal.getActiveStreamingSource() != connectionString)
             continue;
 
         const auto eventPacket = packet.template asPtrOrNull<IEventPacket>();
         if (eventPacket.assigned())
-            handleEventPacket(entry.signal, eventPacket);
+            handleEventPacket(signal, eventPacket);
         else
-            entry.signal.sendPacket(packet);
+            signal.sendPacket(packet);
     }
 }
 

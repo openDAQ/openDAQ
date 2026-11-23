@@ -22,6 +22,7 @@
 #include <opendaq/server_capability_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
+#include <functional>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -78,7 +79,21 @@ protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
 private:
+    using StreamingTransportOptions = std::function<DictPtr<IString, ITransportOption>(const StreamingTypePtr&)>;
+
     static bool takesStreamings(const DeviceTypePtr& deviceType);
+
+    // With `source`, the config lists the transport options of `source` that the types know.
+    // Without it, the config lists the options of the types.
+    static AddDeviceConfigPtr BindSaved(const SerializedObjectPtr& saved,
+                                        const DictPtr<IString, IDeviceType>& deviceTypes,
+                                        const DictPtr<IString, IStreamingType>& streamingTypes,
+                                        Bool scanOnAdd,
+                                        const AddDeviceConfigPtr& source);
+
+    void addConfigProperties(const DictPtr<IString, IStreamingType>& streamingTypes,
+                             const StreamingTransportOptions& streamingOptions,
+                             Bool scanOnAdd);
 
     DeviceTypePtr deviceType;
     DictPtr<IString, ITransportOption> transportOptions;

@@ -410,7 +410,7 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
             slot.port.disconnect();
             return;
         }
-        // The method first, so no notification finds the port without a listener. No previous listener is restored
+        // No previous listener is restored
         slot.port.setNotificationMethod(PacketReadyNotification::None);
         slot.port.setListener(nullptr);
     });

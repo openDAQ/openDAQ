@@ -48,7 +48,7 @@ jobs:
     name: Integration tests
     permissions:
       contents: read
-      packages: read      # integration-tests.yml asks for it
+      packages: write      # integration-tests.yml asks for it
     # The branch of openDAQ-CI#22 until integration-tests.yml is released under v4
     uses: openDAQ/openDAQ-CI/.github/workflows/integration-tests.yml@Integration_test_multi_repo_workflow
     with:

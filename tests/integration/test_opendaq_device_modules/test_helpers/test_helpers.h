@@ -1028,23 +1028,33 @@ namespace test_helpers
         std::cout << std::flush;
     }
 
+    // The client type is set in the "General" section of the legacy config, or in the device type config of an IAddDeviceConfig
+    // (see configModeName)
     [[maybe_unused]]
-    inline InstancePtr connectInstanceWithClientType(const InstancePtr& clientInstance, const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    inline InstancePtr connectInstanceWithClientType(const InstancePtr& clientInstance,
+                                                     const std::string& connectionString,
+                                                     ClientType clientType,
+                                                     bool useLegacyConfig,
+                                                     bool dropOthers = false)
     {
-        auto config = clientInstance.createDefaultAddDeviceConfig();
-        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+        auto config = createAddDeviceConfig(clientInstance, connectionString, useLegacyConfig);
+        const PropertyObjectPtr clientTypeConfig = useLegacyConfig ? PropertyObjectPtr(config.getPropertyValue("General"))
+                                                                   : config.asPtr<IAddDeviceConfig>().getTypeConfig();
 
-        generalConfig.setPropertyValue("ClientType", (Int) clientType);
-        generalConfig.setPropertyValue("ExclusiveControlDropOthers", dropOthers);
+        clientTypeConfig.setPropertyValue("ClientType", (Int) clientType);
+        clientTypeConfig.setPropertyValue("ExclusiveControlDropOthers", dropOthers);
 
         auto device = clientInstance.addDevice(connectionString, config);
         return clientInstance;
     }
 
     [[maybe_unused]]
-    inline InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    inline InstancePtr connectInstanceWithClientType(const std::string& connectionString,
+                                                     ClientType clientType,
+                                                     bool useLegacyConfig,
+                                                     bool dropOthers = false)
     {
-        return connectInstanceWithClientType(test_helpers::createInstance(), connectionString, clientType, dropOthers);
+        return connectInstanceWithClientType(test_helpers::createInstance(), connectionString, clientType, useLegacyConfig, dropOthers);
     }
 
 

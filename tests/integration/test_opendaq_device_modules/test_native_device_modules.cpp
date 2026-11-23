@@ -43,6 +43,11 @@ class NativeDeviceModulesCredentialsTest : public testing::TestWithParam<bool>
 {
 };
 
+// The param - whether the legacy add-device config is used to set the client type (see test_helpers::configModeName)
+class NativeDeviceModulesConfigTest : public testing::TestWithParam<bool>
+{
+};
+
 using namespace daq;
 
 namespace test_native_device_modules
@@ -502,7 +507,7 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlTwice)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -517,7 +522,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance);
-        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     }
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
@@ -527,7 +532,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        ASSERT_THROW(test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl), ControlClientRejectedException);
+        ASSERT_THROW(test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, GetParam()), ControlClientRejectedException);
     }
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -535,12 +540,12 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     {
         clientInstance = test_helpers::createInstance("[[none]]");
         addNativeClientModule(clientInstance);
-        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
         ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
     }
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlAndControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -554,7 +559,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
     // one config and one streaming connection
@@ -563,7 +568,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
 
     auto secondClient = test_helpers::createInstance("[[none]]");
     addNativeClientModule(secondClient);
-    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::Control), ControlClientRejectedException);
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::Control, GetParam()), ControlClientRejectedException);
 
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -571,11 +576,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    clientInstance = test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    clientInstance = test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeControlAndExclusiveControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -589,7 +594,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::Control);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::Control, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
     // one config and one streaming connection
@@ -598,7 +603,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
 
     auto secondClient = test_helpers::createInstance("[[none]]");
     addNativeClientModule(secondClient);
-    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::ExclusiveControl),
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::ExclusiveControl, GetParam()),
                  ControlClientRejectedException);
 
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
@@ -607,11 +612,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlDropOthers)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -626,14 +631,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
 
@@ -652,6 +657,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
             clientInstance3,
             url,
             ClientType::ExclusiveControl,
+            GetParam(),
             // should cause all other control clients to disconnect
             true
         );  
@@ -666,7 +672,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeViewOnly)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -681,14 +687,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
     {
         addNativeClientModule(clientInstance1);
 
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl, GetParam());
         ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
     }
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly, GetParam());
         ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
     }
 
@@ -698,7 +704,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[2].getClientTypeName(), "ViewOnly");
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeViewOnlyDropOthers)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -712,14 +718,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly, GetParam());
     }
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
 
@@ -737,7 +743,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
         addNativeClientModule(clientInstance3);
 
         // should cause all other control clients to disconnect
-        test_helpers::connectInstanceWithClientType(clientInstance3, url, ClientType::ExclusiveControl, true);  
+        test_helpers::connectInstanceWithClientType(clientInstance3, url, ClientType::ExclusiveControl, GetParam(), true);  
     }
 
     ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
@@ -751,7 +757,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 5u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -765,7 +771,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl, GetParam());
     }
 
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
@@ -780,7 +786,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
         addNativeClientModule(clientInstance2);
 
         // should cause first exclusive control client to disconnect
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, true);  
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, GetParam(), true);  
     }
 
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
@@ -5762,6 +5768,7 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeDeviceModulesCredentialsTest, testing::Bool(), test_helpers::configModeName);
+INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeDeviceModulesConfigTest, testing::Bool(), test_helpers::configModeName);
 
 }
 // namespace test_native_device_modules

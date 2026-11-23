@@ -301,7 +301,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
         clientInstance = test_helpers::createInstance("[[none]]");
         addNativeClientModule(clientInstance);
 
-        test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl, false);
         auto device = clientInstance.getDevices()[0];
         auto connectedClientsInfo = waitForConnectedClients(2);
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);

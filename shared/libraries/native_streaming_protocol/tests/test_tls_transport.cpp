@@ -127,7 +127,7 @@ public:
 
         clientHandler = std::make_shared<NativeStreamingClientHandler>(clientContext,
                                                                       ClientAttributesBase::createTransportLayerConfig(),
-                                                                      ClientAttributesBase::createAuthenticationConfig(),
+                                                                      ClientAttributesBase::createCredentials(),
                                                                       createTlsConfig(caCert, mutualTls));
 
         clientHandler->setConfigHandlers([](config_protocol::PacketBuffer&&) {},

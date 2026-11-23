@@ -84,6 +84,8 @@ option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" 
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
+option(OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2 "Enable the libssh2-based SFTP file transfer library (pulls in libssh2 and OpenSSL)" ON)
+option(OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH "Enable the libssh-based SFTP file transfer library (pulls in libssh, LGPL-2.1, as a shared library, and OpenSSL)" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
 option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
 
@@ -351,6 +353,18 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 else()
     message(STATUS "Websocket streaming disabled")
+endif()
+
+if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2)
+    message(STATUS "SFTP file transfer (libssh2) enabled")
+else()
+    message(STATUS "SFTP file transfer (libssh2) disabled")
+endif()
+
+if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH)
+    message(STATUS "SFTP file transfer (libssh) enabled")
+else()
+    message(STATUS "SFTP file transfer (libssh) disabled")
 endif()
 
 if (OPENDAQ_ENABLE_NATIVE_STREAMING)

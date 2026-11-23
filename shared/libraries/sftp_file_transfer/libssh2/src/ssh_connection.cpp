@@ -1,0 +1,503 @@
+#include <sftp_file_transfer/libssh2/ssh_connection.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
+#include <sftp_file_transfer/sftp_authentication_config_factory.h>
+
+#include <coretypes/exceptions.h>
+#include <coreobjects/exceptions.h>
+#include <coretypes/filesystem.h>
+#include <fmt/format.h>
+
+#include <openssl/evp.h>
+
+#include <cerrno>
+#include <cstddef>
+#include <mutex>
+#include <system_error>
+
+namespace daq::sftp::libssh2
+{
+
+// Connected TCP socket. The only place that deals with the socket API (POSIX or Winsock).
+class SshConnection::Socket
+{
+public:
+    explicit Socket(const Endpoint& endpoint);
+    ~Socket();
+    Socket(const Socket&) = delete;
+    Socket& operator=(const Socket&) = delete;
+
+    libssh2_socket_t native() const noexcept;
+
+private:
+    libssh2_socket_t fd = LIBSSH2_INVALID_SOCKET;
+};
+
+namespace detail
+{
+
+// Turns a C "free" function into a unique_ptr deleter, for handles used only in this file.
+template <auto Fn>
+struct Deleter
+{
+    template <class T>
+    void operator()(T* p) const noexcept
+    {
+        Fn(p);
+    }
+};
+
+// Host key algorithms per key type, tried one type per handshake. Legacy SHA-1 "ssh-rsa" signatures are
+// excluded, as in current OpenSSH.
+struct HostKeyTypeAlgorithms
+{
+    const char* typeName;
+    const char* algorithms;
+};
+
+constexpr HostKeyTypeAlgorithms HostKeyTypes[] = {
+    {"ED25519", "ssh-ed25519"},
+    {"ECDSA", "ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521"},
+    {"RSA", "rsa-sha2-512,rsa-sha2-256"},
+};
+
+const char* hostKeyTypeName(int type)
+{
+    switch (type)
+    {
+        case LIBSSH2_HOSTKEY_TYPE_ED25519:
+            return "ED25519";
+        case LIBSSH2_HOSTKEY_TYPE_ECDSA_256:
+        case LIBSSH2_HOSTKEY_TYPE_ECDSA_384:
+        case LIBSSH2_HOSTKEY_TYPE_ECDSA_521:
+            return "ECDSA";
+        case LIBSSH2_HOSTKEY_TYPE_RSA:
+            return "RSA";
+        default:
+            return "unknown";
+    }
+}
+
+bool offersMethod(std::string_view methods, std::string_view method)
+{
+    while (!methods.empty())
+    {
+        const auto comma = methods.find(',');
+        if (methods.substr(0, comma) == method)
+            return true;
+        if (comma == std::string_view::npos)
+            break;
+        methods.remove_prefix(comma + 1);
+    }
+    return false;
+}
+
+// Number of live connections, guarded by libraryMutex. Both are constant-initialized (no dynamic initialization), so
+// they exist before and outlive every object built during dynamic initialization: a connection held in a static
+// object can still be released during static destruction.
+std::mutex libraryMutex;
+std::size_t libraryUsers = 0;
+
+// The socket API differs between POSIX and Winsock only in these three places.
+
+// Error of the last failed socket call. Winsock reports it via WSAGetLastError, not errno; std::system_category
+// formats both.
+std::error_code lastSocketError()
+{
+#ifdef _WIN32
+    return {::WSAGetLastError(), std::system_category()};
+#else
+    return {errno, std::system_category()};
+#endif
+}
+
+void closeSocket(libssh2_socket_t socket)
+{
+#ifdef _WIN32
+    ::closesocket(socket);
+#else
+    ::close(socket);
+#endif
+}
+
+const char* resolveErrorMessage(int error)
+{
+#ifdef _WIN32
+    return ::gai_strerrorA(error);  // gai_strerror maps to the wide variant when UNICODE is defined
+#else
+    return ::gai_strerror(error);
+#endif
+}
+
+// The host key a server presented during the handshake.
+struct PresentedHostKey
+{
+    StringPtr typeName;     // "ED25519", "ECDSA" or "RSA", as OpenSSH names them
+    StringPtr fingerprint;  // "SHA256:..."
+};
+
+// Every supported host key algorithm, in the order of HostKeyTypes: offered in the first handshake.
+std::string allHostKeyAlgorithms()
+{
+    std::string all;
+    for (const auto& keyType : HostKeyTypes)
+        all += (all.empty() ? "" : ",") + std::string(keyType.algorithms);
+    return all;
+}
+
+// Thrown by openSession when the server has no host key of the requested types.
+struct NoMatchingHostKeyType
+{
+    StringPtr message;
+};
+
+// Type and SHA256 fingerprint of the host key the server presented in the handshake.
+PresentedHostKey hostKey(LIBSSH2_SESSION* session)
+{
+    std::size_t length = 0;
+    int type = LIBSSH2_HOSTKEY_TYPE_UNKNOWN;
+    if (!libssh2_session_hostkey(session, &length, &type))
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to read the server host key: {}", lastErrorMessage(session));
+
+    const char* hash = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA256);
+    if (!hash)
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to compute the server host key fingerprint");
+
+    // OpenSSH form: "SHA256:" and the base64 of the digest without '=' padding.
+    constexpr int DigestSize = 32;
+    unsigned char base64[4 * ((DigestSize + 2) / 3) + 1];
+    const int encodedLength = EVP_EncodeBlock(base64, reinterpret_cast<const unsigned char*>(hash), DigestSize);
+    std::string fingerprint = "SHA256:" + std::string(reinterpret_cast<const char*>(base64), encodedLength);
+    fingerprint.erase(fingerprint.find_last_not_of('=') + 1);
+
+    return {String(hostKeyTypeName(type)), String(fingerprint)};
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// Library
+// ---------------------------------------------------------------------------
+
+// libssh2_init / libssh2_exit set up and tear down process-wide state and are not thread-safe (documented). The
+// documentation does not say whether repeated calls are counted, so they are made exactly once: libssh2_init by the
+// first live connection, libssh2_exit by the last one, both under libraryMutex. On Windows, Winsock is started and
+// cleaned up the same way, around libssh2.
+Library::Library()
+{
+    std::scoped_lock lock(detail::libraryMutex);
+    if (detail::libraryUsers == 0)
+    {
+#ifdef _WIN32
+        WSADATA data;
+        if (const int error = ::WSAStartup(MAKEWORD(2, 2), &data); error != 0)
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "Winsock initialization failed: {}", std::error_code(error, std::system_category()).message());
+#endif
+        if (libssh2_init(0) != 0)
+        {
+#ifdef _WIN32
+            ::WSACleanup();
+#endif
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "libssh2 initialization failed");
+        }
+    }
+    ++detail::libraryUsers;
+}
+
+Library::~Library()
+{
+    std::scoped_lock lock(detail::libraryMutex);
+    if (--detail::libraryUsers == 0)
+    {
+        libssh2_exit();
+#ifdef _WIN32
+        ::WSACleanup();
+#endif
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Socket
+// ---------------------------------------------------------------------------
+
+SshConnection::Socket::Socket(const Endpoint& endpoint)
+{
+    addrinfo hints{};
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    addrinfo* raw = nullptr;
+    const std::string port = std::to_string(endpoint.port);
+    if (const int rc = ::getaddrinfo(endpoint.host.getCharPtr(), port.c_str(), &hints, &raw); rc != 0)
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to resolve \"{}\": {}", endpoint.host, detail::resolveErrorMessage(rc));
+    const std::unique_ptr<addrinfo, detail::Deleter<&::freeaddrinfo>> addresses(raw);
+
+    // Socket calls report failures only via errno / WSAGetLastError; it is captured right away.
+    std::error_code lastError = std::make_error_code(std::errc::host_unreachable);
+    for (const addrinfo* rp = addresses.get(); rp; rp = rp->ai_next)
+    {
+        const libssh2_socket_t candidate = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (candidate == LIBSSH2_INVALID_SOCKET)
+        {
+            lastError = detail::lastSocketError();
+            continue;
+        }
+        // ai_addrlen is socklen_t on POSIX and size_t on Windows, where connect takes an int.
+        if (::connect(candidate, rp->ai_addr, static_cast<int>(rp->ai_addrlen)) == 0)
+        {
+            fd = candidate;
+            return;
+        }
+        lastError = detail::lastSocketError();
+        detail::closeSocket(candidate);
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to {}:{}: {}", endpoint.host, endpoint.port, lastError.message());
+}
+
+SshConnection::Socket::~Socket()
+{
+    if (fd != LIBSSH2_INVALID_SOCKET)
+        detail::closeSocket(fd);
+}
+
+libssh2_socket_t SshConnection::Socket::native() const noexcept
+{
+    return fd;
+}
+
+// ---------------------------------------------------------------------------
+// SshConnection
+// ---------------------------------------------------------------------------
+
+SshConnection::SshConnection(const Endpoint& endpoint,
+                             const AuthenticationConfigPtr& authenticationConfig,
+                             const StringPtr& ciphers,
+                             std::chrono::milliseconds timeout)
+{
+    // Compared as is with the fingerprint of each presented key. Empty: no verification.
+    const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
+    const StringPtr hostKeyFingerprint =
+        credential.hasKey(SftpHostKeyFingerprintField) ? credential.get(SftpHostKeyFingerprintField) : String("");
+    verified = hostKeyFingerprint.getLength() > 0;
+
+    // Opens a new connection offering the given host key algorithms. Keeps it if its host key is accepted, otherwise
+    // closes it (disconnect before close) and returns the rejected key.
+    const auto attempt = [&](const char* hostKeyAlgorithms) -> detail::PresentedHostKey
+    {
+        auto candidateSocket = std::make_unique<Socket>(endpoint);
+        SessionHandle candidateSession = openSession(candidateSocket->native(), hostKeyAlgorithms, ciphers, timeout);
+
+        detail::PresentedHostKey key = detail::hostKey(candidateSession.get());
+        if (!verified || key.fingerprint == hostKeyFingerprint)
+        {
+            socketHolder = std::move(candidateSocket);
+            sessionHolder = std::move(candidateSession);
+        }
+        return key;
+    };
+
+    // First handshake: every supported key type, the server presents one of them.
+    detail::PresentedHostKey firstKey;
+    try
+    {
+        firstKey = attempt(detail::allHostKeyAlgorithms().c_str());
+    }
+    catch (const detail::NoMatchingHostKeyType& e)
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException,
+                            "SSH handshake with {}:{} failed: the server has no ED25519, ECDSA or RSA host key, or "
+                            "supports none of the offered ciphers: {}",
+                            endpoint.host,
+                            endpoint.port,
+                            e.message);
+    }
+
+    if (!sessionHolder)
+    {
+        // The fingerprint may belong to another of the server's keys: try the remaining types one at a time.
+        std::string presented = fmt::format("\n  {} {}", firstKey.typeName, firstKey.fingerprint);
+        for (const auto& keyType : detail::HostKeyTypes)
+        {
+            if (firstKey.typeName == keyType.typeName)
+                continue;
+
+            try
+            {
+                const detail::PresentedHostKey key = attempt(keyType.algorithms);
+                if (sessionHolder)
+                    break;
+                presented += fmt::format("\n  {} {}", key.typeName, key.fingerprint);
+            }
+            catch (const detail::NoMatchingHostKeyType&)
+            {
+                // The server has no key of this type.
+            }
+        }
+
+        if (!sessionHolder)
+            DAQ_THROW_EXCEPTION(AuthenticationFailedException,
+                                "None of the host keys presented by {} matches the expected fingerprint {}; the server may have "
+                                "been reinstalled, or the connection may be intercepted. Presented:{}",
+                                endpoint.host,
+                                hostKeyFingerprint,
+                                presented);
+    }
+
+    authenticate(authenticationConfig);
+}
+
+// Defined here, where Socket is complete.
+SshConnection::~SshConnection() = default;
+
+bool SshConnection::hostKeyVerified() const noexcept
+{
+    return verified;
+}
+
+LIBSSH2_SESSION* SshConnection::session() const noexcept
+{
+    return sessionHolder.get();
+}
+
+libssh2_socket_t SshConnection::socket() const noexcept
+{
+    return socketHolder->native();
+}
+
+void SshConnection::SessionDeleter::operator()(LIBSSH2_SESSION* session) const noexcept
+{
+    libssh2_session_disconnect(session, "Normal shutdown");
+    libssh2_session_free(session);
+}
+
+SshConnection::SessionHandle SshConnection::openSession(libssh2_socket_t socket,
+                                                         const char* hostKeyAlgorithms,
+                                                         const StringPtr& ciphers,
+                                                         std::chrono::milliseconds timeout)
+{
+    // Only freed, not disconnected, until the handshake has succeeded.
+    std::unique_ptr<LIBSSH2_SESSION, detail::Deleter<&libssh2_session_free>> session(libssh2_session_init());
+    if (!session)
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to create an SSH session");
+
+    libssh2_session_set_blocking(session.get(), 1);
+    libssh2_session_set_timeout(session.get(), static_cast<long>(timeout.count()));
+
+    if (libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_HOSTKEY, hostKeyAlgorithms) != 0)
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to set host key algorithm preferences: {}", lastErrorMessage(session.get()));
+
+    // libssh2 drops the names it does not support and fails only if none is left.
+    if (ciphers.getLength() > 0 &&
+        (libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_CRYPT_CS, ciphers.getCharPtr()) != 0 ||
+         libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_CRYPT_SC, ciphers.getCharPtr()) != 0))
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "None of the configured ciphers \"{}\" is supported: {}",
+                            ciphers,
+                            lastErrorMessage(session.get()));
+
+    if (libssh2_session_handshake(session.get(), socket) != 0)
+    {
+        // Key exchange fails when no host key algorithm is common to client and server; any other error (timeout,
+        // dropped connection, not an SSH server) would fail for every key type, so it is reported right away.
+        if (libssh2_session_last_errno(session.get()) == LIBSSH2_ERROR_KEX_FAILURE)
+            throw detail::NoMatchingHostKeyType{lastErrorMessage(session.get())};
+        DAQ_THROW_EXCEPTION(NotFoundException, "SSH handshake failed: {}", lastErrorMessage(session.get()));
+    }
+    return SessionHandle(session.release());
+}
+
+void SshConnection::authenticate(const AuthenticationConfigPtr& authenticationConfig)
+{
+    const StringPtr methodId = authenticationConfig.getSelectedAuthenticationMethod().getId();
+    const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
+
+    const StringPtr user = credential.get("UserName");
+    const char* methodsRaw = libssh2_userauth_list(sessionHolder.get(), user.getCharPtr(), static_cast<unsigned int>(user.getLength()));
+    if (!methodsRaw)
+    {
+        if (libssh2_userauth_authenticated(sessionHolder.get()))
+            return;  // The server accepted "none" authentication.
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to query the server's authentication methods: {}", lastErrorMessage(sessionHolder.get()));
+    }
+    const std::string_view methods(methodsRaw);
+
+    if (methodId == SftpPrivateKeyFileId)
+    {
+        if (!detail::offersMethod(methods, "publickey"))
+            DAQ_THROW_EXCEPTION(AuthenticationFailedException, "The server does not accept private key authentication (offers: {})", methods);
+
+        const StringPtr privateKeyFile = credential.get("PrivateKeyFilePath");
+        std::error_code ec;
+        if (!fs::is_regular_file(privateKeyFile.toStdString(), ec))
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Private key file \"{}\" does not exist", privateKeyFile);
+
+        // Optional: absent or empty if the key is not encrypted.
+        const StringPtr passphrase = credential.hasKey("Passphrase") ? credential.get("Passphrase") : String("");
+
+        // A null public key path makes libssh2 derive the public key from the private key.
+        if (libssh2_userauth_publickey_fromfile_ex(sessionHolder.get(),
+                                                   user.getCharPtr(),
+                                                   static_cast<unsigned int>(user.getLength()),
+                                                   nullptr,
+                                                   privateKeyFile.getCharPtr(),
+                                                   passphrase.getLength() == 0 ? nullptr : passphrase.getCharPtr()) != 0)
+            DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Private key authentication failed: {}", lastErrorMessage(sessionHolder.get()));
+    }
+    else
+    {
+        if (!detail::offersMethod(methods, "password"))
+            DAQ_THROW_EXCEPTION(AuthenticationFailedException, "The server does not accept password authentication (offers: {})", methods);
+
+        const StringPtr password = credential.get("Password");
+        if (libssh2_userauth_password_ex(sessionHolder.get(),
+                                         user.getCharPtr(),
+                                         static_cast<unsigned int>(user.getLength()),
+                                         password.getCharPtr(),
+                                         static_cast<unsigned int>(password.getLength()),
+                                         nullptr) != 0)
+            DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Password authentication failed: {}", lastErrorMessage(sessionHolder.get()));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Error helpers
+// ---------------------------------------------------------------------------
+
+StringPtr lastErrorMessage(LIBSSH2_SESSION* session)
+{
+    char* message = nullptr;
+    int length = 0;
+    libssh2_session_last_error(session, &message, &length, 0);
+    return (message && length > 0) ? String(message, static_cast<SizeT>(length)) : String("unknown error");
+}
+
+void throwFileError(LIBSSH2_SESSION* session, LIBSSH2_SFTP* sftp, const char* operation, const StringPtr& path)
+{
+    if (libssh2_session_last_errno(session) == LIBSSH2_ERROR_SFTP_PROTOCOL)
+    {
+        switch (const unsigned long status = libssh2_sftp_last_error(sftp))
+        {
+            case LIBSSH2_FX_NO_SUCH_FILE:
+            case LIBSSH2_FX_NO_SUCH_PATH:
+                DAQ_THROW_EXCEPTION(NotFoundException, "Failed to {} \"{}\": no such file or directory", operation, path);
+            case LIBSSH2_FX_PERMISSION_DENIED:
+            case LIBSSH2_FX_WRITE_PROTECT:
+                DAQ_THROW_EXCEPTION(AccessDeniedException, "Failed to {} \"{}\": permission denied", operation, path);
+            default:
+                DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to {} \"{}\": SFTP status {}", operation, path, status);
+        }
+    }
+    DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to {} \"{}\": {}", operation, path, lastErrorMessage(session));
+}
+
+}

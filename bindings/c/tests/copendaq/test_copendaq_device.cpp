@@ -394,7 +394,8 @@ TEST_F(COpendaqDeviceTest, AddConfigTransportOption)
                                 .build();
     const auto streamingType =
         daq::StreamingTypeBuilder().setId("str").setConnectionStringPrefix("str").setAvailableTransportOptions(options).build();
-    const auto configPtr = daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>({{"str", streamingType}}), True);
+    const auto configPtr =
+        daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>({{"str", streamingType}}), nullptr, True);
     auto* config = (daqAddDeviceConfig*) configPtr.getObject();
 
     daqDict* configOptions = nullptr;

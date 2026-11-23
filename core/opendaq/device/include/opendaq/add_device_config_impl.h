@@ -19,7 +19,7 @@
 #include <opendaq/transport_option_ptr.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/device_type_ptr.h>
-#include <opendaq/device_info_ptr.h>
+#include <opendaq/server_capability_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
@@ -38,14 +38,10 @@ class AddDeviceConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IA
 public:
     using Super = GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig, IAddDeviceConfigPrivate>;
 
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, IStreamingType>& streamingTypes, Bool scanOnAdd);
-
-    // Lists the transport options the server capabilities of `deviceInfo` announce, those the types list as well, instead
-    // of the ones of the types. A type its server announces no options for keeps its own; `deviceInfo` may be unassigned.
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                         const DictPtr<IString, IStreamingType>& streamingTypes,
-                        Bool scanOnAdd,
-                        const DeviceInfoPtr& deviceInfo);
+                        const ListPtr<IServerCapability>& capabilities,
+                        Bool scanOnAdd);
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;
@@ -73,7 +69,8 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
     static AddDeviceConfigPtr Bind(const SerializedObjectPtr& saved,
                                    const DictPtr<IString, IDeviceType>& deviceTypes,
-                                   const DictPtr<IString, IStreamingType>& streamingTypes);
+                                   const DictPtr<IString, IStreamingType>& streamingTypes,
+                                   Bool scanOnAdd);
 
 protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
@@ -82,7 +79,6 @@ private:
     static bool takesStreamings(const DeviceTypePtr& deviceType);
 
     DeviceTypePtr deviceType;
-    // The options the server of the device announces, else the Device type's
     DictPtr<IString, ITransportOption> transportOptions;
 };
 

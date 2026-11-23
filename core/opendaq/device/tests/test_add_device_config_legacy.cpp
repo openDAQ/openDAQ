@@ -76,7 +76,7 @@ protected:
 
     AddDeviceConfigPtr createConfig(DeviceKind kind = DeviceKind::Mirrored) const
     {
-        return AddDeviceConfig(createDeviceType(kind), streamingTypes, True);
+        return AddDeviceConfig(createDeviceType(kind), streamingTypes, nullptr, True);
     }
 
     AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& legacy, DeviceKind kind = DeviceKind::Mirrored) const
@@ -225,22 +225,24 @@ INSTANTIATE_TEST_SUITE_P(
     AddDeviceConfigLegacy,
     AddDeviceConfigLegacyStreamingTest,
     testing::Values(
-        StreamingCase{"DefaultList",
-                      {"OpenDAQNativeStreaming", "OpenDAQLTStreaming"},
-                      {},
-                      0,
-                      true,
-                      "OpenDAQNativeStreaming",
-                      StreamingMode::MinConnections},
+        StreamingCase{"DefaultList", {"OpenDAQNativeStreaming"}, {}, 0, true, "OpenDAQNativeStreaming", StreamingMode::MinConnections},
         StreamingCase{"DefaultListWithAllowedList",
-                      {"OpenDAQNativeStreaming", "OpenDAQLTStreaming"},
+                      {"OpenDAQNativeStreaming"},
                       {"OpenDAQLTStreaming"},
                       0,
                       true,
                       "OpenDAQLTStreaming",
                       StreamingMode::MinConnections},
         StreamingCase{"ExplicitList", {"other", "OpenDAQLTStreaming"}, {}, 0, true, "other", StreamingMode::MinConnections},
-        StreamingCase{"EmptyList", {}, {}, 0, true, "None", StreamingMode::MinConnections},
+        StreamingCase{"EmptyList", {}, {}, 0, true, "OpenDAQNativeStreaming", StreamingMode::MinConnections},
+        StreamingCase{"UnlistedProtocolIsSkipped",
+                      {"unloaded", "OpenDAQLTStreaming"},
+                      {},
+                      0,
+                      true,
+                      "OpenDAQLTStreaming",
+                      StreamingMode::MinConnections},
+        StreamingCase{"NothingAllowedIsLoaded", {"OpenDAQNativeStreaming"}, {"unloaded"}, 0, true, "None", StreamingMode::MinConnections},
         StreamingCase{"MinHops",
                       {"OpenDAQNativeStreaming", "OpenDAQLTStreaming"},
                       {},
@@ -251,17 +253,6 @@ INSTANTIATE_TEST_SUITE_P(
         StreamingCase{"NotConnected", {"OpenDAQLTStreaming"}, {}, 2, true, "None", StreamingMode::MinConnections},
         StreamingCase{"AutoConnectOff", {"OpenDAQLTStreaming"}, {}, 0, false, "None", StreamingMode::MinConnections}),
     [](const testing::TestParamInfo<StreamingCase>& info) { return info.param.name; });
-
-TEST_F(AddDeviceConfigLegacyTest, UnlistedPickSelectsNoneAndWarns)
-{
-    const auto legacy = createLegacyConfig();
-    section(legacy, "General").setPropertyValue("PrioritizedStreamingProtocols", List<IString>("unloaded", LtId));
-
-    const auto config = fromLegacy(legacy);
-
-    ASSERT_EQ(selectedStreamingType(config), "None");
-    ASSERT_TRUE(logged(R"("unloaded")"));
-}
 
 TEST_F(AddDeviceConfigLegacyTest, UnknownPrimaryAddressTypeIsIPv4AndWarns)
 {
@@ -351,6 +342,12 @@ TEST_F(AddDeviceConfigLegacyTest, BareTypeConfig)
 
     ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 1);
     ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().get(LtId).getTypeConfig().getPropertyValue("Username"), "user");
+}
+
+TEST_F(AddDeviceConfigLegacyTest, DefaultPrioritizedProtocolIsNative)
+{
+    const ListPtr<IString> prioritized = createLegacyGeneralConfig(True).getPropertyValue("PrioritizedStreamingProtocols");
+    ASSERT_EQ(prioritized, List<IString>(NativeId));
 }
 
 TEST_F(AddDeviceConfigLegacyTest, NullConfigIsTheDefaultLegacyConfig)
@@ -469,7 +466,7 @@ TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)
 {
     const auto connects = [](DeviceKind kind)
     {
-        const auto legacy = toLegacyAddDeviceConfig(AddDeviceConfig(createDeviceType(kind), nullptr, True));
+        const auto legacy = toLegacyAddDeviceConfig(AddDeviceConfig(createDeviceType(kind), nullptr, nullptr, True));
         return static_cast<Bool>(section(legacy, "General").getPropertyValue("AutomaticallyConnectStreaming"));
     };
 

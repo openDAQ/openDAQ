@@ -55,7 +55,7 @@ protected:
 
     static AddDeviceConfigPtr CreateConfig(const DeviceTypePtr& deviceType = CreateDeviceType())
     {
-        return AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", CreateStreamingType()}}), True);
+        return AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", CreateStreamingType()}}), nullptr, True);
     }
 
     // Whether the saved form of the config holds a value of its Port property: a port not set is not saved
@@ -394,8 +394,8 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSet)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(DeviceTypeWithoutOwnPort()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").getPropertyValue(PortConfigProperty), 7600);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Streaming", "str").getPropertyValue(PortConfigProperty), 7600);
 }
 
 // The module has its own Port (7000). The legacy entry gets the set port instead.
@@ -403,7 +403,7 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSetOverModulePort)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(CreateDeviceType()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
 }
 
 // Without a set port, the entries keep the module's values.
@@ -412,8 +412,8 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyWithoutPortSetKeepsTypeConfigs)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(CreateConfig(CreateDeviceType()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7000);
-    ASSERT_FALSE(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").hasProperty(PortConfigProperty));
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7000);
+    ASSERT_FALSE(Entry(legacy, "Streaming", "str").hasProperty(PortConfigProperty));
 }
 
 // A config serialized for an older peer (serializer version 3) goes through the translation
@@ -423,15 +423,15 @@ TEST_F(AddConfigTransportLegacyTest, SerializedForOlderPeerCarriesPortSet)
     ConfigWithPortsSet(CreateDeviceType()).serialize(serializer);
     const PropertyObjectPtr legacy = JsonDeserializer().deserialize(serializer.getOutput());
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
 }
 
 TEST_F(AddConfigTransportLegacyTest, FromLegacyTakesPortSet)
 {
     const auto deviceType = CreateDeviceType();
     const auto legacy = LegacyConfig(deviceType);
-    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
-    Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").addProperty(IntProperty(PortConfigProperty, 7600));
+    Entry(legacy, "Device", "dev").setPropertyValue(PortConfigProperty, 7500);
+    Entry(legacy, "Streaming", "str").addProperty(IntProperty(PortConfigProperty, 7600));
 
     const auto config = FromLegacy(legacy, deviceType);
 
@@ -467,7 +467,7 @@ TEST_F(AddConfigTransportLegacyTest, FromLegacyTypeWithoutOptionsKeepsModulePort
 {
     const auto deviceType = CreateDeviceType(Dict<IString, ITransportOption>());
     const auto legacy = LegacyConfig(deviceType);
-    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
+    Entry(legacy, "Device", "dev").setPropertyValue(PortConfigProperty, 7500);
 
     const auto config = FromLegacy(legacy, deviceType);
 
@@ -485,7 +485,7 @@ TEST_F(AddConfigTransportLegacyTest, LegacyRoundTripKeepsPortSetWithoutOptions)
                                 .setDeviceKind(DeviceKind::Mirrored)
                                 .build();
     const auto streamingType = CreateStreamingType(Dict<IString, ITransportOption>());
-    const auto config = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", streamingType}}), True);
+    const auto config = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", streamingType}}), nullptr, True);
     config.setPort(7500);
     StreamingConfig(config).setPort(7600);
 

@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_impl.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <opendaq/add_device_config_legacy.h>
@@ -25,21 +26,20 @@ static const char* Port = "Port";
 
 static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
-static const char* ScanOnAddKey = "scanOnAdd";
 static const char* PropValuesKey = "propValues";
 static const char* AvailableTransportOptionsKey = "availableTransportOptions";
 
-// The transport options the server of a device info announces for a type, those the type lists as well: in the
-// server's order and with its ports, with the security mode and certificate requirement of the type's own option.
-// The type's own options when the server announces none; empty when the type lists none of the announced ones.
-DictPtr<IString, ITransportOption> announcedTransportOptions(const DeviceInfoPtr& deviceInfo,
+// The transport options that `capabilities` announce for a type and the type lists as well.
+// They keep the server's order and ports. The security mode and certificate requirement come from the type's option.
+// Returns the type's own options when the server announces none, and an empty dict when the type knows none of them.
+DictPtr<IString, ITransportOption> announcedTransportOptions(const ListPtr<IServerCapability>& capabilities,
                                                              const StringPtr& prefix,
                                                              const DictPtr<IString, ITransportOption>& typeOptions)
 {
-    if (!deviceInfo.assigned())
+    if (!capabilities.assigned())
         return typeOptions;
 
-    for (const auto& capability : deviceInfo.getServerCapabilities())
+    for (const auto& capability : capabilities)
     {
         if (getServerCapabilityPrefix(capability) != prefix)
             continue;
@@ -64,42 +64,22 @@ DictPtr<IString, ITransportOption> announcedTransportOptions(const DeviceInfoPtr
     return typeOptions;
 }
 
-StringPtr toString(AddressType type)
-{
-    switch (type)
-    {
-        case AddressType::IPv4:
-            return "IPv4";
-        case AddressType::IPv6:
-            return "IPv6";
-    }
-
-    DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
-}
-
 DictPtr<Int, IString> addressTypeNames()
 {
     auto names = Dict<Int, IString>();
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
-        names.set(static_cast<Int>(type), toString(type));
+        names.set(static_cast<Int>(type), getAddressTypeName(type));
     return names;
 }
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                                          const DictPtr<IString, IStreamingType>& streamingTypes,
+                                         const ListPtr<IServerCapability>& capabilities,
                                          Bool scanOnAdd)
-    : AddDeviceConfigImpl(deviceType, streamingTypes, scanOnAdd, nullptr)
-{
-}
-
-AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
-                                         const DictPtr<IString, IStreamingType>& streamingTypes,
-                                         Bool scanOnAdd,
-                                         const DeviceInfoPtr& deviceInfo)
     : AddDeviceConfigImpl(deviceType,
                           add_device_config::announcedTransportOptions(
-                              deviceInfo, deviceType.getConnectionStringPrefix(), deviceType.getAvailableTransportOptions()),
+                              capabilities, deviceType.getConnectionStringPrefix(), deviceType.getAvailableTransportOptions()),
                           Partial())
 {
     Super::addProperty(StringPropertyBuilder(add_device_config::DeviceType, deviceType.getId()).setReadOnly(true).build());
@@ -108,7 +88,6 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    // The selected transport option, for a type with options
     if (this->transportOptions.getCount() > 0)
     {
         const TransportOptionPtr firstOption = FirstValue(this->transportOptions);
@@ -117,7 +96,6 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                                .build());
     }
 
-    // The port set, -1 while none is set and the port of the selected option applies
     Super::addProperty(IntPropertyBuilder(add_device_config::Port, -1).setMinValue(-1).build());
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
@@ -127,7 +105,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
     for (const auto& [typeId, streamingType] : streamingTypes)
     {
         const auto options = add_device_config::announcedTransportOptions(
-            deviceInfo, streamingType.getConnectionStringPrefix(), streamingType.getAvailableTransportOptions());
+            capabilities, streamingType.getConnectionStringPrefix(), streamingType.getAvailableTransportOptions());
         streamingConfigs.set(typeId, createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType, options));
     }
 
@@ -238,9 +216,13 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
         const auto serializer = JsonSerializer();
         checkErrorInfo(serializeForUpdate(serializer));
 
+        const Bool scanOnAddDefault = objPtr.getProperty(add_device_config::ScanOnAdd).getDefaultValue();
         AddDeviceConfigPtr config;
-        JsonDeserializer().callCustomProc([&](const SerializedObjectPtr& saved) { config = Bind(saved, deviceTypes, streamingTypes); },
-                                          serializer.getOutput());
+        const auto bindSaved = [&](const SerializedObjectPtr& saved)
+        {
+            config = Bind(saved, deviceTypes, streamingTypes, scanOnAddDefault);
+        };
+        JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
         *bound = config.detach();
     });
 }
@@ -281,7 +263,6 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         {
             const DeviceTypePtr deviceType = serialized.readObject(add_device_config::DeviceTypeKey, context, factoryCallback);
 
-            // The key is left out for a config without options
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
                     ? DictPtr<IString, ITransportOption>(
@@ -297,7 +278,8 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
 
 AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
-                                             const DictPtr<IString, IStreamingType>& streamingTypes)
+                                             const DictPtr<IString, IStreamingType>& streamingTypes,
+                                             Bool scanOnAdd)
 {
     if (!saved.hasKey("__type") || saved.readString("__type") != SerializeId())
         return nullptr;
@@ -320,8 +302,8 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                 selectedStreamingType.set(typeId, givenStreamingTypes.get(typeId));
         }
 
-        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
-            deviceType, selectedStreamingType, saved.readBool(add_device_config::ScanOnAddKey));
+        auto config =
+            createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, selectedStreamingType, nullptr, scanOnAdd);
         checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
         return config;
     }
@@ -355,8 +337,6 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
 
         serializerPtr.key(add_device_config::DeviceTypeIdKey);
         serializerPtr.writeString(deviceType.getId());
-        serializerPtr.key(add_device_config::ScanOnAddKey);
-        serializerPtr.writeBool(objPtr.getPropertyValue(add_device_config::ScanOnAdd));
     });
 }
 
@@ -452,20 +432,22 @@ bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)
 extern "C" ErrCode PUBLIC_EXPORT createAddDeviceConfig(IAddDeviceConfig** objTmp,
                                                        IDeviceType* deviceType,
                                                        IDict* streamingTypes,
+                                                       IList* capabilities,
                                                        Bool scanOnAdd)
 {
-    return daq::createObject<IAddDeviceConfig, AddDeviceConfigImpl>(objTmp, deviceType, streamingTypes, scanOnAdd);
+    return daq::createObject<IAddDeviceConfig, AddDeviceConfigImpl>(objTmp, deviceType, streamingTypes, capabilities, scanOnAdd);
 }
 
 extern "C" ErrCode PUBLIC_EXPORT createBoundAddDeviceConfig(IAddDeviceConfig** objTmp,
                                                             ISerializedObject* saved,
                                                             IDict* deviceTypes,
-                                                            IDict* streamingTypes)
+                                                            IDict* streamingTypes,
+                                                            Bool scanOnAdd)
 {
     OPENDAQ_PARAM_NOT_NULL(objTmp);
     OPENDAQ_PARAM_NOT_NULL(saved);
 
-    return daqTry([&] { *objTmp = AddDeviceConfigImpl::Bind(saved, deviceTypes, streamingTypes).detach(); });
+    return daqTry([&] { *objTmp = AddDeviceConfigImpl::Bind(saved, deviceTypes, streamingTypes, scanOnAdd).detach(); });
 }
 
 #endif

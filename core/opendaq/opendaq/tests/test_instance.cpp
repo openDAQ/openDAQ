@@ -50,6 +50,40 @@ private:
     StringPtr connectionString;
 };
 
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+    MockMirroredDeviceImpl(const ContextPtr& ctx,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const DeviceTypePtr& type,
+                           const StringPtr& connectionString)
+        : MirroredDevice(ctx, parent, localId)
+        , info(DeviceInfo(connectionString))
+    {
+        info.setDeviceType(type);
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoConfigPtr info;
+};
+
 class LoadingDevice final : public KindDevice
 {
 public:
@@ -166,11 +200,14 @@ TEST_F(InstanceTest, SetRootDeviceKind)
 
 TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
 {
-    const auto builder = [](const StringPtr& prefix, DeviceKind kind)
+    const auto builder = [](const StringPtr& prefix, DeviceKind kind, bool mirrored = false)
     {
         const auto moduleManager = ModuleManager("[[none]]");
         const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr);
-        moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
+        if (mirrored)
+            moduleManager.addModule(createWithImplementation<IModule, KindDeviceModuleT<MockMirroredDeviceImpl>>(context, prefix, kind));
+        else
+            moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
         return InstanceBuilder().setContext(context).setRootDevice(prefix + "://device");
     };
 
@@ -178,6 +215,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
     ASSERT_THROW(builder("daqadapter", DeviceKind::Adapter).build(), InvalidParameterException);
     ASSERT_NO_THROW(builder("daqroot", DeviceKind::Root).build());
     ASSERT_NO_THROW(builder("daqunspecified", DeviceKind::Unspecified).build());
+    ASSERT_THROW(builder("daqunspecified", DeviceKind::Unspecified, true).build(), InvalidParameterException);
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -288,29 +326,6 @@ public:
     }
 };
 
-class MockMirroredDeviceImpl : public MirroredDevice
-{
-public:
-    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
-        : MirroredDevice(ctx, nullptr, "mirrored")
-        , info(info)
-    {
-    }
-
-protected:
-    StringPtr onGetRemoteId() const override
-    {
-        return String("mirrored");
-    }
-
-    DeviceInfoPtr onGetInfo() override
-    {
-        return info;
-    }
-
-    DeviceInfoPtr info;
-};
-
 TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
 {
     auto instance = test_helpers::setupInstance();
@@ -390,7 +405,7 @@ TEST_F(InstanceTest, GetAddDeviceConfigOfRootDeviceIsNull)
     auto instance = test_helpers::setupInstance();
     const auto deviceType = DeviceType("mock_dev", "Mock device", "", "daqmockdev");
     instance.getRootDevice().asPtr<IComponentPrivate>().setComponentConfig(
-        AddDeviceConfig(deviceType, Dict<IString, IStreamingType>(), False));
+        AddDeviceConfig(deviceType, Dict<IString, IStreamingType>(), nullptr, False));
 
     ASSERT_FALSE(instance.getAddDeviceConfig().assigned());
 }
@@ -1396,7 +1411,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1405,13 +1420,9 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
     auto instance2 = test_helpers::setupInstance();
     instance2.loadConfiguration(config);
 
-    auto device = instance2.getDevices()[0];
-    const auto deviceConfig = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
+    const auto deviceConfig = instance2.getDevices()[0].getAddDeviceConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("General"));
-
-    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(deviceConfig.getPrimaryAddressType(), AddressType::IPv6);
 }
 
 TEST_F(InstanceTest, SaveLoadDeviceConfig)
@@ -1420,9 +1431,8 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     {
         auto instance = test_helpers::setupInstance();
 
-        auto deviceConfig = instance.createDefaultAddDeviceConfig();
-        PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        auto deviceConfig = instance.createAddDeviceConfig(DeviceInfo("daqmock://phys_device"));
+        deviceConfig.setPrimaryAddressType(AddressType::IPv6);
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1431,13 +1441,9 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     auto instance2 = test_helpers::setupInstance();
     instance2.loadConfiguration(config);
 
-    auto device = instance2.getDevices()[0];
-    const auto deviceConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    const auto deviceConfig = instance2.getDevices()[0].getAddDeviceConfig();
     ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("General"));
-
-    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(deviceConfig.getPrimaryAddressType(), AddressType::IPv6);
 }
 
 static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr& savedConfig)
@@ -1459,8 +1465,9 @@ static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr
 
 TEST_F(InstanceTest, LoadBindsSavedAddDeviceConfig)
 {
-    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, False);
+    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, nullptr, True);
     savedConfig.setPrimaryAddressType(AddressType::IPv6);
+    savedConfig.setScanOnAdd(False);
 
     const auto addedConfigs = LoadRemovedAdapterChild(savedConfig);
 
@@ -1475,7 +1482,7 @@ TEST_F(InstanceTest, LoadSkipsSavedAddDeviceConfigOfUnloadedType)
 {
     const auto unloadedType = KindDeviceModule::createType("daqunloaded", DeviceKind::Adapter);
 
-    ASSERT_EQ(LoadRemovedAdapterChild(AddDeviceConfig(unloadedType, nullptr, False)).getCount(), 0u);
+    ASSERT_EQ(LoadRemovedAdapterChild(AddDeviceConfig(unloadedType, nullptr, nullptr, False)).getCount(), 0u);
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)

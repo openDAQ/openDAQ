@@ -59,7 +59,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, BoundAddDeviceConfig, IAddDeviceConfig,
     ISerializedObject*, saved,
     IDict*, deviceTypes,
-    IDict*, streamingTypes
+    IDict*, streamingTypes,
+    Bool, scanOnAdd
 )
 
 END_NAMESPACE_OPENDAQ

@@ -19,6 +19,7 @@
 #include <opendaq/device_type.h>
 #include <opendaq/add_streaming_options.h>
 #include <opendaq/transport_option.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,15 +27,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup opendaq_add_device_config
  * @{
  */
-
-/*!
- * @brief The type of IP address preferred when connecting to a device.
- */
-enum class AddressType : EnumType
-{
-    IPv4 = 0,
-    IPv6
-};
 
 /*#
  * [templated(defaultAliasName: AddDeviceConfigPtr)]
@@ -173,6 +165,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
  */
 
 // [templateType(streamingTypes, IString, IStreamingType)]
+// [templateType(capabilities, IServerCapability)]
 /*!
  * @brief Creates an add device config with the default config of the Device type.
  * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored or Unspecified and a Streaming type ID is reserved.
@@ -182,6 +175,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, AddDeviceConfig,
     IDeviceType*, deviceType,
     IDict*, streamingTypes,
+    IList*, capabilities,
     Bool, scanOnAdd
 )
 

@@ -36,6 +36,8 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/add_device_config_private_ptr.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
@@ -52,8 +54,8 @@
 
 #include <opendaq/module_manager_check_dependencies.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/add_streaming_options_ptr.h>
-#include <opendaq/add_device_config_impl.h>
 #include <coretypes/integer_factory.h>
 #include <opendaq/streaming_type_utils.h>
 
@@ -859,214 +861,280 @@ DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const Authentica
     return credentials;
 }
 
-ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(device);
     *device = nullptr;
 
-    PropertyObjectPtr inputConfig = PropertyObjectPtr::Borrow(config);
+    DevicePtr devicePtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleManagerImpl::onCreateDevice, devicePtr, connectionString, parent, config);
+    OPENDAQ_RETURN_IF_FAILED(
+        errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
+
+    *device = devicePtr.detach();
+    return errCode;
+}
+
+DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
+                                            const ComponentPtr& parent,
+                                            const PropertyObjectPtr& inputConfig)
+{
     // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
     // smuggles an `IAuthenticationConfig` onto the top-level `config` it passes in, rather than a dedicated
     // parameter.
     const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(inputConfig);
-    const bool authenticationConfigSupplied = authenticationConfig.assigned();
-    const ErrCode errCode = daqTry([&]()
+
+    // Parse the connection string
+    const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);
+    auto connectionStringPtr = String(pureConnectionString);
+    if (connectionStringPtr.getLength() == 0)
     {
-        PropertyObjectPtr addDeviceConfig;
-        const bool inputIsDefaultAddDeviceConfig = IsDefaultAddDeviceConfig(inputConfig);
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Connection string is not set or empty");
+    }
 
-        if (inputIsDefaultAddDeviceConfig)
+    const bool asChild = parent.assigned();
+    const std::string prefix = getPrefixFromConnectionString(connectionStringPtr);
+    const bool useSmartConnection = (prefix == "daq");
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+    DictPtr<IString, IStreamingType> streamingTypes;
+    checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+    // Scan for devices
+    const auto inputAddDeviceConfig = inputConfig.asPtrOrNull<IAddDeviceConfig>(true);
+    const bool scanForDevices = inputAddDeviceConfig.assigned() ? static_cast<bool>(inputAddDeviceConfig.getScanOnAdd())
+                                                                : static_cast<bool>(getLegacyScanOnAdd(inputConfig, scanOnAdd));
+    if (scanForDevices)
+    {
+        auto lock = std::lock_guard(availableDevicesSearchSync);
+        const auto currentTime = std::chrono::steady_clock::now();
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            checkErrorInfo(getAvailableDevices(&ListPtr<IDeviceInfo>()));
+    }
+
+    // Find the discovered device and its capabilities
+    const auto findDiscoveredDeviceInfo = [this](const StringPtr& protocolConnectionString) -> DeviceInfoPtr
+    {
+        if (!availableDevicesGroup.assigned())
+            return nullptr;
+        if (availableDevicesGroup.hasKey(protocolConnectionString))
+            return availableDevicesGroup.get(protocolConnectionString);
+
+        const auto isConnectionString = [&protocolConnectionString](const StringPtr& str)
         {
-            OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
-            // `addDeviceConfig` (unlike `inputConfig`/`deviceTypeConfig` below) is persisted verbatim onto the
-            // created device (`componentPrivate.setComponentConfig`, further down) and so gets serialized on
-            // save - the smuggled auth config (see `ExtractAuthenticationConfig`) can't survive that (it's not
-            // meant to be persisted this way at all - see `IComponentPrivate::setAuthenticationConfig`, the
-            // real persistence path for it) and must not ride along into this clone.
-            if (addDeviceConfig.hasProperty(AuthenticationConfigConfigKey))
-                addDeviceConfig.removeProperty(AuthenticationConfigConfigKey);
-        }
-        else
-            OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&addDeviceConfig));
-
-        PropertyObjectPtr generalConfig =
-            inputIsDefaultAddDeviceConfig
-                ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
-                : PopulateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
-
-        // populate any general props which are duplicated in device & streaming type configs
-        CopyCommonGeneralPropValues(addDeviceConfig);
-
-        const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
-        auto connectionStringPtr = String(pureConnectionString);
-
-        if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
-
-        // Connection strings with the "daq" prefix automatically choose the best method of connection
-        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
-
-        bool scanForDevices = scanOnAdd;
-        if (generalConfig.assigned() && generalConfig.hasProperty("ScanOnAdd"))
-            scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("ScanOnAdd"));
-
-        // Scan for devices if not yet done so, or timeout is exceeded
-        if (scanForDevices)
+            return str == protocolConnectionString;
+        };
+        for (const auto& [_, info] : availableDevicesGroup)
         {
-            auto lock = std::lock_guard(availableDevicesSearchSync);
-            const auto currentTime = std::chrono::steady_clock::now();
-            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            for (const auto& capability : info.getServerCapabilities())
             {
-                const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+                const ListPtr<IString> connectionStrings = capability.getConnectionStrings();
+                if (std::any_of(connectionStrings.begin(), connectionStrings.end(), isConnectionString))
+                    return info;
             }
         }
+        return nullptr;
+    };
 
-        DeviceInfoPtr discoveredDeviceInfo;
-        if (useSmartConnection)
+    DeviceInfoPtr discoveredDeviceInfo;
+    ListPtr<IServerCapability> capabilities = List<IServerCapability>();
+    if (useSmartConnection)
+    {
+        discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
+        capabilities = discoveredDeviceInfo.getServerCapabilities();
+        if (capabilities.getCount() == 0)
         {
-            DictPtr<IString, IDeviceType> deviceTypes;
-            OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
-
-            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
-            connectionStringPtr = resolveSmartConnectionString(
-                connectionStringPtr, discoveredDeviceInfo, deviceTypes, parent != nullptr, generalConfig, loggerComponent);
+            DAQ_THROW_EXCEPTION(
+                NotFoundException, R"(Device with connection string "{}" has no available server capabilities)", connectionStringPtr);
         }
+    }
+    else if (const auto info = findDiscoveredDeviceInfo(connectionStringPtr); info.assigned())
+        capabilities = info.getServerCapabilities();
 
-        for (const auto& library : libraries)
+    // Turn the input into an add device config. No code below reads the input config.
+    const auto selectDeviceType = [&]() -> DeviceTypePtr
+    {
+        if (!useSmartConnection)
         {
-            const auto deviceType = getDeviceTypeFromConnectionString(connectionStringPtr, library.module);
-
-            // Check if module can create device with given connection string
+            const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, prefix);
             if (!deviceType.assigned())
-                continue;
-
-            OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
-
-            const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-            if (authenticationConfigSupplied && !authenticationSupported)
             {
-                LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
+                DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", prefix);
             }
-
-            // copy props from input config and connection string to device type config
-            const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
-
-            // The module connects by TransportOptionConfigProperty and PortConfigProperty; a config without them gets
-            // the type's first option. On this legacy path the selection cannot come from the input config: the type
-            // config is the type's default config with the input values copied over (OverrideConfigProperties), and
-            // that one has no TransportOption unless the module declares it itself. So the module gets the first option
-            // here.
-            //
-            // The new createDevice (see the comment in createDevice) is expected to resolve the port first and to hand
-            // over a type config that already carries the selection of the IAddDeviceConfig:
-            //
-            //   typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
-            //   typeConfig[PortConfigProperty] = the resolved port
-            //   module.createDevice(ReplaceConnectionStringPort(target, the resolved port), typeConfig)
-            //
-            // AddTransportSelectionProperties then adds nothing, and CheckSelectedTransportOption still rejects an
-            // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point.
-            AddTransportSelectionProperties(deviceTypeConfig, deviceType.getAvailableTransportOptions());
-            OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
-
-            // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
-            // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
-            const AuthenticationConfigPtr resolvedAuthConfig =
-                authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-
-            DictPtr<IString, IString> credentials;
-            ErrCode err;
-            if (authenticationSupported)
-            {
-                const auto credentialRequest = CredentialRequestBuilder()
-                                                   .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
-                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                                   .setComponentType(deviceType)
-                                                   .build();
-                credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
-
-                auto loginParameters = LoginParametersBuilder()
-                                           .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                           .setCredentials(credentials)
-                                           .build();
-                err = library.module->createAuthenticatedDevice(device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
-            }
-            else
-            {
-                err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            }
-
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned())
-            {
-                onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
-                if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setComponentConfig(addDeviceConfig);
-
-                ModuleInfoPtr moduleInfo;
-                err = library.module->getModuleInfo(&moduleInfo);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (auto info = devicePtr.getInfo(); info.assigned())
-                {
-                    auto deviceInfoType = info.getDeviceType();
-                    if (deviceInfoType.assigned())
-                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
-                }
-
-                if (authenticationSupported)
-                {
-                    if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                        componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
-
-                    // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
-                    // mechanism (e.g. a vault) is ready.
-                }
-            }
-
-            return err;
+            return deviceType;
         }
-        return DAQ_MAKE_ERROR_INFO(
-            OPENDAQ_ERR_NOTFOUND,
-            fmt::format("Device with given connection string '{}' and config is not available", StringPtr::Borrow(connectionString)));
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
-    return errCode;
+
+        const auto capability = SelectServerCapability(capabilities, deviceTypes, asChild);
+        if (!capability.assigned())
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(Device with connection string "{}" has no server capability with a loaded device type)",
+                                connectionStringPtr);
+        }
+        return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
+    };
+
+    const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
+    {
+        if (inputAddDeviceConfig.assigned())
+            return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+
+        const auto deviceType = selectDeviceType();
+        if (inputConfig.assigned())
+            return fromLegacyAddDeviceConfig(inputConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
+        return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
+    };
+
+    const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+
+    // Check the device type and resolve the address
+    const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
+    {
+        const auto deviceType = config.getDeviceType();
+        const StringPtr typePrefix = deviceType.getConnectionStringPrefix();
+        if (!useSmartConnection)
+        {
+            if (prefix != typePrefix)
+            {
+                DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                    R"(Prefix "{}" differs from the prefix "{}" of the device type "{}")",
+                                    prefix,
+                                    typePrefix,
+                                    deviceType.getId());
+            }
+            return connectionStringPtr;
+        }
+
+        const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
+        {
+            return getServerCapabilityPrefix(capability) == typePrefix;
+        };
+        const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
+        if (it == capabilities.end())
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(Device with connection string "{}" has no server capability with the prefix "{}")",
+                                connectionStringPtr,
+                                typePrefix);
+        }
+        return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+    };
+
+    const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
+    checkErrorInfo(CheckKindAllowed(deviceType, asChild));
+    connectionStringPtr = resolveConnectionString(addDeviceConfig);
+
+    // Connect through the module that has the device type
+    PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
+    PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
+
+    // The module connects by the TransportOption and Port properties. For now it gets the first option of the type.
+    // They go into a copy, so the saved config does not hold them.
+    PropertyObjectPtr connectionConfig;
+    if (deviceTypeConfig.assigned())
+        checkErrorInfo(deviceTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&connectionConfig));
+    AddTransportSelectionProperties(connectionConfig, deviceType.getAvailableTransportOptions());
+    checkErrorInfo(CheckSelectedTransportOption(deviceType, connectionConfig));
+
+    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, connectionConfig, authenticationConfig);
+    if (device.assigned())
+    {
+        onCompleteCapabilities(device, discoveredDeviceInfo);
+        if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate.setComponentConfig(addDeviceConfig);
+    }
+    return device;
 }
 
-ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
+                                           const ComponentPtr& parent,
+                                           const DeviceTypePtr& deviceType,
+                                           const PropertyObjectPtr& deviceTypeConfig,
+                                           const AuthenticationConfigPtr& authenticationConfig)
 {
-    // Adding a device with an IAddDeviceConfig comes with the new createDevice (another branch). The expected flow, as
-    // the IAddDeviceConfig class description states it:
-    //
-    //   target = daq://... ? the connection string of the discovered server capability of config.getDeviceType()
-    //                      : connectionString, whose prefix must be the one of config.getDeviceType()
-    //                        (else OPENDAQ_ERR_INVALIDPARAMETER)
-    //   port = config.getPort()
-    //   stringPort = the port connectionString names, also when it is the connection string of a device info; none for
-    //                a daq:// connection string
-    //   if the Port property of config is not -1:                    // a port is set
-    //       if stringPort is assigned and stringPort != port:
-    //           fail with OPENDAQ_ERR_INVALIDPARAMETER
-    //   else if stringPort is assigned:
-    //       port = stringPort
-    //   typeConfig = a clone of config.getTypeConfig(), and for a Device type with options
-    //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
-    //       typeConfig[PortConfigProperty] = port
-    //   the module creates the device from typeConfig and target, with ReplaceConnectionStringPort(target, port) when
-    //   port is not -1 (a Device type without options and no port set keeps the connection string as it is)
-    //   the selected streaming config (config.getStreamingOptions().getStreamingConfig()) connects over its selected
-    //   option as IAddStreamingConfig describes; a Streaming type linked to the Device type follows the device's option
-    //   and port
-    if (config != nullptr && PropertyObjectPtr::Borrow(config).supportsInterface<IAddDeviceConfig>())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Adding a device with an add-device config is not implemented yet");
+    const bool authenticationConfigSupplied = authenticationConfig.assigned();
 
-    return createDeviceInternal(device, connectionString, parent, config);
+    const auto hasDeviceType = [&deviceType](const ModulePtr& module)
+    {
+        DictPtr<IString, IDeviceType> types;
+        const ErrCode err = module->getAvailableDeviceTypes(&types);
+        if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else
+            checkErrorInfo(err);
+
+        return types.assigned() && types.hasKey(deviceType.getId());
+    };
+
+    for (const auto& library : libraries)
+    {
+        if (!hasDeviceType(library.module))
+            continue;
+
+        const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
+
+        if (authenticationConfigSupplied && !authenticationSupported)
+        {
+            LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
+        }
+
+        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
+        const AuthenticationConfigPtr resolvedAuthConfig =
+            authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
+
+        DevicePtr device;
+        DictPtr<IString, IString> credentials;
+        ErrCode err;
+        if (authenticationSupported)
+        {
+            const auto credentialRequest = CredentialRequestBuilder()
+                                               .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
+                                               .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                               .setComponentType(deviceType)
+                                               .build();
+            credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+
+            auto loginParameters = LoginParametersBuilder()
+                                       .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                       .setCredentials(credentials)
+                                       .build();
+            err = library.module->createAuthenticatedDevice(&device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
+        }
+        else
+        {
+            err = library.module->createDevice(&device, connectionStringPtr, parent, deviceTypeConfig);
+        }
+
+        checkErrorInfo(err);
+
+        if (device.assigned())
+        {
+            ModuleInfoPtr moduleInfo;
+            checkErrorInfo(library.module->getModuleInfo(&moduleInfo));
+
+            if (auto info = device.getInfo(); info.assigned())
+            {
+                auto deviceInfoType = info.getDeviceType();
+                if (deviceInfoType.assigned())
+                    deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+            }
+
+            if (authenticationSupported)
+            {
+                if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+                    componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
+
+                // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+                // mechanism (e.g. a vault) is ready.
+            }
+        }
+
+        return device;
+    }
+    DAQ_THROW_EXCEPTION(NotFoundException, "Device with given connection string '{}' and config is not available", connectionStringPtr);
 }
 
 ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)
@@ -1246,30 +1314,6 @@ void ModuleManagerImpl::PopulateDeviceTypeConfigFromConnStrOptions(
         if (deviceTypeConfig.hasProperty(item.first))
             deviceTypeConfig.setPropertyValue(item.first, item.second);
     }
-}
-
-PropertyObjectPtr ModuleManagerImpl::PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
-                                                              const PropertyObjectPtr& inputConfig,
-                                                              const DeviceTypePtr& deviceType,
-                                                              const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-
-    const StringPtr deviceTypeId = deviceType.getId();
-    PropertyObjectPtr deviceTypeConfigurations = addDeviceConfig.getPropertyValue("Device");
-
-    PropertyObjectPtr deviceTypeConfig = deviceTypeConfigurations.getPropertyValue(deviceTypeId);
-
-    if (inputConfig.assigned() && !IsDefaultAddDeviceConfig(inputConfig))
-        OverrideConfigProperties(deviceTypeConfig, inputConfig);
-
-    if (!connStrOptions.empty())
-        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
-
-    deviceTypeConfigurations.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
-    addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Device", deviceTypeConfigurations);
-
-    return deviceTypeConfig;
 }
 
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
@@ -1558,23 +1602,52 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
         const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
-        const auto capabilities = infoPtr.getServerCapabilities();
-        const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
-        const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
+        *config = createAddDeviceConfigForType(deviceType, infoPtr.getServerCapabilities(), streamingTypes).detach();
+    });
+}
 
-        // The config lists the transport options the server of the device announces and the types list as well
-        AddDeviceConfigPtr addDeviceConfig =
-            createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, listedTypes, scanOnAdd, infoPtr);
+AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceTypePtr& deviceType,
+                                                                   const ListPtr<IServerCapability>& capabilities,
+                                                                   const DictPtr<IString, IStreamingType>& streamingTypes) const
+{
+    const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
+    const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
 
-        const auto options = addDeviceConfig.getStreamingOptions();
-        if (options.assigned())
-        {
-            const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
-            if (defaultType.assigned())
-                options.setStreamingType(defaultType.getId());
-        }
+    auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, capabilities, scanOnAdd);
 
-        *config = addDeviceConfig.detach();
+    const auto options = addDeviceConfig.getStreamingOptions();
+    if (!options.assigned())
+        return addDeviceConfig;
+
+    const auto defaultType = selectStreamingType(listedTypes, deviceType);
+    if (defaultType.assigned())
+        options.setStreamingType(defaultType.getId());
+
+    return addDeviceConfig;
+}
+
+ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config,
+                                                      /* ISerializedObject */ IBaseObject* saved,
+                                                      IDevice* parent)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(saved);
+
+    const SerializedObjectPtr savedObject = BaseObjectPtr::Borrow(saved).asPtrOrNull<ISerializedObject>();
+    if (!savedObject.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "The saved add device config is not a serialized object");
+
+    return daqTry([&]()
+    {
+        DictPtr<IString, IDeviceType> deviceTypes;
+        if (parent != nullptr)
+            checkErrorInfo(parent->getAvailableDeviceTypes(&deviceTypes));
+        else
+            checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        DictPtr<IString, IStreamingType> streamingTypes;
+        checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+        *config = BoundAddDeviceConfig(savedObject, deviceTypes, streamingTypes, scanOnAdd).detach();
     });
 }
 
@@ -1693,127 +1766,21 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     return localInfo;
 }
 
-StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const
+StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability,
+                                                          AddressType primaryAddressType) const
 {
-    AddressReachabilityStatus resolvedStatus = AddressReachabilityStatus::Unreachable;
-    StringPtr connectionString;
+    const auto addressInfos = sortAddressInfos(selectedCapability.getAddressInfo(), primaryAddressType);
+    if (addressInfos.empty())
+        return selectedCapability.getConnectionString();
 
-    for (const auto& addrInfo : capability.getAddressInfo())
+    const auto& selected = addressInfos.front();
+    const auto connectionString = selected.getConnectionString();
+    if (selected.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
     {
-        if (addrInfo.getType() == primaryAddressType)
-        {
-            switch (auto status = addrInfo.getReachabilityStatus())
-            {
-                case AddressReachabilityStatus::Unknown:
-                    connectionString = resolvedStatus == AddressReachabilityStatus::Unknown
-                                           ? connectionString
-                                           : addrInfo.getConnectionString();
-
-                    resolvedStatus = status;
-                    break;
-                case AddressReachabilityStatus::Reachable:
-                    return addrInfo.getConnectionString();
-                case AddressReachabilityStatus::Unreachable:
-                    connectionString = connectionString.assigned() ? connectionString : addrInfo.getConnectionString();
-                    break;
-            }
-        }
+        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.", connectionString);
     }
-
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unknown)
-    {
-        return connectionString;
-    }
-
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unreachable)
-    {
-        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses with given address type were available.", connectionString);
-        return connectionString;
-    }
-
-    LOG_W("Selected server capability of device does not provide any addresses of primary {} type",
-          primaryAddressType);
-
-    return {};
-}
-
-StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
-                                                          const DeviceInfoPtr& discoveredDeviceInfo,
-                                                          const DictPtr<IString, IDeviceType>& deviceTypes,
-                                                          bool asChild,
-                                                          const PropertyObjectPtr& generalConfig,
-                                                          const LoggerComponentPtr& loggerComponent) const
-{
-    const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
-    if (capabilities.getCount() == 0)
-        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
-
-    const auto selectedCapability = SelectServerCapability(capabilities, deviceTypes, asChild);
-    if (!selectedCapability.assigned())
-    {
-        DAQ_THROW_EXCEPTION(NotFoundException,
-                            "Device with connection string \"{}\" has no server capability with a loaded device type",
-                            inputConnectionString);
-    }
-
-    const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
-    if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
-    {
-        auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);
-        if (connectionString.assigned())
-            return connectionString;
-    }
-    auto connectionString = selectedCapability.getConnectionString();
-
-#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
-    for (const auto& addressInfo : selectedCapability.getAddressInfo())
-    {
-        if (addressInfo.getConnectionString() == connectionString)
-        {
-            auto reachabilityStatus = addressInfo.getReachabilityStatus();
-            if (reachabilityStatus == AddressReachabilityStatus::Unreachable)
-            {
-                LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",  connectionString);
-            }
-        }
-    }
-#endif
 
     return connectionString;
-}
-
-DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const
-{
-    const std::string prefix = getPrefixFromConnectionString(connectionString);
-
-    DictPtr<IString, IDeviceType> types;
-    const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-        daqClearErrorInfo();
-    else
-        checkErrorInfo(err);
-
-    if (!types.assigned())
-        return nullptr;
-
-    return FindTypeByPrefix<DeviceTypePtr>(types, prefix);
-}
-
-// copies value of any General property present in inputConfig to correspoding General property
-PropertyObjectPtr ModuleManagerImpl::PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-    assert(!IsDefaultAddDeviceConfig(inputConfig));
-
-    PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
-    if (inputConfig.assigned())
-    {
-        OverrideConfigProperties(generalConfig, inputConfig);
-        addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("General", generalConfig);
-    }
-
-    return generalConfig;
 }
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
@@ -1821,10 +1788,24 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                   const AuthenticationConfigPtr& authenticationConfig,
                                                   const DevicePtr& owner) const
 {
-    StreamingPtr streaming = nullptr;
-    PropertyObjectPtr inputConfig;
-    if (config.assigned())
-        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
+    const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
+    const StreamingTypePtr configType = addStreamingConfig.assigned() ? addStreamingConfig.getStreamingType() : nullptr;
+    const std::string prefix = getPrefixFromConnectionString(connectionString);
+    if (configType.assigned() && configType.getConnectionStringPrefix() != prefix)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            R"(Prefix "{}" differs from the prefix "{}" of the streaming type "{}")",
+                            prefix,
+                            configType.getConnectionStringPrefix(),
+                            configType.getId());
+    }
+
+    const PropertyObjectPtr inputTypeConfig = addStreamingConfig.assigned() ? addStreamingConfig.getTypeConfig() : config;
+    PropertyObjectPtr typeConfig;
+    if (inputTypeConfig.assigned())
+        checkErrorInfo(inputTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+
+    StreamingPtr streaming;
 
     for (const auto& library : libraries)
     {
@@ -1837,26 +1818,14 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!types.assigned())
             continue;
 
-        const auto streamingType = FindTypeByPrefix<StreamingTypePtr>(types, getPrefixFromConnectionString(connectionString));
+        const StreamingTypePtr streamingType = configType.assigned()
+                                                   ? (types.hasKey(configType.getId()) ? types.get(configType.getId()) : nullptr)
+                                                   : FindTypeByPrefix<StreamingTypePtr>(types, prefix);
         if (!streamingType.assigned())
             continue;
 
-        const StringPtr streamingTypeId = streamingType.getId();
-
-        PropertyObjectPtr streamingTypeConfig;
-        if (IsDefaultAddDeviceConfig(inputConfig))
-        {
-            CopyCommonGeneralPropValues(inputConfig);
-            PropertyObjectPtr streamingTypesConfig = inputConfig.getPropertyValue("Streaming");
-            if (streamingTypesConfig.hasProperty(streamingTypeId))
-                streamingTypeConfig = streamingTypesConfig.getPropertyValue(streamingTypeId);
-            else
-                streamingTypeConfig = nullptr;
-        }
-        else
-        {
-            streamingTypeConfig = inputConfig;
-        }
+        PropertyObjectPtr streamingTypeConfig =
+            addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
 
         // The module connects by the selection properties; a config without them gets the default option
         if (const auto options = streamingType.getAvailableTransportOptions(); options.getCount() > 0)
@@ -1923,6 +1892,8 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.what())
             throw;
         }
+
+        break;
     }
 
     return streaming;
@@ -1987,31 +1958,6 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 
     for (const auto& target: targetCaps)
         target.freeze();
-}
-
-void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
-{
-    for (const auto& prop : targetConfig.getAllProperties())
-    {
-        const auto name = prop.getName();
-        if (sourceConfig.hasProperty(name))
-        {
-            const auto sourcePropValue = sourceConfig.getPropertyValue(name);
-            auto property = targetConfig.getProperty(name);
-            if (targetConfig.getPropertyValue(name) != sourcePropValue)
-            {
-                auto valueType = property.getValueType();
-                if (valueType == ctObject || valueType == ctFunc || valueType == ctProc)
-                {
-                    targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
-                }
-                else
-                {
-                    targetConfig.setPropertyValue(name, sourcePropValue);
-                }
-            }
-        }
-    }
 }
 
 DictPtr<IString, IDeviceInfo> ModuleManagerImpl::discoverDevicesWithIpModification()
@@ -2227,57 +2173,6 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
             connectedDeviceInfoInternal.addServerCapability(capPtr);
         }
     }
-}
-
-// copies at least username & password from general to device and streaming type configs
-void ModuleManagerImpl::CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-
-    const PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
-    const PropertyObjectPtr deviceTypesConfig = addDeviceConfig.getPropertyValue("Device");
-    const PropertyObjectPtr streamingTypesConfig = addDeviceConfig.getPropertyValue("Streaming");
-
-    const auto overrideCommonPropsDefaultValues = [&generalConfig](PropertyObjectPtr& targetConfig)
-    {
-        bool changed{false};
-        for (const auto& prop : generalConfig.getAllProperties())
-        {
-            const auto name = prop.getName();
-            const auto value = generalConfig.getPropertyValue(name);
-            const auto defaultValue = prop.getDefaultValue();
-
-            if (targetConfig.hasProperty(name) && targetConfig.getPropertyValue(name) == defaultValue)
-            {
-                targetConfig.setPropertyValue(name, value);
-                changed = true;
-            }
-        }
-        return changed;
-    };
-
-    for (const auto& prop : deviceTypesConfig.getAllProperties())
-    {
-        PropertyObjectPtr deviceTypeConfig = prop.getValue();
-        StringPtr deviceTypeId = prop.getName();
-        if (overrideCommonPropsDefaultValues(deviceTypeConfig))
-            deviceTypesConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
-    }
-
-    for (const auto& prop : streamingTypesConfig.getAllProperties())
-    {
-        PropertyObjectPtr streamingTypeConfig = prop.getValue();
-        StringPtr streamingTypeId = prop.getName();
-        if (overrideCommonPropsDefaultValues(streamingTypeConfig))
-            streamingTypesConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(streamingTypeId, streamingTypeConfig);
-    }
-}
-
-bool ModuleManagerImpl::IsDefaultAddDeviceConfig(const PropertyObjectPtr& config)
-{
-    if (!config.assigned())
-        return false;
-    return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
 }
 
 std::string ModuleManagerImpl::CheckLinkedStreamingTypes(const ModulePtr& module)

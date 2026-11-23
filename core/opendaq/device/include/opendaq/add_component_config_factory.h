@@ -18,6 +18,7 @@
 #include <opendaq/add_device_config_private.h>
 #include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/server_capability_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coretypes/dict_ptr.h>
 #include <coretypes/serialized_object_ptr.h>
@@ -34,18 +35,22 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Creates an add device config with the default config of the Device type.
  * @param deviceType The Device type
  * @param streamingTypes The Streaming types listed by the streaming options, keyed by Streaming type ID
+ * @param capabilities The server capabilities of the device. May be null.
  * @param scanOnAdd The initial ScanOnAdd value
  * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored or Unspecified and a Streaming type ID is reserved.
  *
  * The streaming types are ignored unless the Device type is Mirrored or Unspecified.
  * The config has no streaming options when no streaming types are given.
  * No Streaming type is selected.
+ * The config lists the transport options that the capabilities announce and the types know.
+ * A type with no announced options keeps its own.
  */
 inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
                                           const DictPtr<IString, IStreamingType>& streamingTypes,
+                                          const ListPtr<IServerCapability>& capabilities,
                                           Bool scanOnAdd)
 {
-    AddDeviceConfigPtr obj(AddDeviceConfig_Create(deviceType, streamingTypes, scanOnAdd));
+    AddDeviceConfigPtr obj(AddDeviceConfig_Create(deviceType, streamingTypes, capabilities, scanOnAdd));
     return obj;
 }
 
@@ -54,15 +59,18 @@ inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
  * @param saved The config as written by `serializeForUpdate`
  * @param deviceTypes The available Device types, keyed by ID
  * @param streamingTypes The available Streaming types, keyed by ID
+ * @param scanOnAdd The default of `ScanOnAdd`
  *
  * Binds as IAddDeviceConfigPrivate::bind does.
+ * A `ScanOnAdd` that was not set when the config was saved takes the given default.
  * Returns null when `saved` is not the save form of an add device config.
  */
 inline AddDeviceConfigPtr BoundAddDeviceConfig(const SerializedObjectPtr& saved,
                                                const DictPtr<IString, IDeviceType>& deviceTypes,
-                                               const DictPtr<IString, IStreamingType>& streamingTypes)
+                                               const DictPtr<IString, IStreamingType>& streamingTypes,
+                                               Bool scanOnAdd)
 {
-    AddDeviceConfigPtr obj(BoundAddDeviceConfig_Create(saved, deviceTypes, streamingTypes));
+    AddDeviceConfigPtr obj(BoundAddDeviceConfig_Create(saved, deviceTypes, streamingTypes, scanOnAdd));
     return obj;
 }
 

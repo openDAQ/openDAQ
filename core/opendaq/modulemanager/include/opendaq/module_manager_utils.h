@@ -104,14 +104,14 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * configuration - from a compatible registered credential provider.
      * @param[out] streaming The created streaming object.
      * @param connectionString Describes the connection parameters of the streaming.
-     * @param config A configuration object that contains parameters used to configure a streaming connection in the form of key-value pairs.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
      * @param owner The device the streaming connection is being attached to, its own `IDeviceInfo`
      * (manufacturer, serial number, model) identifies the connection endpoint.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      *
-     * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the
-     * provided connection string. There is no smart-string/discovery resolution here - streaming connection strings
-     * are always concrete, protocol-specific strings, not `daq://` smart ones - so `owner` is simply forwarded as
-     * given, defaulting to a null value when not known.
+     * With an add streaming config, the module that has its Streaming type creates the streaming connection.
+     * Otherwise the first module that has a Streaming type with the connection string's prefix creates it.
+     * Streaming connection strings are always protocol-specific, never `daq://`.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
                                                    IString* connectionString,
@@ -227,9 +227,26 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
-     * The listed Streaming type linked to the Device type is selected, else the first listed one.
+     * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
+
+    /*!
+     * @brief Creates an add device config from its saved form, bound to the Device types of the parent device.
+     * @param[out] config The add device config, or null when `saved` is not the save form of an add device config
+     * @param saved The config as written by `serializeForUpdate`, as an `ISerializedObject`
+     * @param parent The device the config adds a device to
+     * @retval OPENDAQ_ERR_INVALIDTYPE when `saved` is not an `ISerializedObject`.
+     *
+     * Without a parent, the config is bound to the loaded Device types.
+     * Streaming types are bound to the loaded ones.
+     * A `ScanOnAdd` that was not set when the config was saved takes the `ModuleManager.ScanOnAdd` context option.
+     *
+     * `saved` is declared as an `IBaseObject` because the .NET bindings have no `SerializedObject` type.
+     */
+    virtual ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
+                                                              /* ISerializedObject */ IBaseObject* saved,
+                                                              IDevice* parent = nullptr) = 0;
 };
 /*!@}*/
 

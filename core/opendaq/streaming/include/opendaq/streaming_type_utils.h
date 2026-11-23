@@ -20,6 +20,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/custom_log.h>
 #include <coretypes/dictobject_factory.h>
+#include <algorithm>
 #include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -109,30 +110,44 @@ inline DictPtr<IString, IStreamingType> getAdvertisedStreamingTypes(const ListPt
 }
 
 /*!
+ * @brief Finds the streaming type linked to a device type.
+ * @param streamingTypes The streaming types to search, keyed by ID
+ * @param deviceType The device type
+ *
+ * Returns null when no type is linked to the device type.
+ */
+inline StreamingTypePtr findLinkedStreamingType(const DictPtr<IString, IStreamingType>& streamingTypes, const DeviceTypePtr& deviceType)
+{
+    if (!deviceType.assigned())
+        return nullptr;
+
+    const auto isLinked = [&deviceType](const auto& entry)
+    {
+        const DeviceTypePtr linkedDeviceType = entry.second.getLinkedDeviceType();
+        return linkedDeviceType.assigned() && linkedDeviceType.getId() == deviceType.getId();
+    };
+    const auto it = std::find_if(streamingTypes.begin(), streamingTypes.end(), isLinked);
+    return (it != streamingTypes.end()) ? (*it).second : nullptr;
+}
+
+/*!
  * @brief Selects the default streaming type for a device type.
  * @param streamingTypes The streaming types to select from, keyed by ID
  * @param deviceType The device type
- * @param fallBackToFirst Whether to fall back to the first type
  *
  * The type linked to the device type is selected.
- * Without one, the first type is selected when fallBackToFirst is set.
- * Otherwise, the result is null.
+ * Without one, `OpenDAQNativeStreaming` is selected when among the types, else the first type.
+ * Returns null when there are no types.
  */
-inline StreamingTypePtr selectStreamingType(const DictPtr<IString, IStreamingType>& streamingTypes,
-                                            const DeviceTypePtr& deviceType,
-                                            bool fallBackToFirst)
+inline StreamingTypePtr selectStreamingType(const DictPtr<IString, IStreamingType>& streamingTypes, const DeviceTypePtr& deviceType)
 {
-    if (deviceType.assigned())
-    {
-        for (const auto& [_, streamingType] : streamingTypes)
-        {
-            const DeviceTypePtr linkedDeviceType = streamingType.getLinkedDeviceType();
-            if (linkedDeviceType.assigned() && linkedDeviceType.getId() == deviceType.getId())
-                return streamingType;
-        }
-    }
+    if (const auto linkedType = findLinkedStreamingType(streamingTypes, deviceType); linkedType.assigned())
+        return linkedType;
 
-    if (fallBackToFirst && streamingTypes.getCount() > 0)
+    if (streamingTypes.hasKey("OpenDAQNativeStreaming"))
+        return streamingTypes.get("OpenDAQNativeStreaming");
+
+    if (streamingTypes.getCount() > 0)
         return streamingTypes.getValueList()[0];
 
     return nullptr;

@@ -437,7 +437,7 @@ TEST_F(DeviceTest, GetAddDeviceConfigReturnsCopyOfStoredConfig)
     ASSERT_FALSE(device.getAddDeviceConfig().assigned());
 
     const auto deviceType = daq::DeviceTypeBuilder().setId("type").setName("type").setConnectionStringPrefix("daqtype").build();
-    const auto stored = daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>(), daq::False);
+    const auto stored = daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>(), nullptr, daq::False);
     device.asPtr<daq::IComponentPrivate>().setComponentConfig(stored);
 
     const auto first = device.getAddDeviceConfig();

@@ -347,12 +347,3 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
     ASSERT_FALSE(config.getSelectedTransportOption().assigned());
     ASSERT_EQ(config.getPort(), -1);
 }
-
-// Adding a device with an add-device config comes with the new createDevice
-TEST_F(TransportSelectionTest, AddDeviceConfigNotImplemented)
-{
-    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
-
-    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_ERR_NOTIMPLEMENTED);
-    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
-}

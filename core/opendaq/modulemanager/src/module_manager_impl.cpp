@@ -1649,7 +1649,6 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
             if (const auto port = GetConnectionStringPort(infoPtr.getConnectionString()); port.has_value())
                 addDeviceConfig.setPort(Integer(port.value()));
         }
-
         *config = addDeviceConfig.detach();
     });
 }

@@ -190,6 +190,22 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
+     * @brief Sets the kind of the built Server type.
+     * @param kind The server kind.
+     *
+     * Only a builder created with ServerTypeBuilder uses the kind; other builders store it without effect.
+     * A Server type built without a kind is Unspecified.
+     */
+    virtual ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) = 0;
+
+    /*!
+     * @brief Gets the kind of the built Server type.
+     * @param[out] kind The server kind; Unspecified unless set.
+     */
+    virtual ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) = 0;
+
+    // [returnSelf]
+    /*!
      * @brief Sets the kind of device created by the built Device type.
      * @param kind The device kind.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER when the kind is Unspecified.
@@ -268,22 +284,6 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] transportOptions The transport options, the default first. Empty if none were set.
      */
     virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the kind of the built Server type.
-     * @param kind The server kind.
-     *
-     * Only a builder created with ServerTypeBuilder uses the kind; other builders store it without effect.
-     * A Server type built without a kind is Unspecified.
-     */
-    virtual ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) = 0;
-
-    /*!
-     * @brief Gets the kind of the built Server type.
-     * @param[out] kind The server kind; Unspecified unless set.
-     */
-    virtual ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) = 0;
 };
 /*!@}*/
 

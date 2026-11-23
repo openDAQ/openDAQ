@@ -87,6 +87,16 @@ daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* sel
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
+daqErrCode daqComponentTypeBuilder_setServerKind(daqComponentTypeBuilder* self, daqServerKind kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setServerKind(static_cast<daq::ServerKind>(kind));
+}
+
+daqErrCode daqComponentTypeBuilder_getServerKind(daqComponentTypeBuilder* self, daqServerKind* kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getServerKind(reinterpret_cast<daq::ServerKind*>(kind));
+}
+
 daqErrCode daqComponentTypeBuilder_setDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind kind)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setDeviceKind(static_cast<daq::DeviceKind>(kind));
@@ -125,16 +135,6 @@ daqErrCode daqComponentTypeBuilder_setTransportOptions(daqComponentTypeBuilder* 
 daqErrCode daqComponentTypeBuilder_getTransportOptions(daqComponentTypeBuilder* self, daqList** transportOptions)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getTransportOptions(reinterpret_cast<daq::IList**>(transportOptions));
-}
-
-daqErrCode daqComponentTypeBuilder_setServerKind(daqComponentTypeBuilder* self, daqServerKind kind)
-{
-    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setServerKind(static_cast<daq::ServerKind>(kind));
-}
-
-daqErrCode daqComponentTypeBuilder_getServerKind(daqComponentTypeBuilder* self, daqServerKind* kind)
-{
-    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getServerKind(reinterpret_cast<daq::ServerKind*>(kind));
 }
 
 daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)

@@ -43,8 +43,8 @@ extern "C"
     void EXPORTED daqComponentTypePrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info);
-    daqErrCode EXPORTED daqComponentTypePrivate_getSupportedAuthenticationMethods(daqComponentTypePrivate* self, daqDict** authenticationMethods);
     daqErrCode EXPORTED daqComponentTypePrivate_serializeWithoutDefaultConfig(daqComponentTypePrivate* self, daqSerializer* serializer);
+    daqErrCode EXPORTED daqComponentTypePrivate_getSupportedAuthenticationMethods(daqComponentTypePrivate* self, daqDict** authenticationMethods);
 
 #ifdef __cplusplus
 }

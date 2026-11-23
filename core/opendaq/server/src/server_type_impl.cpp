@@ -29,7 +29,6 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
             name,
             description,
             defaultConfig,
-            Dict<IString, IAuthenticationMethod>(),
             transportOptions,
             Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}))
     , serverKind(serverKind)

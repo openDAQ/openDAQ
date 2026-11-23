@@ -43,7 +43,6 @@ public:
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
-                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
                                       const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>(),
                                       const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
@@ -66,8 +65,8 @@ public:
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
-    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
     ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
 private:
     static DictPtr<IString, IBaseObject> createFields(const StructTypePtr& type,
@@ -127,7 +126,6 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
-                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                                                         const ListPtr<ITransportOption>& transportOptions,
                                                                         const DictPtr<IString, IBaseObject>& extraFields)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
@@ -137,7 +135,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , description(description)
     , prefix("")
     , defaultConfig(defaultConfig)
-    , supportedAuthenticationMethods(supportedAuthenticationMethods)
+    , supportedAuthenticationMethods(Dict<IString, IAuthenticationMethod>())
     , transportOptions(FrozenTransportOptionsCopy(transportOptions))
 {
 }

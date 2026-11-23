@@ -8,6 +8,11 @@
 
 using NativeStreamingModulesTest = testing::Test;
 
+// The param - whether the legacy add-device config is used to supply the credentials (see test_helpers::configModeName)
+class NativeStreamingModulesCredentialsTest : public testing::TestWithParam<bool>
+{
+};
+
 using namespace daq;
 
 namespace test_native_streaming_modules
@@ -37,15 +42,13 @@ static InstancePtr CreateServerInstance()
     return CreateServerInstance(authenticationProvider);
 }
 
-static InstancePtr CreateClientInstance(const std::string& username, const std::string& password)
+static InstancePtr CreateClientInstance(const std::string& username, const std::string& password, bool useLegacyConfig)
 {
     auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
-    auto config = instance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr general = config.getPropertyValue("General");
-    general.setPropertyValue("Username", username);
-    general.setPropertyValue("Password", password);
+    auto config = test_helpers::createAddDeviceConfig(instance, "daq.ns://127.0.0.1/", useLegacyConfig);
+    test_helpers::setCredentials(config, username, password, useLegacyConfig);
 
     auto refDevice = instance.addDevice("daq.ns://127.0.0.1/", config);
     return instance;
@@ -821,7 +824,7 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
 }
 
-TEST_F(NativeStreamingModulesTest, ProtectedSignals)
+TEST_P(NativeStreamingModulesCredentialsTest, ProtectedSignals)
 {
     auto users = List<IUser>();
     users.pushBack(User("admin", "admin", {"admin"}));
@@ -838,13 +841,13 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     serverSignals[1].getPermissionManager().setPermissions(permissions);
 
     {
-        auto client = CreateClientInstance("admin", "admin");
+        auto client = CreateClientInstance("admin", "admin", GetParam());
         auto clientSignals = client.getSignalsRecursive(search::Any());
         ASSERT_EQ(clientSignals.getCount(), 5u);
     }
 
     {
-        auto client = CreateClientInstance("opendaq", "opendaq");
+        auto client = CreateClientInstance("opendaq", "opendaq", GetParam());
         auto clientSignals = client.getSignalsRecursive(search::Any());
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
@@ -883,14 +886,14 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
 #endif
 }
 
-TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeAllowed)
+TEST_P(NativeStreamingModulesCredentialsTest, ProtectedSignalSubscribeAllowed)
 {
     auto users = List<IUser>();
     users.pushBack(User("admin", "admin", {"admin"}));
     auto authenticationProvider = StaticAuthenticationProvider(false, users);
 
     auto server = CreateServerInstance(authenticationProvider);
-    auto client = CreateClientInstance("admin", "admin");
+    auto client = CreateClientInstance("admin", "admin", GetParam());
 
     auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
 
@@ -999,5 +1002,7 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeStreamingModulesCredentialsTest, testing::Bool(), test_helpers::configModeName);
 }
 // namespace test_native_streaming_modules

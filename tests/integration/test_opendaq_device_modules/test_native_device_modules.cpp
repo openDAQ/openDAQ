@@ -38,6 +38,11 @@
 
 using NativeDeviceModulesTest = testing::Test;
 
+// The param - whether the legacy add-device config is used to supply the credentials (see test_helpers::configModeName)
+class NativeDeviceModulesCredentialsTest : public testing::TestWithParam<bool>
+{
+};
+
 using namespace daq;
 
 namespace test_native_device_modules
@@ -202,7 +207,7 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
     return instance;
 }
 
-static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password)
+static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password, bool useLegacyConfig)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -218,18 +223,23 @@ static InstancePtr CreateClientInstanceForUser(const std::string& user, const st
     addNativeClientModule(instance);
     addRefDeviceModule(instance);
 
-    auto config = instance.createDefaultAddDeviceConfig();
+    auto config = test_helpers::createAddDeviceConfig(instance, "daq.nd://127.0.0.1", useLegacyConfig);
+    if (!useLegacyConfig)
+    {
+        const AddDeviceConfigPtr addDeviceConfig = config;
+        addDeviceConfig.getTypeConfig().setPropertyValue("RestoreClientConfigOnReconnect", False);
+        addDeviceConfig.getStreamingOptions().setStreamingType("OpenDAQNativeStreaming");
+    }
+    else
+    {
+        PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+        PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+        nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
 
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-
-
-    nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
-
-    PropertyObjectPtr general = config.getPropertyValue("General");
-    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
-    general.setPropertyValue("Username", user);
-    general.setPropertyValue("Password", password);
+        PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+    }
+    test_helpers::setCredentials(config, user, password, useLegacyConfig);
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -295,7 +305,7 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
     server.detach();
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsername)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsername)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -314,28 +324,24 @@ TEST_F(NativeDeviceModulesTest, ConnectUsername)
 
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"), AuthenticationFailedException);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setCredentials(config, "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
     auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceJure.assigned());
     clientInstance.removeDevice(deviceJure);
 
-    generalConfig.setPropertyValue("Username", "tomaz");
-    generalConfig.setPropertyValue("Password", "tomaz123");
+    test_helpers::setCredentials(config, "tomaz", "tomaz123", GetParam());
     auto deviceTomaz = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceTomaz.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectAllowAnonymous)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -357,20 +363,17 @@ TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
     ASSERT_TRUE(deviceAnonymous.assigned());
     clientInstance.removeDevice(deviceAnonymous);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setCredentials(config, "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
     auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceJure.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsernameDeviceConfig)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -387,23 +390,19 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
 
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"), AuthenticationFailedException);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "jure123", GetParam());
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsernameDeviceAndStreamingConfig)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -425,68 +424,12 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
         addNativeClientModule(clientInstance);
     }
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
-    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "jure123");
-    nativeStreamingConfig.setPropertyValue("Username", "tomaz");
-    nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "jure123", GetParam());
+    test_helpers::setStreamingCredentials(config, "OpenDAQNativeStreaming", "tomaz", "tomaz123", GetParam());
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
-}
-
-TEST_F(NativeDeviceModulesTest, AuthConfigAnonymousProhibited)
-{
-    auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(false, List<IUser>(User("jure", "jure123")))));
-
-    auto clientInstance = test_helpers::createInstance("[[none]]");
-    addNativeClientModule(clientInstance);
-
-    // Anonymous - rejected by the server
-    {
-        const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
-        auto authConfig = config.getAuthenticationConfig();
-        authConfig.setAuthenticationMethod("Anonymous");
-        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
-    }
-
-    // Username/password supplied via the authentication config - native configuration device
-    {
-        const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
-        auto authConfig = config.getAuthenticationConfig();
-        authConfig.setAuthenticationMethod("UserNamePassword");
-
-        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "wrongPass"}}));
-        ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
-
-        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "jure"}, {"Password", "jure123"}}));
-        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
-        ASSERT_TRUE(device.assigned());
-        clientInstance.removeDevice(device);
-    }
-}
-
-TEST_F(NativeDeviceModulesTest, AuthConfigAnonymousAllowed)
-{
-    auto serverInstance = CreateServerInstance(CreateCustomServerInstance(StaticAuthenticationProvider(true, List<IUser>(User("jure", "jure123")))));
-
-    auto clientInstance = test_helpers::createInstance("[[none]]");
-    addNativeClientModule(clientInstance);
-
-    // "Anonymous" is the default authentication method of the native device type
-    auto deviceDefault = clientInstance.addDevice("daq.nd://127.0.0.1");
-    ASSERT_TRUE(deviceDefault.assigned());
-    clientInstance.removeDevice(deviceDefault);
-
-    const auto config = clientInstance.createAddDeviceConfig(DeviceInfo("daq.nd://127.0.0.1"));
-    auto authConfig = config.getAuthenticationConfig();
-    authConfig.setAuthenticationMethod("Anonymous");
-    auto deviceAnonymous = clientInstance.addDevice("daq.nd://127.0.0.1", config);
-    ASSERT_TRUE(deviceAnonymous.assigned());
 }
 
 TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
@@ -848,7 +791,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 3u);
 }
 
-TEST_F(NativeDeviceModulesTest, PartialSerialization)
+TEST_P(NativeDeviceModulesCredentialsTest, PartialSerialization)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123", List<IString>("user")));
@@ -867,10 +810,8 @@ TEST_F(NativeDeviceModulesTest, PartialSerialization)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
 
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -4194,7 +4135,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
     {
@@ -4227,7 +4168,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client doesn't have permissions to change operation mode for all server devices, but can read the operation mode
-        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass", GetParam());
     }
 
     {
@@ -4330,7 +4271,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 
 #endif
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissions)
 {
     auto CreateUsers = []()
     {
@@ -4363,7 +4304,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client has all permissions to change operation mode for all server devices
-        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass", GetParam());
     }
 
     {
@@ -4404,7 +4345,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissionsForInvisibleDevice)
 {
     auto CreateUsers = []()
     {
@@ -4437,7 +4378,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client has all permissions to change operation mode for all server devices
-        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass", GetParam());
     }
 
     {
@@ -4491,7 +4432,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
     {
@@ -4524,7 +4465,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions, true));
         // client has permissions to change operation mode for all server devices except the most nested sub device
-        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass", GetParam());
     }
 
     {
@@ -5819,5 +5760,8 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
         removed.get();
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeDeviceModulesCredentialsTest, testing::Bool(), test_helpers::configModeName);
+
 }
 // namespace test_native_device_modules

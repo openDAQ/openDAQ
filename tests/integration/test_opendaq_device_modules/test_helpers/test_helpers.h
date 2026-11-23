@@ -450,6 +450,92 @@ namespace test_helpers
         return connectionString.substr(0, hostEnd) + ":" + std::to_string(serverPort(port->second)) + connectionString.substr(hostEnd);
     }
 
+    // The authentication tests are parametrized with the kind of add-device config the credentials are supplied with:
+    // `useLegacyConfig == true` - the legacy default add-device config, via its "Username"/"Password" properties,
+    // `useLegacyConfig == false` - an IAddDeviceConfig, via the supplied credentials of its nested authentication configs
+    [[maybe_unused]]
+    inline std::string configModeName(const testing::TestParamInfo<bool>& info)
+    {
+        return info.param ? "LegacyGeneralConfig" : "AddDeviceConfig";
+    }
+
+    // Creates the add-device config the credential helpers below fill
+    [[maybe_unused]]
+    inline PropertyObjectPtr createAddDeviceConfig(const InstancePtr& instance, const std::string& connectionString, bool useLegacyConfig)
+    {
+        if (!useLegacyConfig)
+            return instance.createAddDeviceConfig(DeviceInfo(connectionString));
+        return instance.createDefaultAddDeviceConfig();
+    }
+
+    [[maybe_unused]]
+    inline void supplyUserNamePassword(const AuthenticationConfigPtr& authConfig, const std::string& username, const std::string& password)
+    {
+        authConfig.setAuthenticationMethod("UserNamePassword");
+        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
+    }
+
+    // Credentials for the device connection only - legacy: the properties of the `deviceTypeId` device type config
+    [[maybe_unused]]
+    inline void setDeviceCredentials(const PropertyObjectPtr& config,
+                                     const std::string& deviceTypeId,
+                                     const std::string& username,
+                                     const std::string& password,
+                                     bool useLegacyConfig)
+    {
+        if (!useLegacyConfig)
+        {
+            supplyUserNamePassword(config.asPtr<IAddDeviceConfig>().getAuthenticationConfig(), username, password);
+            return;
+        }
+
+        const PropertyObjectPtr deviceTypeConfig = config.getPropertyValue("Device." + deviceTypeId);
+        deviceTypeConfig.setPropertyValue("Username", username);
+        deviceTypeConfig.setPropertyValue("Password", password);
+    }
+
+    // Credentials for the streaming connection only - legacy: the properties of the `streamingTypeId` streaming type config
+    [[maybe_unused]]
+    inline void setStreamingCredentials(const PropertyObjectPtr& config,
+                                        const std::string& streamingTypeId,
+                                        const std::string& username,
+                                        const std::string& password,
+                                        bool useLegacyConfig)
+    {
+        if (!useLegacyConfig)
+        {
+            const auto options = config.asPtr<IAddDeviceConfig>().getStreamingOptions();
+            options.setStreamingType(streamingTypeId);
+            supplyUserNamePassword(options.getStreamingConfig().getAuthenticationConfig(), username, password);
+            return;
+        }
+
+        const PropertyObjectPtr streamingTypeConfig = config.getPropertyValue("Streaming." + streamingTypeId);
+        streamingTypeConfig.setPropertyValue("Username", username);
+        streamingTypeConfig.setPropertyValue("Password", password);
+    }
+
+    // Credentials for both the device and its streaming connections - legacy: the "General" properties
+    [[maybe_unused]]
+    inline void setCredentials(const PropertyObjectPtr& config, const std::string& username, const std::string& password, bool useLegacyConfig)
+    {
+        if (useLegacyConfig)
+        {
+            const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+            generalConfig.setPropertyValue("Username", username);
+            generalConfig.setPropertyValue("Password", password);
+            return;
+        }
+
+        const auto addDeviceConfig = config.asPtr<IAddDeviceConfig>();
+        supplyUserNamePassword(addDeviceConfig.getAuthenticationConfig(), username, password);
+
+        // A device type that takes no streamings (e.g. the native streaming pseudo-device) has no streaming options
+        const auto options = addDeviceConfig.getStreamingOptions();
+        if (options.assigned())
+            supplyUserNamePassword(options.getStreamingConfig().getAuthenticationConfig(), username, password);
+    }
+
     // Whether every visible signal under the device is mirrored with the given number of streaming sources and an active one.
     // Signals of a streaming pseudo-device are created asynchronously, so no signals at all counts as not attached yet.
     [[maybe_unused]]

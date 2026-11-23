@@ -83,6 +83,47 @@ protected:
         const auto streamingTypes = Dict<IString, IStreamingType>({{"str", CreateStreamingType()}});
         return config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
     }
+
+    static std::string SavedForm(const AddDeviceConfigPtr& config)
+    {
+        const auto serializer = JsonSerializer();
+        config.asPtr<IUpdatable>().serializeForUpdate(serializer);
+        return serializer.getOutput();
+    }
+
+    // Creates a config from the saved form, as loading a saved device does
+    static AddDeviceConfigPtr Load(const std::string& saved,
+                                   const DeviceTypePtr& deviceType = CreateDeviceType(),
+                                   const StreamingTypePtr& streamingType = CreateStreamingType())
+    {
+        AddDeviceConfigPtr loaded;
+        JsonDeserializer().callCustomProc(
+            [&](const SerializedObjectPtr& serialized)
+            {
+                loaded = BoundAddDeviceConfig(serialized,
+                                              Dict<IString, IDeviceType>({{"dev", deviceType}}),
+                                              Dict<IString, IStreamingType>({{"str", streamingType}}),
+                                              True);
+            },
+            saved);
+        return loaded;
+    }
+
+    static DictPtr<IString, ITransportOption> PlainFirstOptions()
+    {
+        return TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)});
+    }
+
+    // A config with a selected Streaming type, whose types both list plain first
+    static AddDeviceConfigPtr PlainFirstConfig()
+    {
+        const auto config = AddDeviceConfig(CreateDeviceType(PlainFirstOptions()),
+                                            Dict<IString, IStreamingType>({{"str", CreateStreamingType(PlainFirstOptions())}}),
+                                            nullptr,
+                                            True);
+        config.getStreamingOptions().setStreamingType("str");
+        return config;
+    }
 };
 
 TEST_F(AddConfigTransportTest, ListsTypeOptions)
@@ -280,16 +321,86 @@ TEST_F(AddConfigTransportTest, BindRejectsUnknownSelection)
                  InvalidValueException);
 }
 
-// An option not selected is not saved: the bound config selects the loaded type's first option
-TEST_F(AddConfigTransportTest, BindWithoutSavedSelection)
+// The first option is saved too: it stays selected when the loaded type lists another option first
+TEST_F(AddConfigTransportTest, BindKeepsFirstOption)
 {
-    const auto config =
-        CreateConfig(CreateDeviceType(TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421)})));
+    const auto config = PlainFirstConfig();
     ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
 
     const auto bound = Bind(config);
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
-    ASSERT_EQ(bound.getPort(), 7421);
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getPort(), 7420);
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsFirstOption)
+{
+    const auto loaded = Load(SavedForm(PlainFirstConfig()));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getPort(), 7420);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsOptionThatIsNotFirst)
+{
+    const auto config = PlainFirstConfig();
+    config.setTransportOption("tls");
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("tls");
+
+    const auto loaded = Load(SavedForm(config), CreateDeviceType(PlainFirstOptions()), CreateStreamingType(PlainFirstOptions()));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getPort(), 7421);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsPortSet)
+{
+    const auto config = PlainFirstConfig();
+    config.setPort(9000);
+    config.getStreamingOptions().getStreamingConfig().setPort(9001);
+
+    const auto loaded = Load(SavedForm(config));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getPort(), 9000);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getPort(), 9001);
+}
+
+// A saved form written before the selection was saved loads with the first option of the type
+TEST_F(AddConfigTransportTest, LoadWithoutSavedSelection)
+{
+    const std::string key = R"("selectedTransportOption":"plain",)";
+    std::string saved = SavedForm(PlainFirstConfig());
+    for (auto pos = saved.find(key); pos != std::string::npos; pos = saved.find(key))
+        saved.erase(pos, key.size());
+    ASSERT_EQ(saved.find("selectedTransportOption"), std::string::npos);
+
+    const auto loaded = Load(saved);
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+}
+
+// The first option is rejected like any other: the device must not move to another option silently
+TEST_F(AddConfigTransportTest, LoadRejectsFirstOptionTheTypeDoesNotList)
+{
+    const auto saved = SavedForm(PlainFirstConfig());
+    const auto tlsOnly = TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted)});
+
+    ASSERT_THROW(Load(saved, CreateDeviceType(tlsOnly)), InvalidValueException);
+    ASSERT_THROW(Load(saved, CreateDeviceType(), CreateStreamingType(tlsOnly)), InvalidValueException);
+}
+
+// A type without options has nothing to select
+TEST_F(AddConfigTransportTest, LoadIgnoresSelectionForTypeWithoutOptions)
+{
+    const auto noOptions = TransportOptionsById({});
+    const auto loaded = Load(SavedForm(PlainFirstConfig()), CreateDeviceType(noOptions), CreateStreamingType(noOptions));
+
+    ASSERT_FALSE(loaded.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().assigned());
 }
 
 TEST_F(AddConfigTransportTest, SerializeDeserialize)

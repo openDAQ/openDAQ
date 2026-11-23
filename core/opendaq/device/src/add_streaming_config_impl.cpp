@@ -15,6 +15,7 @@ static const char* Port = "Port";
 
 static const char* StreamingTypeKey = "streamingType";
 static const char* AvailableTransportOptionsKey = "availableTransportOptions";
+static const char* SelectedTransportOptionKey = "selectedTransportOption";
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType)
@@ -208,12 +209,24 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
 ErrCode AddStreamingConfigImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
     OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
-    if (forUpdate)
-        return OPENDAQ_SUCCESS;
 
     return daqTry([&]
     {
         const auto serializerPtr = SerializerPtr::Borrow(serializer);
+        if (forUpdate)
+        {
+            // A property value equal to the default is not saved, and the first option is the default.
+            // Without this key the first option of the server would become the first option of the type on load.
+            if (transportOptions.getCount() > 0)
+            {
+                const StringPtr selected = objPtr.getPropertyValue(add_streaming_config::TransportOption);
+                serializerPtr.key(add_streaming_config::SelectedTransportOptionKey);
+                serializerPtr.writeString(selected);
+            }
+
+            return;
+        }
+
         serializerPtr.key(add_streaming_config::StreamingTypeKey);
         streamingType.asPtr<ISerializable>().serialize(serializerPtr);
 
@@ -223,6 +236,21 @@ ErrCode AddStreamingConfigImpl::serializeCustomValues(ISerializer* serializer, b
             serializerPtr.key(add_streaming_config::AvailableTransportOptionsKey);
             transportOptions.serialize(serializerPtr);
         }
+    });
+}
+
+ErrCode AddStreamingConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    const ErrCode errCode = Super::updateInternal(obj, context);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (errCode == OPENDAQ_IGNORED)
+        return errCode;
+
+    return daqTry([&]
+    {
+        const auto saved = SerializedObjectPtr::Borrow(obj);
+        if (saved.hasKey(add_streaming_config::SelectedTransportOptionKey) && streamingType.getAvailableTransportOptions().getCount() > 0)
+            checkErrorInfo(setTransportOption(saved.readString(add_streaming_config::SelectedTransportOptionKey)));
     });
 }
 

@@ -28,6 +28,7 @@ static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
 static const char* PropValuesKey = "propValues";
 static const char* AvailableTransportOptionsKey = "availableTransportOptions";
+static const char* SelectedTransportOptionKey = "selectedTransportOption";
 
 // The transport options that `capabilities` announce for a type and the type lists as well.
 // They keep the server's order and ports. The security mode and certificate requirement come from the type's option.
@@ -337,6 +338,30 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
 
         serializerPtr.key(add_device_config::DeviceTypeIdKey);
         serializerPtr.writeString(deviceType.getId());
+
+        // A property value equal to the default is not saved, and the first option is the default.
+        // Without this key the first option of the server would become the first option of the type on load.
+        if (transportOptions.getCount() > 0)
+        {
+            const StringPtr selected = objPtr.getPropertyValue(add_device_config::TransportOption);
+            serializerPtr.key(add_device_config::SelectedTransportOptionKey);
+            serializerPtr.writeString(selected);
+        }
+    });
+}
+
+ErrCode AddDeviceConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    const ErrCode errCode = Super::updateInternal(obj, context);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (errCode == OPENDAQ_IGNORED)
+        return errCode;
+
+    return daqTry([&]
+    {
+        const auto saved = SerializedObjectPtr::Borrow(obj);
+        if (saved.hasKey(add_device_config::SelectedTransportOptionKey) && deviceType.getAvailableTransportOptions().getCount() > 0)
+            checkErrorInfo(setTransportOption(saved.readString(add_device_config::SelectedTransportOptionKey)));
     });
 }
 

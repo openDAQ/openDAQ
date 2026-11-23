@@ -62,6 +62,8 @@ public:
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
+
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 

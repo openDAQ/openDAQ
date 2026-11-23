@@ -918,7 +918,7 @@ TEST_P(StreamingProtocolTest, ConstantValueReplayedToLateSubscriber)
     // the first subscriber gets the descriptor and then the value the signal produced
     auto& firstClient = clients[0];
     firstClient.clientHandler = createClient(firstClient, firstClient.signalAvailableHandler);
-    ASSERT_TRUE(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     firstClient.clientHandler->sendStreamingRequest();
     ASSERT_EQ(firstClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     ASSERT_EQ(firstClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
@@ -942,7 +942,7 @@ TEST_P(StreamingProtocolTest, ConstantValueReplayedToLateSubscriber)
     {
         auto& client = clients[i];
         client.clientHandler = createClient(client, client.signalAvailableHandler);
-        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        ASSERT_NO_THROW(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
@@ -997,7 +997,7 @@ TEST_P(StreamingProtocolTest, ConstantValueNotReplayedAfterDescriptorChanged)
 
     auto& firstClient = clients[0];
     firstClient.clientHandler = createClient(firstClient, firstClient.signalAvailableHandler);
-    ASSERT_TRUE(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     firstClient.clientHandler->sendStreamingRequest();
     ASSERT_EQ(firstClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     ASSERT_EQ(firstClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
@@ -1024,7 +1024,7 @@ TEST_P(StreamingProtocolTest, ConstantValueNotReplayedAfterDescriptorChanged)
     // the late subscriber gets the descriptor only - replaying the stale value would contradict it
     auto& lateClient = clients[1];
     lateClient.clientHandler = createClient(lateClient, lateClient.signalAvailableHandler);
-    ASSERT_TRUE(lateClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_NO_THROW(lateClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     lateClient.clientHandler->sendStreamingRequest();
     ASSERT_EQ(lateClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     ASSERT_EQ(lateClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);

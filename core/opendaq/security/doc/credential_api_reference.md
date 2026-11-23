@@ -168,13 +168,10 @@ for these sorts instead, distinguishable from the "Device/Streaming type, nothin
 `core/opendaq/opendaq/tests/test_factories.cpp` for this distinction tested directly).
 
 There is no dedicated "add an authenticated device" entry point anywhere in the public API - only the plain,
-config-only `addDevice`/`addStreaming` exist. A caller that wants an authenticated connection instead attaches
-the `IAuthenticationConfig` to the `config` property object it already passes to `addDevice`/`addStreaming`,
-under the `"__AuthenticationConfig"` property name - see
-`examples/applications/cpp/credential_providers/credential_providers.cpp`'s `WithAuthenticationConfig` helper
-for the exact pattern, and [§3](#3-two-ways-to-add-a-device) below. This is a temporary bridge, until
-`IAuthenticationConfig` becomes a real part of the add-device/add-streaming config schema with a dedicated
-parameter of its own.
+config-only `addDevice`/`addStreaming` exist. The `IAuthenticationConfig` is a part of the config passed to
+them: `IAddDeviceConfig::getAuthenticationConfig()`/`IAddStreamingConfig::getAuthenticationConfig()` return it
+for a type with any supported method, and throw `NotSupportedException` for a type with none - see
+[§3](#3-two-ways-to-add-a-device) below and `examples/applications/cpp/credential_providers/credential_providers.cpp`.
 
 A type with at least one method added always goes through `createAuthenticatedDevice`/`createAuthenticatedStreaming`
 - even a field-less one like `"Anonymous"`, with an empty credential and nothing to verify. `createDevice`/
@@ -242,46 +239,55 @@ auto device = instance.addDevice("daq://openDAQ_1234");
 Resolves the type's own default (first-added) method, then proceeds exactly like an attached config would
 ([§6](#6-authentication-flow)/[§8](#8-module-level-implementation)).
 
-### Attaching an `IAuthenticationConfig`
+### Using the add-device config's `IAuthenticationConfig`
 
 ```cpp
-// Attaches an `IAuthenticationConfig` to an otherwise plain config object, under the property name
-// `ModuleManagerImpl` looks for - see `credential_providers.cpp`'s own copy of this exact helper.
-PropertyObjectPtr WithAuthenticationConfig(const AuthenticationConfigPtr& authConfig)
-{
-    auto config = PropertyObject();
-    config.addProperty(ObjectProperty("__AuthenticationConfig", authConfig));
-    return config;
-}
+auto config = instance.createAddDeviceConfig(deviceInfo); // `deviceInfo` - the discovered "daq://openDAQ_1234" device
+config.getAuthenticationConfig().setAuthenticationMethod("Pin");
 
-auto device = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(authenticationConfig));
+auto device = instance.addDevice("daq://openDAQ_1234", config);
 ```
 
 Same connection string, but the caller's own explicitly selected method is resolved instead of the type's
 default.
 
-Attaching one for a type with no authentication methods added doesn't throw: `ModuleManagerImpl` logs a warning
-and falls back to the plain path, exactly as if none had been attached.
+The add-device config of a type with no authentication methods added has no authentication config at all -
+`getAuthenticationConfig()` throws `NotSupportedException`.
+
+### Legacy config
+
+A legacy (plain property object) config's `"Username"`/`"Password"` type config properties are converted into
+the `"UserNamePassword"` method with that supplied credential, for a type supporting it - for the device and for
+its streaming alike.
 
 ---
 
 ## 4. Streaming Authentication
 
-Attaching a streaming connection is authenticated **independently** of however the device itself got connected — a device authenticated via PIN can have a streaming source attached to it that goes through its own, entirely separate credential request. `IDevice::addStreaming`'s `config` resolves exactly like `addDevice`'s does ([§3](#3-two-ways-to-add-a-device)): the streaming type's default method with no config attached, or the caller's explicit selection with one. A streaming type with no methods added goes through `createStreaming`; one with any method added always goes through `createAuthenticatedStreaming` instead, field-less resolved method included.
+Attaching a streaming connection is authenticated **independently** of however the device itself got connected — a device authenticated via PIN can have a streaming source attached to it that goes through its own, entirely separate credential request. `IDevice::addStreaming`'s `config` resolves exactly like `addDevice`'s does ([§3](#3-two-ways-to-add-a-device)): the streaming type's default method with no config passed, or the caller's explicit selection on the add-streaming config's own authentication config. A streaming type with no methods added goes through `createStreaming`; one with any method added always goes through `createAuthenticatedStreaming` instead, field-less resolved method included.
 
 ```cpp
 // Resolves the streaming type's default method:
 device.addStreaming("daq.credential_demo_streaming://credential_demo_device");
 
 // Authenticated streaming attach, with its own independent authentication config:
-auto streamingAuthConfig = streamingType.createAuthenticationConfig();
-streamingAuthConfig.setAuthenticationMethod("PrivateKeyFile");
-device.addStreaming("daq.credential_demo_streaming://credential_demo_device", WithAuthenticationConfig(streamingAuthConfig));
+auto streamingConfig = device.createAddStreamingConfig("daq.credential_demo_streaming://credential_demo_device");
+streamingConfig.getAuthenticationConfig().setAuthenticationMethod("PrivateKeyFile");
+device.addStreaming("daq.credential_demo_streaming://credential_demo_device", streamingConfig);
 ```
 
 ### Auto-attach
 
-`StreamingSourceManager` (behind `PrioritizedStreamingProtocols`/`AutomaticallyConnectStreaming`) has no `IAuthenticationConfig` of its own - it always resolves the streaming type's own default method, same as a config-less `addStreaming` would. A default method with fields still needs a registered, compatible credential provider - failing (`CredentialsRequiredException`) for just that one source if none is available, caught locally and only logged, never failing the surrounding `addDevice` call. A source that needs a *different* method must be attached manually, via `addStreaming`'s own config, as shown above.
+`StreamingSourceManager` attaches the streaming selected in the add-device config's streaming options, authenticated with the authentication config of that nested add-streaming config - set up the same way as the device's own:
+
+```cpp
+auto config = instance.createAddDeviceConfig(deviceInfo);
+config.getAuthenticationConfig().setAuthenticationMethod("UserNamePassword");
+config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig().setAuthenticationMethod("PrivateKeyFile");
+auto device = instance.addDevice("daq://openDAQ_1234", config);
+```
+
+Left untouched - or with no add-device config passed at all - it is on the streaming type's own default method. A method with fields still needs a supplied credential or a registered, compatible credential provider - failing (`CredentialsRequiredException`) for just that one source if neither is available, caught locally and only logged, never failing the surrounding `addDevice` call.
 
 ---
 
@@ -290,14 +296,16 @@ device.addStreaming("daq.credential_demo_streaming://credential_demo_device", Wi
 Setting `"SuppliedCredential"` hands the module a credential it already has — a dictionary of field value(s), keyed by their own field id — instead of having the registered provider obtain one interactively. A non-empty write is validated against the *currently selected* `"AuthenticationMethod"` (see [§1](#1-core-interfaces)): it must carry a non-empty value for every field the method marks required, or the write throws `InvalidParameterException` - so select the method first:
 
 ```cpp
-auto authConfig = deviceType.createAuthenticationConfig(); // UserNamePassword is the default method
+auto config = instance.createAddDeviceConfig(deviceInfo);
+auto authConfig = config.getAuthenticationConfig();
+authConfig.setAuthenticationMethod("UserNamePassword");
 
 auto credential = Dict<IString, IString>();
 credential.set("UserName", "user");
 credential.set("Password", "pass");
 authConfig.setSuppliedCredential(credential);
 
-auto device = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(authConfig));
+auto device = instance.addDevice("daq://openDAQ_1234", config);
 ```
 
 Whether or not a credential provider is registered, the module uses the supplied credential directly and authenticates with it, with no prompt of any kind - the provider is never consulted at all when a credential is supplied this way.
@@ -308,7 +316,7 @@ Whether or not a credential provider is registered, the module uses the supplied
 
 Both ways of adding a device converge on the same entry point at the application level — a connection string and a config object. A type with no authentication methods always resolves to the module's plain `createDevice`; a type with any method always resolves to `createAuthenticatedDevice` instead. Attaching a config only changes *which* method gets resolved (the caller's explicit pick instead of the type's default) - not which of these two it goes through ([§3](#3-two-ways-to-add-a-device)).
 
-For a type with any method, the module manager hands off to the module together with the authentication config. It works out which credentials are needed - the single registered credential provider, if any, obtaining them interactively, a directly-supplied credential used instead (see [§5](#5-supplying-a-credential-directly)), or nothing at all for a field-less method - and builds a fresh credential request for it, whether this is a first-time connection or a reload. The module then verifies the resolved credentials and constructs the device. The authentication config itself (not the credential request, which is never saved) is then stored on the device afterward, in reduced form - so a future reload can repeat this same resolution process rather than needing the original credentials to be saved anywhere.
+For a type with any method, the module manager hands off to the module together with the authentication config. It works out which credentials are needed - the single registered credential provider, if any, obtaining them interactively, a directly-supplied credential used instead (see [§5](#5-supplying-a-credential-directly)), or nothing at all for a field-less method - and builds a fresh credential request for it, whether this is a first-time connection or a reload. The module then verifies the resolved credentials and constructs the device. The authentication config itself (not the credential request, which is never saved) stays on the device as a part of its add-device config, saved in reduced form - so a future reload can repeat this same resolution process rather than needing the original credentials to be saved anywhere.
 
 Sequence (the same resolution applies verbatim to authenticating a streaming connection, [§4](#4-streaming-authentication) — only the surrounding API call differs):
 
@@ -316,7 +324,7 @@ Sequence (the same resolution applies verbatim to authenticating a streaming con
 2. Module manager resolves the method - the attached config's selection, or the type's default if none was attached - and hands off to the module together with the authentication config.
 3. Module manager resolves the credential: a directly-supplied one is used as-is, the registered provider is asked interactively, or nothing at all for a field-less method.
 4. Module verifies the resolved credential (handed to it as already-resolved login parameters) against the selected authentication method and constructs the device.
-5. The authentication config (never the credential itself) is stored on the device, so a future reload repeats this same resolution instead of needing the original credential saved anywhere.
+5. The authentication config stays on the device as a part of its add-device config - saved without the credential - so a future reload repeats this same resolution instead of needing the original credential saved anywhere.
 
 ---
 
@@ -336,35 +344,32 @@ Provider registration is **never serialized** — a reloaded instance must regis
 
 ### Selecting an authentication method
 
-`componentType.createAuthenticationConfig()` returns one **self-contained** config listing every method the named device type supports as a candidate of its `"AuthenticationMethod"` selection property (see [§1](#1-core-interfaces)) - not a separate config per method. The application either accepts the type's default selection, or switches it to a different supported method by id, directly through the typed setter:
+The add-device config's `getAuthenticationConfig()` returns one **self-contained** config listing every method the device type supports as a candidate of its `"AuthenticationMethod"` selection property (see [§1](#1-core-interfaces)) - not a separate config per method. The application either accepts the type's default selection, or switches it to a different supported method by id, directly through the typed setter:
 
 ```cpp
-auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-
 // Use the type's default authentication method:
-auto config = deviceType.createAuthenticationConfig();
-auto device = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(config));
+auto config = instance.createAddDeviceConfig(deviceInfo);
+auto device = instance.addDevice("daq://openDAQ_1234", config);
 
 // Or explicitly select a specific supported method instead (e.g. "Pin"), on a config of its own:
-auto pinConfig = deviceType.createAuthenticationConfig();
-pinConfig.setAuthenticationMethod("Pin");
-auto device2 = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(pinConfig));
+auto pinConfig = instance.createAddDeviceConfig(deviceInfo);
+pinConfig.getAuthenticationConfig().setAuthenticationMethod("Pin");
+auto device2 = instance.addDevice("daq://openDAQ_1234", pinConfig);
 ```
-
-(`WithAuthenticationConfig` here is the same one-line helper shown in [§3](#3-two-ways-to-add-a-device) - wraps the config into a plain property object under `"__AuthenticationConfig"`.)
 
 ### Example: manipulating the config as a plain property object
 
-`IAuthenticationConfig` extends `IPropertyObject` (see [§1](#1-core-interfaces)), so the application can equally configure and inspect it with plain property object calls instead of the typed getters/setters used elsewhere in this section - `componentType.createAuthenticationConfig()` already returns a fresh, independent, self-contained config, ready to tune directly:
+`IAuthenticationConfig` extends `IPropertyObject` (see [§1](#1-core-interfaces)), so the application can equally configure and inspect it with plain property object calls instead of the typed getters/setters used elsewhere in this section - it is the add-device config's own `"AuthenticationConfig"` object property, ready to tune directly:
 
 ```cpp
-auto authConfig = deviceType.createAuthenticationConfig();
+auto config = instance.createAddDeviceConfig(deviceInfo);
+auto authConfig = config.getAuthenticationConfig();
 authConfig.setPropertySelectionValue("AuthenticationMethod", "Pin");
 
 StringPtr authenticationMethodId = authConfig.getPropertySelectionValue("AuthenticationMethod");
 std::cout << "Authentication method id: " << authenticationMethodId << std::endl; // "Pin" - candidates are plain id strings, no cast needed
 
-auto device = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(authConfig));
+auto device = instance.addDevice("daq://openDAQ_1234", config);
 ```
 
 See `demoAuthenticationConfigAsPropertyObject` in the `credential_providers` example app for the full, runnable version of this.
@@ -378,15 +383,13 @@ auto instanceBuilder = InstanceBuilder();
 instanceBuilder.setCredentialProvider(credentialProvider);
 auto instance = instanceBuilder.build();
 
-auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-
 // FilePath variant — module reads and parses the PEM file itself.
-auto privateKeyFileConfig = deviceType.createAuthenticationConfig();
-privateKeyFileConfig.setAuthenticationMethod("PrivateKeyFile");
-auto device = instance.addDevice("daq://openDAQ_1234", WithAuthenticationConfig(privateKeyFileConfig));
+auto config = instance.createAddDeviceConfig(deviceInfo);
+config.getAuthenticationConfig().setAuthenticationMethod("PrivateKeyFile");
+auto device = instance.addDevice("daq://openDAQ_1234", config);
 ```
 
-`"PrivateKeyFile"` is only among `deviceType`'s candidates when `credential_demo_module` was built with its
+`"PrivateKeyFile"` is only among the device type's candidates when `credential_demo_module` was built with its
 `DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH` option on (off by default) - `setAuthenticationMethod`
 throws `NotFoundException` otherwise.
 
@@ -394,7 +397,7 @@ See [§4](#4-streaming-authentication) for authenticating a streaming connection
 
 ### Save and reload
 
-Saving an instance persists the connected device's `AuthenticationConfig` as part of the tree - but only in its reduced, serialized form (see [Serialization](#serialization) in [§1](#1-core-interfaces)): every candidate authentication method and the selected method's id. No credential (supplied or obtained interactively) is ever saved. Reloading that saved configuration into a new instance rebuilds the config directly from the saved authentication methods and method id - it never re-consults the module/type registry. The device then re-authenticates from scratch through the same provider-resolution path a fresh connection would (see [§8](#8-module-level-implementation)): the new instance must have its own compatible credential provider registered, or the reload fails with `CredentialsRequiredException`, and that provider is asked for credentials again exactly like it would for a first-time connection - prompting fresh every time, since nothing is ever cached. A failure reloading one particular device is caught and logged, not fatal to the rest of the load.
+Saving an instance persists the connected device's `AuthenticationConfig` as a part of its add-device config (`"ComponentConfig"`) - but only in its reduced, serialized form (see [Serialization](#serialization) in [§1](#1-core-interfaces)): every candidate authentication method and the selected method's id. No credential (supplied or obtained interactively) is ever saved. Reloading that saved configuration into a new instance binds the saved add-device config to the live device type, selecting the saved method id on the live type's own authentication config - a method the live type no longer supports fails that device's reload with `NotFoundException`. The device then re-authenticates from scratch through the same provider-resolution path a fresh connection would (see [§8](#8-module-level-implementation)): the new instance must have its own compatible credential provider registered, or the reload fails with `CredentialsRequiredException`, and that provider is asked for credentials again exactly like it would for a first-time connection - prompting fresh every time, since nothing is ever cached. A failure reloading one particular device is caught and logged, not fatal to the rest of the load.
 
 See `core/opendaq/security/doc/credential_usage_scenarios.md` §6 for the edge cases here in more
 detail, including what happens when the live device type's own supported methods have changed since the save.
@@ -410,7 +413,7 @@ application code. Steps 1-3 and 5 are `ModuleManagerImpl`'s own responsibility, 
 implementation only ever sees step 4, through its own
 `onCreateAuthenticatedDevice`/`onCreateAuthenticatedStreaming` hook.
 
-1. **Resolve the authentication method to use.** `ModuleManagerImpl::resolveDefaultAuthenticationConfig` returns an already-attached `IAuthenticationConfig` as-is; otherwise, if the target type supports authentication, it builds a fresh default one via `componentType.createAuthenticationConfig()`. Any type with at least one supported method proceeds from here - a field-less resolved method (e.g. `"Anonymous"`) included.
+1. **Resolve the authentication method to use.** For a type supporting authentication, `ModuleManagerImpl` takes the authentication config of the add-device/add-streaming config - the caller's own, or one created for the type with its default method when none was passed (with a legacy config's `"Username"`/`"Password"` converted into it, see [§3](#3-two-ways-to-add-a-device)). Any type with at least one supported method proceeds from here - a field-less resolved method (e.g. `"Anonymous"`) included.
 
 2. **Build the credential request.** `ModuleManagerImpl` builds a new `ICredentialRequest` via `ICredentialRequestBuilder`, populating connection string (canonicalized via the module's own `onGetCanonicalConnectionString` override), the authentication method, and component type - the same way whether this is a fresh connection or a reload, since the request is always built fresh from whichever `IAuthenticationConfig` is in hand (a freshly-built one, or one reconstructed from its reduced saved form - see step 5 and [Serialization](#serialization) in [§1](#1-core-interfaces)). Manufacturer/serial number/model/display name are only ever populated for a streaming attach ([§4](#4-streaming-authentication)) - read off the streaming's already-connected *owning* device's own info, never the streaming source's own identity (which isn't known yet) - and left unassigned entirely for a device connection request.
 
@@ -420,4 +423,4 @@ implementation only ever sees step 4, through its own
 
 4. **Construct the component and authenticate.** The only step a module's own `onCreateAuthenticatedDevice`/`onCreateAuthenticatedStreaming` override implements: construct the device or streaming object and run its authentication step — reading the credentials' property values (already resolved and handed in as the `authenticationMethodId`/`credentials` parameters) and verifying them against whatever the specific method requires (a fixed value, a signed challenge, nothing at all for a field-less method, etc.). A mismatch throws `AuthenticationFailedException`, and construction fails.
 
-5. **Persist the authentication config for later reload (devices only).** Also handled by `ModuleManagerImpl` itself, after the device is constructed: it stores the *original* authentication config it resolved on the newly created device (`IComponentPrivate::setAuthenticationConfig`) — its custom serialization then reduces this, on save, to every candidate authentication method and the selected method id (see [Serialization](#serialization) in [§1](#1-core-interfaces)) — so a future reload can repeat this same resolution process (see [Save and reload](#save-and-reload)) rather than needing the credential itself, or how it was obtained, to be saved anywhere. The module implementation never sees this happen.
+5. **Persist the authentication config for later reload (devices only).** Also handled by `ModuleManagerImpl` itself, after the device is constructed: the add-device config it resolved the authentication config from is stored on the newly created device (`IComponentPrivate::setComponentConfig`) — the authentication config's custom serialization then reduces it, on save, to every candidate authentication method and the selected method id (see [Serialization](#serialization) in [§1](#1-core-interfaces)) — so a future reload can repeat this same resolution process (see [Save and reload](#save-and-reload)) rather than needing the credential itself, or how it was obtained, to be saved anywhere. The module implementation never sees this happen.

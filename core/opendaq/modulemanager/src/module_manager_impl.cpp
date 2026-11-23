@@ -220,6 +220,44 @@ inline void CheckPortMatchesConnectionString(const AddDeviceConfigPtr& config, c
     }
 }
 
+// Puts the port of the connection into the connection string of a server capability. The port is:
+// - the port set on the config;
+// - the port the capability announces for the selected option;
+// - for a capability without options, the port in its string for the first option of the type,
+//   and the port of the selected option for any other option.
+inline StringPtr SetCapabilityConnectionPort(const StringPtr& connectionString,
+                                             const ServerCapabilityPtr& capability,
+                                             const AddDeviceConfigPtr& config)
+{
+    if (const Int portSet = GetPortSet(config); portSet != -1)
+        return ReplaceConnectionStringPort(connectionString, portSet);
+
+    const TransportOptionPtr selected = config.getSelectedTransportOption();
+    if (!selected.assigned())
+        return connectionString;
+
+    const auto announced = capability.getAvailableTransportOptions();
+    if (announced.assigned() && announced.getCount() > 0)
+    {
+        if (!announced.hasKey(selected.getId()))
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(The server capability "{}" does not announce the transport option "{}")",
+                                capability.getProtocolId(),
+                                selected.getId());
+        }
+
+        const TransportOptionPtr option = announced.get(selected.getId());
+        return ReplaceConnectionStringPort(connectionString, option.getPort());
+    }
+
+    const TransportOptionPtr firstOption = FirstValue(config.getDeviceType().getAvailableTransportOptions());
+    if (selected.getId() == firstOption.getId())
+        return connectionString;
+
+    return ReplaceConnectionStringPort(connectionString, selected.getPort());
+}
+
 // Creates the config the module connects with: a copy of the type config with the selected option and the final port.
 // The port is the port set on the config, then the port of the connection string, then the port of the selected option.
 inline PropertyObjectPtr CreateConnectionConfig(const AddDeviceConfigPtr& config,
@@ -1124,7 +1162,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                 connectionStringPtr,
                                 typePrefix);
         }
-        return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+        return SetCapabilityConnectionPort(resolveSmartConnectionString(*it, config.getPrimaryAddressType()), *it, config);
     };
 
     const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();

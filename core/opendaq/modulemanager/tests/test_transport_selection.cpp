@@ -581,3 +581,98 @@ TEST_F(TransportSelectionTest, SavedDeviceConnectsAtItsPort)
     ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
     expectConnection("dev://host", "tls", 7500);
 }
+
+// A device as discovery reports it now: its capability has a connection string, but announces no options
+static DeviceInfoConfigPtr DeviceInfoWithoutOptions()
+{
+    auto info = DeviceInfo("daq://m_s");
+    info.setManufacturer("m");
+    info.setSerialNumber("s");
+
+    auto capability = ServerCapability("devproto", "devproto", ProtocolType::Configuration).setPrefix("dev");
+    capability.setConnectionString("dev://host:7500");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+    return info;
+}
+
+// A daq:// connection string connects at the port of the selected option on the server
+
+TEST_F(TransportSelectionTest, SmartConnectionWithoutConfig)
+{
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", nullptr), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17420", "plain", 17420);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionUsesPortOfSelectedOption)
+{
+    utils().getAvailableDevices();
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
+
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17422", "tls", 17422);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionUsesPortSet)
+{
+    utils().getAvailableDevices();
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
+    config.setPort(9000);
+
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:9000", "tls", 9000);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionToCapabilityWithoutOptions)
+{
+    module->availableDevices.clear();
+    module->availableDevices.pushBack(DeviceInfoWithoutOptions());
+    utils().getAvailableDevices();
+
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfoWithoutOptions());
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "plain", 7500);
+
+    config.setTransportOption("tls");
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7421", "tls", 7421);
+}
+
+// The legacy config lists the ports of the type, but connects at the port of the server
+TEST_F(TransportSelectionTest, SmartConnectionWithLegacyConfig)
+{
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", PropertyObject()), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17420", "plain", 17420);
+
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7600));
+    ASSERT_EQ(create("daq://m_s", legacy), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7600);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionToServerWithoutSelectedOptionRejected)
+{
+    module->availableDevices.clear();
+    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", PropertyObject()), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, SavedSmartConnectionKeepsOptionAndPort)
+{
+    utils().getAvailableDevices();
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("daq://m_s", config);
+
+    ASSERT_EQ(create("daq://m_s", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17422", "tls", 17422);
+}

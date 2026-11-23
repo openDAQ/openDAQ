@@ -19,6 +19,8 @@
 #include <opendaq/device_ptr.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/server.h>
+#include <opendaq/server_type_factory.h>
+#include <opendaq/component_type_private.h>
 #include <coretypes/impl.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
@@ -43,16 +45,38 @@ public:
     using Self = ServerImpl<TInterface, Interfaces...>;
     using Super = SignalContainerImpl<TInterface, Interfaces...>;
 
+    // The server's ID and local ID are the type's ID.
+    explicit ServerImpl(const ServerTypePtr& serverType,
+                        const PropertyObjectPtr& serverConfig,
+                        const DevicePtr& rootDevice,
+                        const ContextPtr& context,
+                        const ComponentPtr& parent = nullptr)
+        : Super(context, parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), serverType.getId())
+        , id(serverType.getId())
+        , serverType(serverType)
+        , config(serverConfig)
+        , rootDeviceRef(rootDevice)
+        , context(context)
+    {
+    }
+
+    // getServerType returns a type with this ID and ServerKind::Unspecified.
     explicit ServerImpl(const StringPtr& id,
                         const PropertyObjectPtr& serverConfig,
                         const DevicePtr& rootDevice,
                         const ContextPtr& context,
                         const ComponentPtr& parent = nullptr)
-        : Super(context, parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), id)
-        , id(id)
-        , config(serverConfig)
-        , rootDeviceRef(rootDevice)
-        , context(context)
+        : ServerImpl(CreateServerType(id, ServerKind::Unspecified), serverConfig, rootDevice, context, parent)
+    {
+    }
+
+    // Keeps Server("Id", ...) unambiguous: every smart pointer, ServerTypePtr included, converts from a string literal.
+    explicit ServerImpl(ConstCharPtr id,
+                        const PropertyObjectPtr& serverConfig,
+                        const DevicePtr& rootDevice,
+                        const ContextPtr& context,
+                        const ComponentPtr& parent = nullptr)
+        : ServerImpl(StringPtr(id), serverConfig, rootDevice, context, parent)
     {
     }
 
@@ -120,6 +144,39 @@ public:
         return errCode;
     }
 
+    ErrCode INTERFACE_FUNC getServerType(IServerType** type) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(type);
+
+        *type = serverType.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(functionBlocks);
+
+        if (this->isComponentRemoved)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+        return this->getFunctionBlocksInternal(functionBlocks, searchFilter);
+    }
+
+    ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override
+    {
+        return this->getAvailableFunctionBlockTypesInternal(functionBlockTypes);
+    }
+
+    ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) override
+    {
+        return this->addFunctionBlockInternal(functionBlock, typeId, config);
+    }
+
+    ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override
+    {
+        return this->removeFunctionBlockInternal(functionBlock);
+    }
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override
     {
@@ -149,7 +206,7 @@ public:
                     const ComponentDeserializeContextPtr& deserializeContext,
                     const StringPtr& /*className*/) -> BaseObjectPtr
                 {
-                    const auto id = serialized.readString("id");
+                    const auto serverType = DeserializeServerType(serialized);
                     DevicePtr parentDevice;
 
                     const auto parentFolder = deserializeContext.getParent();
@@ -164,7 +221,7 @@ public:
                     }
 
                     return createWithImplementation<IServer, Server>(
-                        id,
+                        serverType,
                         nullptr,
                         parentDevice,
                         deserializeContext.getContext(),
@@ -173,6 +230,20 @@ public:
         });
         OPENDAQ_RETURN_IF_FAILED(errCode);
         return errCode;
+    }
+
+    // Builds a placeholder type from an ID and kind, for servers created or received without a full type.
+    static ServerTypePtr CreateServerType(const StringPtr& id, ServerKind kind)
+    {
+        return ServerTypeBuilder().setId(id).setName(id).setDescription("").setServerKind(kind).build().asPtr<IServerType>();
+    }
+
+    // The type the server carries, or a placeholder with only the ID from peers that write just the ID.
+    static ServerTypePtr DeserializeServerType(const SerializedObjectPtr& serialized)
+    {
+        if (serialized.hasKey("componentType"))
+            return serialized.readObject("componentType");
+        return CreateServerType(serialized.readString("id"), ServerKind::Unspecified);
     }
 
 protected:
@@ -207,6 +278,13 @@ protected:
         serializer.key("id");
         serializer.writeString(id);
 
+        // The type without its default config; clients take the default config from the type catalog.
+        if (const auto typePrivate = serverType.template asPtrOrNull<IComponentTypePrivate>(true); !forUpdate && typePrivate.assigned())
+        {
+            serializer.key("componentType");
+            checkErrorInfo(typePrivate->serializeWithoutDefaultConfig(serializer));
+        }
+
         Super::serializeCustomObjectValues(serializer, forUpdate);
     }
 
@@ -220,6 +298,7 @@ protected:
     }
 
     StringPtr id;
+    ServerTypePtr serverType;
     PropertyObjectPtr config;
     WeakRefPtr<IDevice> rootDeviceRef;
     ContextPtr context;

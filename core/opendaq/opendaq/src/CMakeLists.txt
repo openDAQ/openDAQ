@@ -89,6 +89,7 @@ set(SRC_PublicHeaders_Component
 	module_authenticator.h
 	module_authenticator_impl.h
     module_authenticator_factory.h
+    opendaq_init.h
     PARENT_SCOPE
 )
 
@@ -96,7 +97,6 @@ set(SRC_PrivateHeaders_Component
     opendaq_config.h.in
     instance_impl.h
     client_impl.h
-    opendaq_init.h
     instance_builder_impl.h
     path_tool.h
     json_config_provider_impl.h

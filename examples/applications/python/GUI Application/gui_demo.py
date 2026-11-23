@@ -574,10 +574,9 @@ class App(tk.Tk):
                 self.tree_add_component(
                     parent_id, component, display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS)
             elif display_type == DisplayType.SYSTEM_OVERVIEW:
-                if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(
-                        component) or daq.IServer.can_cast_from(component)):
+                if not (daq.IInputPort.can_cast_from(component) or daq.ISignal.can_cast_from(component)):
                     if not (daq.IFolder.can_cast_from(component)
-                            and component.name in ('IP', 'Sig', 'Srv')):
+                            and component.name in ('IP', 'Sig')):
                         self.tree_add_component(parent_id, component)
             elif display_type == DisplayType.SIGNALS and daq.ISignal.can_cast_from(component):
                 self.tree_add_component(
@@ -1104,7 +1103,7 @@ class App(tk.Tk):
         return popup
 
     def menu_add_items(self, node):
-        """What a component accepts: a function block only takes nested function
+        """What a component accepts: a function block and a server only take function
         blocks, a device also takes devices, and only the instance takes servers."""
         if node is None or self.current_tab() == DisplayType.MODULES:
             return []
@@ -1113,6 +1112,8 @@ class App(tk.Tk):
             target, is_device = daq.IDevice.cast_from(node), True
         elif daq.IFunctionBlock.can_cast_from(node):
             target, is_device = daq.IFunctionBlock.cast_from(node), False
+        elif daq.IServer.can_cast_from(node):
+            target, is_device = daq.IServer.cast_from(node), False
         else:
             return []
 
@@ -1170,9 +1171,10 @@ class App(tk.Tk):
                 self.menu_property_items(node),
                 remove]
 
-    def menu_server_groups(self, node):
+    def menu_server_groups(self, node, add_items):
         server = daq.IServer.cast_from(node)
-        return [[('Enable discovery', 'discovery',
+        return [add_items,
+                [('Enable discovery', 'discovery',
                   lambda: self.handle_enable_discovery(server)),
                  ('Disable discovery', 'discovery_off',
                   lambda: self.handle_disable_discovery(server))],
@@ -1189,7 +1191,7 @@ class App(tk.Tk):
             if daq.IDevice.can_cast_from(node):
                 return self.menu_device_groups(node, add_items)
             if daq.IServer.can_cast_from(node):
-                return self.menu_server_groups(node)
+                return self.menu_server_groups(node, add_items)
             # The row shows the device's synchronization, which the sync component's update and clear
             # actions would not reach
             if self.shown_synchronization(node) is not None:
@@ -1402,6 +1404,8 @@ class App(tk.Tk):
         elif type_kind == "streaming" and daq.IStreamingType.can_cast_from(comp_type):
             prefix = daq.IStreamingType.cast_from(comp_type).connection_string_prefix
             info_fields.append(("Prefix", prefix))
+        elif type_kind == "server" and daq.IServerType.can_cast_from(comp_type):
+            info_fields.append(("Kind", daq.IServerType.cast_from(comp_type).server_kind.name))
 
         for label, value in info_fields:
             row = ttk.Frame(frame)
@@ -1468,13 +1472,11 @@ class App(tk.Tk):
 
         node = daq.IFunctionBlock.cast_from(node)
 
-        # searching nearest fb up the tree
-        # if no parent fb found, then trying to remove from nearest parent device
-        device = utils.get_nearest_device(node.parent, self.context.instance)
-        parent_fb = utils.get_nearest_fb(node.parent, device)
+        # a function block is removed by what it was added to: a function block, a server or a device
+        owner = utils.get_function_block_owner(node, self.context.instance)
 
-        parent_fb.remove_function_block(node)
-        self.context.selected_node = parent_fb
+        owner.remove_function_block(node)
+        self.context.selected_node = owner
         self.tree_update(self.context.selected_node)
 
     def handle_tree_menu_remove_device(self, node):

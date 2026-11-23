@@ -47,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) override;
+    ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -55,6 +58,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    ServerKind serverKind;
 };
 
 END_NAMESPACE_OPENDAQ

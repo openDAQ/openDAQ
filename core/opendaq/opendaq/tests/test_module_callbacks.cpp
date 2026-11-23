@@ -76,7 +76,8 @@ public:
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
     {
-        return Dict<IString, IServerType>({{"id", ServerType("id", "name", "desc", obj)}});
+        const ServerTypePtr type = ServerTypeBuilder().setId("id").setName("name").setDescription("desc").setDefaultConfig(obj).build();
+        return Dict<IString, IServerType>({{"id", type}});
     }
 
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override
@@ -87,7 +88,8 @@ public:
 
     DictPtr<IString, IServerType> onGetAvailableServerTypes() override
     {
-        return Dict<IString, IServerType>({{"id", ServerType("id", "name", "desc", obj)}});
+        const ServerTypePtr type = ServerTypeBuilder().setId("id").setName("name").setDescription("desc").setDefaultConfig(obj).build();
+        return Dict<IString, IServerType>({{"id", type}});
     }
 
     ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice) override

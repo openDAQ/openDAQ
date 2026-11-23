@@ -60,6 +60,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCal
     if (genericValue.IsNull())
     {
         *list = nullptr;
+        index++;
         return OPENDAQ_SUCCESS;
     }
 
@@ -95,6 +96,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
     if (genericValue.IsNull())
     {
         *plainObj = nullptr;
+        index++;
         return OPENDAQ_SUCCESS;
     }
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
@@ -132,6 +134,7 @@ ErrCode JsonSerializedList::readString(IString** obj)
     if (genericValue.IsNull())
     {
         *obj = nullptr;
+        index++;
         return OPENDAQ_SUCCESS;
     }
 
@@ -165,9 +168,9 @@ ErrCode JsonSerializedList::readInt(Int* obj)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
-    if (array[index].IsInt())
+    if (array[index].IsInt64())
     {
-        *obj = array[index++].GetInt();
+        *obj = array[index++].GetInt64();
         return OPENDAQ_SUCCESS;
     }
 

@@ -13,16 +13,23 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
 #include <testutils/testutils.h>
+#include <opendaq/mock/mock_server_module.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <config_protocol/config_protocol.h>
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <iomanip>
+#include <thread>
+#include <vector>
 #include <opendaq/mock/mock_device_module.h>
 #include "test_helpers/test_helpers.h"
 
@@ -158,9 +165,11 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
 }
 
 static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max(),
-                                        Bool restoreClientConfigOnReconnect = False)
+                                        Bool restoreClientConfigOnReconnect = False,
+                                        Int configProtocolRequestTimeoutMs = 0,
+                                        const LoggerPtr& clientLogger = nullptr)
 {
-    auto logger = Logger();
+    auto logger = clientLogger.assigned() ? clientLogger : Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("[[none]]");
     auto typeManager = TypeManager();
@@ -182,6 +191,8 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
         nativeDeviceConfig.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
 
     nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", restoreClientConfigOnReconnect);
+    if (configProtocolRequestTimeoutMs > 0)
+        nativeDeviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", configProtocolRequestTimeoutMs);
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
@@ -1028,6 +1039,131 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     }
 }
 
+TEST_F(NativeDeviceModulesTest, ServerFunctionBlocks)
+{
+    auto server = CreateServerInstance();
+    server.getModuleManager().addModule(ModulePtr(MockServerModule_Create(server.getContext(), server.getModuleManager())));
+    const auto serverMockSrv = server.addServer("MockServer", nullptr);
+    auto client = CreateClientInstance();
+
+    ServerPtr clientMockSrv;
+    ServerPtr clientNativeSrv;
+    for (const auto& srv : client.getDevices()[0].getServers())
+    {
+        if (srv.getId() == "MockServer")
+            clientMockSrv = srv;
+        else if (srv.getId() == "OpenDAQNativeStreaming")
+            clientNativeSrv = srv;
+    }
+    ASSERT_TRUE(clientMockSrv.assigned());
+    ASSERT_TRUE(clientNativeSrv.assigned());
+    ASSERT_EQ(clientNativeSrv.getServerType().getServerKind(), ServerKind::Mirror);
+
+    const auto clientMockModuleInfo = clientMockSrv.getServerType().getModuleInfo();
+    ASSERT_TRUE(clientMockModuleInfo.assigned());
+    ASSERT_EQ(clientMockModuleInfo.getName(), serverMockSrv.getServerType().getModuleInfo().getName());
+    ASSERT_TRUE(clientNativeSrv.getServerType().getModuleInfo().assigned());
+
+    const auto fb = clientMockSrv.addFunctionBlock("mockfb1");
+    const auto nestedFb = fb.addFunctionBlock("mockfb1");
+    ASSERT_EQ(serverMockSrv.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(serverMockSrv.getFunctionBlocks()[0].getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientMockSrv.getFunctionBlocks(search::Recursive(search::Any())).getCount(), 2u);
+
+    fb.removeFunctionBlock(nestedFb);
+    ASSERT_EQ(serverMockSrv.getFunctionBlocks()[0].getFunctionBlocks().getCount(), 0u);
+
+    clientMockSrv.removeFunctionBlock(fb);
+    ASSERT_EQ(serverMockSrv.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(clientMockSrv.getFunctionBlocks().getCount(), 0u);
+}
+
+// A subscription completes only for signals the native server advertises.
+static bool subscribeAcknowledged(const SignalPtr& signal, std::chrono::seconds timeout)
+{
+    test_helpers::SignalAckListener acks(signal.asPtr<IMirroredSignalConfig>());
+    const auto reader = PacketReader(signal);
+    return acks.waitForSubscribeAck(timeout);
+}
+
+TEST_F(NativeDeviceModulesTest, ServerFunctionBlockSignalsNotAdvertised)
+{
+    auto server = CreateDefaultServerInstance();
+    server.getModuleManager().addModule(ModulePtr(MockServerModule_Create(server.getContext(), server.getModuleManager())));
+    const auto serverMockSrv = server.addServer("MockServer", nullptr);
+    serverMockSrv.addFunctionBlock("mockfb1");
+    CreateServerInstance(server);
+    auto client = CreateClientInstance();
+
+    // One block exists before the native server starts and one is added after; neither output is advertised.
+    ServerPtr clientMockSrv;
+    for (const auto& srv : client.getDevices()[0].getServers())
+        if (srv.getId() == "MockServer")
+            clientMockSrv = srv;
+    ASSERT_TRUE(clientMockSrv.assigned());
+
+    const auto config = PropertyObject();
+    config.addProperty(StringProperty("LocalId", "laterFb"));
+    clientMockSrv.addFunctionBlock("mockfb1", config);
+
+    const auto clientFbs = clientMockSrv.getFunctionBlocks();
+    ASSERT_EQ(clientFbs.getCount(), 2u);
+    ASSERT_TRUE(subscribeAcknowledged(client.getDevices()[0].getSignals(search::Recursive(search::Visible()))[0], std::chrono::seconds(5)));
+    for (const auto& fb : clientFbs)
+        ASSERT_FALSE(subscribeAcknowledged(fb.getSignals()[0], std::chrono::seconds(1)));
+}
+
+TEST_F(NativeDeviceModulesTest, GatewayDoesNotAdvertiseMirroredServerFunctionBlockSignals)
+{
+    auto server = CreateDefaultServerInstance();
+    server.getModuleManager().addModule(ModulePtr(MockServerModule_Create(server.getContext(), server.getModuleManager())));
+    server.addServer("MockServer", nullptr).addFunctionBlock("mockfb1");
+    CreateServerInstance(server);
+
+    // The remote device is added after the gateway's native server starts, so its blocks arrive through component-added events.
+    auto gateway = test_helpers::createInstance("[[none]]", "gateway");
+    addNativeClientModule(gateway);
+    addNativeServerModule(gateway);
+    auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addServer("OpenDAQNativeStreaming", gatewayServerConfig);
+    gateway.addDevice("daq.nd://127.0.0.1");
+
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    const auto clientGatewayDevice = client.addDevice("daq.nd://127.0.0.1:7421");
+
+    ServerPtr mirroredMockSrv;
+    for (const auto& srv : clientGatewayDevice.getDevices()[0].getServers())
+        if (srv.getId() == "MockServer")
+            mirroredMockSrv = srv;
+    ASSERT_TRUE(mirroredMockSrv.assigned());
+    ASSERT_EQ(mirroredMockSrv.getFunctionBlocks().getCount(), 1u);
+
+    const auto deviceSignal = clientGatewayDevice.getDevices()[0].getSignals(search::Recursive(search::Visible()))[0];
+    ASSERT_TRUE(subscribeAcknowledged(deviceSignal, std::chrono::seconds(5)));
+    ASSERT_FALSE(subscribeAcknowledged(mirroredMockSrv.getFunctionBlocks()[0].getSignals()[0], std::chrono::seconds(1)));
+}
+
+TEST_F(NativeDeviceModulesTest, LoadConfigurationKeepsNativeServerRunning)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    const auto nativeSrv = server.getServers()[0];
+    ASSERT_EQ(nativeSrv.getId(), "OpenDAQNativeStreaming");
+
+    server.loadConfiguration(server.saveConfiguration());
+
+    ASSERT_EQ(server.getServers().getCount(), 1u);
+    ASSERT_EQ(server.getServers()[0], nativeSrv);
+    ASSERT_TRUE(nativeSrv.getActive());
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_NO_THROW(client.getDevices()[0].getAvailableFunctionBlockTypes());
+
+    auto secondClient = CreateClientInstance();
+    ASSERT_EQ(secondClient.getDevices().getCount(), 1u);
+}
+
 TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
 {
     auto serverInstance = test_helpers::instanceBuilder()
@@ -1203,8 +1339,8 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
@@ -1241,12 +1377,12 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
@@ -1433,7 +1569,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         {
             ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
-            // The address used to connect is Reachable; other IPv4 ones depend on the ICMP ping, which needs root
+            // The address used to connect is Reachable; IPv6 ones carry the discovery ping result
             if (addressInfo.getConnectionString() == capability.getConnectionString())
             {
                 ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
@@ -1441,7 +1577,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             }
             else if (addressInfo.getType() == "IPv6")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown);
                 cnt++;
             }
 
@@ -1747,19 +1883,19 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
 
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     std::promise<StringPtr> domainSubscribePromise;
     std::future<StringPtr> domainSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+    const auto domainSubscribeAck = test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     std::promise<StringPtr> domainUnsubscribePromise;
     std::future<StringPtr> domainUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
+    const auto domainUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -2424,6 +2560,173 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
+// requests issued while the transport drops fail with ConnectionLostException at once, not after the request timeout
+TEST_F(NativeDeviceModulesTest, RequestsAfterDisconnectFailFast)
+{
+    SKIP_TEST_MAC_CI;
+    using namespace std::chrono;
+    constexpr Int requestTimeoutMs = 10000;
+    // well below the request timeout, with room for a starved worker thread on a loaded runner
+    constexpr auto maxCallDuration = seconds(5);
+    constexpr auto settleTime = seconds(3);
+    constexpr size_t workerCount = 4;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, requestTimeoutMs);
+    auto nestedDevice = client.getDevices()[0].getDevices()[0];
+
+    struct WorkerResult
+    {
+        milliseconds longestCallAfterDisconnect{0};
+        size_t connectionLostCount{0};
+        std::string otherError;
+    };
+
+    std::atomic<bool> stop{false};
+    // steady_clock ticks of the first ConnectionLostException any worker saw, -1 until then
+    std::atomic<steady_clock::rep> disconnectNoticed{-1};
+    const auto worker = [&stop, &disconnectNoticed, &nestedDevice](WorkerResult& result)
+    {
+        Int value = 0;
+        while (!stop)
+        {
+            const auto start = steady_clock::now();
+            bool connectionLost = false;
+            try
+            {
+                nestedDevice.setPropertyValue("CustomProp", ++value);
+            }
+            catch (const ConnectionLostException&)
+            {
+                connectionLost = true;
+                ++result.connectionLostCount;
+            }
+            catch (const std::exception& e)
+            {
+                // only failures after the disconnect was noticed count; the server may still answer while it shuts down
+                if (disconnectNoticed.load() >= 0)
+                    result.otherError = e.what();
+            }
+            const auto end = steady_clock::now();
+            if (connectionLost)
+            {
+                steady_clock::rep expected = -1;
+                disconnectNoticed.compare_exchange_strong(expected, end.time_since_epoch().count());
+            }
+
+            // measured from the moment the disconnect was noticed, so the server teardown itself does not count
+            if (const auto noticed = disconnectNoticed.load(); noticed >= 0)
+            {
+                const auto from = std::max(start, steady_clock::time_point(steady_clock::duration(noticed)));
+                result.longestCallAfterDisconnect = std::max(result.longestCallAfterDisconnect, duration_cast<milliseconds>(end - from));
+            }
+
+            // the request right after the first failure still goes out immediately
+            if (result.connectionLostCount > 1)
+                std::this_thread::sleep_for(milliseconds(10));
+        }
+    };
+
+    std::vector<WorkerResult> results(workerCount);
+    std::vector<std::thread> workers;
+    for (auto& result : results)
+        workers.emplace_back(worker, std::ref(result));
+
+    std::this_thread::sleep_for(milliseconds(200));
+
+    // destroy server to emulate disconnection
+    server.release();
+
+    const auto noticeDeadline = steady_clock::now() + seconds(10);
+    while (disconnectNoticed.load() < 0 && steady_clock::now() < noticeDeadline)
+        std::this_thread::sleep_for(milliseconds(10));
+    std::this_thread::sleep_for(settleTime);
+    stop = true;
+    for (auto& workerThread : workers)
+        workerThread.join();
+
+    ASSERT_GE(disconnectNoticed.load(), 0);
+    for (size_t i = 0; i < workerCount; ++i)
+    {
+        EXPECT_EQ(results[i].otherError, "") << "worker " << i;
+        EXPECT_GT(results[i].connectionLostCount, 0u) << "worker " << i;
+        EXPECT_LT(results[i].longestCallAfterDisconnect.count(), duration_cast<milliseconds>(maxCallDuration).count())
+            << "worker " << i << ": a request issued at the moment of disconnection waited for the request timeout";
+    }
+}
+
+// the no-reply request that removing an input port with an external signal sends is refused and logged once the device is removed
+TEST_F(NativeDeviceModulesTest, NoReplyRequestAfterRemove)
+{
+    SKIP_TEST_MAC_CI;
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, 0, logger);
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    ASSERT_EQ(server.getServers()[0].getSignals().getCount(), 1u);
+
+    // reset messages
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    privateSink.waitForMessage(0);
+
+    ASSERT_NO_THROW(client.removeDevice(mirroredDevice));
+    ASSERT_TRUE(mirroredInputPort.isRemoved());
+    logger.flush();
+
+    std::vector<std::string> messages;
+    while (privateSink.waitForMessage(messages.empty() ? 5000 : 200))
+        messages.push_back(privateSink.getLastMessage().toStdString());
+
+    const auto refused = std::any_of(messages.begin(),
+                                     messages.end(),
+                                     [](const std::string& message)
+                                     {
+                                         return message.find("Cannot send no reply command RemoveExternalSignals") != std::string::npos &&
+                                                message.find("component is removed") != std::string::npos;
+                                     });
+    std::string loggedWarnings;
+    for (const auto& message : messages)
+        loggedWarnings += message + "\n";
+    EXPECT_TRUE(refused) << "warnings logged:\n" << loggedWarnings;
+}
+
+TEST_F(NativeDeviceModulesTest, ReconnectionKeepsConnectionStringBeforeDeviceIsAdded)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    // Never added to the client's tree, so the device's core events stay muted, as they do while it is being added
+    const DevicePtr device = client.getContext().getModuleManager().asPtr<IModuleManagerUtils>(true).createDevice(
+        "daq.nd://127.0.0.1", client.getRootDevice());
+    const auto connectionStatus = [&device] { return device.getStatusContainer().getStatus("ConnectionStatus"); };
+
+    server.release();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Reconnecting"; }));
+
+    server = CreateServerInstance();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Connected"; }, std::chrono::seconds(10)));
+
+    const auto info = device.getInfo();
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+
+    device.remove();
+}
+
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
 {
     SKIP_TEST_MAC_CI;
@@ -3083,7 +3386,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client1SignalSubscribePromise;
     std::future<StringPtr> client1SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
+    const auto client1SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
 
     StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client1SignalSubscribeFuture));
@@ -3098,7 +3401,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client2SignalSubscribePromise;
     std::future<StringPtr> client2SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
+    const auto client2SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
 
     StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client2SignalSubscribeFuture));
@@ -3774,9 +4077,9 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
@@ -3787,39 +4090,39 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
-    // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
-
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
-
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));

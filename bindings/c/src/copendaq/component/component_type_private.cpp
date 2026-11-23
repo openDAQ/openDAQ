@@ -26,3 +26,8 @@ daqErrCode daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, 
 {
     return reinterpret_cast<daq::IComponentTypePrivate*>(self)->setModuleInfo(reinterpret_cast<daq::IModuleInfo*>(info));
 }
+
+daqErrCode daqComponentTypePrivate_serializeWithoutDefaultConfig(daqComponentTypePrivate* self, daqSerializer* serializer)
+{
+    return reinterpret_cast<daq::IComponentTypePrivate*>(self)->serializeWithoutDefaultConfig(reinterpret_cast<daq::ISerializer*>(serializer));
+}

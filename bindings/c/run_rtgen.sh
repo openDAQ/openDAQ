@@ -233,10 +233,7 @@ run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager mo
 run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_utils module_manager_utils
 
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq boost_dll boost_dll #includes
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq format format #C++
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_header icmp_header #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_ping icmp_ping #C++
-# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq ipv4_header ipv4_header #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_check_dependencies module_check_dependencies #C++
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_exports module_exports #utility macro
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_library module_library #C++

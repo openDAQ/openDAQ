@@ -11,11 +11,16 @@
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
+- [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
 
 ## Python
 
 ## Bug fixes
 
+- [#1399](https://github.com/openDAQ/openDAQ/pull/1399) Harden the native server's connection accept path against slow, silent or malformed clients
 - [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
@@ -27,6 +32,8 @@
 - [#1352](https://github.com/openDAQ/openDAQ/pull/1352) Fix process termination on mirrored signal teardown after a failed subscribe: a mirrored signal is marked as listened only once its subscribe succeeded, a failed teardown unsubscribe is logged instead of thrown, `ComponentImpl::remove` returns an error code instead of letting exceptions escape, and reader destructors no longer throw
 - [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A streaming unsubscribes the value signal even when its domain signal is no longer in the streaming, so the value signal does not stay subscribed after its reader is gone
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
+- [#1381](https://github.com/openDAQ/openDAQ/pull/1381) The native streaming client replaces its streaming and config callbacks as one set and runs every call on a copy, so replacing or resetting them no longer destroys a callback while it runs.
+- [#1380](https://github.com/openDAQ/openDAQ/pull/1380) Raise the default native inactivity timeout from 1.5 s to 3 s, so a connection with the default 1 s heartbeat survives 2-3 missed heartbeats instead of 1.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
 - [#1303](https://github.com/openDAQ/openDAQ/pull/1303) Stop the mDNS discovery server's service thread before an instance releases its root device. A request the thread was answering through the device could keep the device tree alive past the instance's destruction and then destroy the context from the service thread itself, which joined its own thread and terminated the process.
 - [#1299](https://github.com/openDAQ/openDAQ/pull/1299) Fix a deadlock when a scheduler worker releases the last reference to the context: the scheduler no longer waits on its own thread while destroying the executor. Such a shutdown could also crash at process exit, with Taskflow's node pool destroyed under live workers, which is what made `test_audio_device_module` fail intermittently on the gcc-7 32-bit CI lane.
@@ -37,9 +44,15 @@
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 - [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
 - [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
+- [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
+- [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
+- [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
 
 ## Misc
 
+- [#1376](https://github.com/openDAQ/openDAQ/pull/1376) Fix the package build on macOS runners with OpenSSL 4, and when Apache's mirrors fail to serve Thrift
 - [#1339](https://github.com/openDAQ/openDAQ/pull/1339) Publish the core stagings tagged by the run that published them, with the revision on every package.
 - [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
@@ -50,6 +63,7 @@
 - [#1265](https://github.com/openDAQ/openDAQ/pull/1265) Publish the SDK staging weekly. Add ARM Linux and manylinux CI runners and pin the compilers.
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
+- [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
 
 ## Required application changes
 
@@ -78,6 +92,10 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 - Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
 - Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
 
+### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
+
+`loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
+
 ## Required module changes
 
 ### [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A public value signal cannot have a private domain signal
@@ -100,11 +118,19 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 
 Lock attributes when the component is constructed. After that, unlock an attribute only briefly to apply an internal change, and lock it again right after. Locking or unlocking does not trigger a core event, so locks changed later do not reach connected clients.
 
+### [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Component and device getters take the component's lock
+
+`getName`, `getDescription`, `getVisible`, `IDevice::getInfo` and `IDevice::getDomain` now take the component's recursive lock. Don't call them on the same component while holding `getAcquisitionLock` or `getUniqueLock`: those lock the same mutex without the re-entry check, and the call blocks forever.
+
 ### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
 
 - `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
 - Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
 - `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
+### [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default
+
+A device that does not override `onGetAvailableOperationModes` lists `Operation` as its only mode instead of `SafeOperation`. A device that lists `Operation` and does not override `onGetDefaultOperationMode` starts in `Operation` instead of `SafeOperation`; override `onGetDefaultOperationMode` to keep starting in `SafeOperation`. A device that does not list `Operation` still starts in `SafeOperation`.
 
 ## Interface API changes
 
@@ -116,6 +142,7 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 + [interface] ISyncInterface
 + [interface] ISyncInterfaceInternal
 + [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
++ [enum] ServerKind
 ```
 
 ### Removed interfaces
@@ -174,4 +201,29 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 #### `IStreaming`
 ```diff
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
+```
+
+#### `IServer`
+```diff
++ IServer::getServerType(IServerType** type);
++ IServer::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr);
++ IServer::getAvailableFunctionBlockTypes(IDict** functionBlockTypes);
++ IServer::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
++ IServer::removeFunctionBlock(IFunctionBlock* functionBlock);
+```
+
+#### `IServerType`
+```diff
++ IServerType::getServerKind(ServerKind* kind);
+```
+
+#### `IComponentTypeBuilder`
+```diff
++ IComponentTypeBuilder::setServerKind(ServerKind kind);
++ IComponentTypeBuilder::getServerKind(ServerKind* kind);
+```
+
+#### `IComponentTypePrivate`
+```diff
++ IComponentTypePrivate::serializeWithoutDefaultConfig(ISerializer* serializer);
 ```

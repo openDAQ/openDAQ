@@ -26,9 +26,6 @@
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <map>
-#include <thread>
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/io_context.hpp>
 #include <opendaq/module_ptr.h>
 #include <tsl/ordered_map.h>
 #include <daq_discovery/daq_discovery_client.h>
@@ -129,10 +126,6 @@ private:
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
-
-    std::vector<std::thread> pool;
-    boost::asio::io_context ioContext;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
 
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::mutex availableDevicesSearchSync;

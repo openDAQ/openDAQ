@@ -15,6 +15,9 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -280,6 +283,28 @@ TEST_F(DeviceTest, DeviceTypeStructNames)
     const auto structType = daq::DeviceTypeStructType();
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesPrefixWithoutDescription)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
+
+    const auto serializer = daq::JsonSerializer();
+    type.serialize(serializer);
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getConnectionStringPrefix(), "prefix");
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesDescriptionWithoutPrefix)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setDescription("desc").build();
+
+    const auto serializer = daq::JsonSerializer();
+    ASSERT_NO_THROW(type.serialize(serializer));
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getDescription(), "desc");
 }
 
 TEST_F(DeviceTest, StandardProperties)
@@ -667,6 +692,32 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     // Check that not supported modes are ignored
     ASSERT_EQ(device->setOperationMode(daq::OperationModeType::Operation), OPENDAQ_IGNORED);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
+}
+
+class AllOpModesDevice final : public daq::Device
+{
+public:
+    AllOpModesDevice()
+        : daq::Device(daq::NullContext(), nullptr, "dev")
+    {
+    }
+
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override
+    {
+        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation};
+    }
+};
+
+TEST_F(DeviceTest, DefaultOperationMode)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, daq::Device>(daq::NullContext(), nullptr, "dev");
+    device.asPtr<daq::IDevicePrivate>(true).setAsRoot();
+    ASSERT_EQ(device.getAvailableOperationModes(), daq::List<daq::IInteger>(static_cast<daq::Int>(daq::OperationModeType::Operation)));
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+
+    const auto allModesDevice = daq::createWithImplementation<daq::IDevice, AllOpModesDevice>();
+    allModesDevice.asPtr<daq::IDevicePrivate>(true).setAsRoot();
+    ASSERT_EQ(allModesDevice.getOperationMode(), daq::OperationModeType::Operation);
 }
 
 TEST_F(DeviceTest, DefaultFolderLockingStrategy)

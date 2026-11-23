@@ -251,7 +251,6 @@ ErrCode ErrorGuardImpl::getErrorInfoList(IList** errorInfos)
     return OPENDAQ_SUCCESS;
 }
 
-#ifndef NDEBUG
 ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
@@ -261,86 +260,67 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    std::vector<IErrorInfo*> errorList;
-    errorList.reserve(errorInfoList.size());
+    // The newest error comes first; each following line is the cause of the one above, down to the error that started the chain.
+    // A chain of one line returns that entry's message object without copying it.
+    StringPtr onlyLine;
+    std::string text;
+    const auto appendText = [&text](IString* str)
+    {
+        ConstCharPtr chars = nullptr;
+        SizeT length = 0;
+        str->getCharPtr(&chars);
+        str->getLength(&length);
+        text.append(chars, length);
+    };
+
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
     {
-        errorList.push_back(it->borrow());
+        IErrorInfo* errorInfo = it->borrow();
+        StringPtr line;
+        errorInfo->getFormattedMessage(&line);
+        SizeT length = 0;
+        if (line.assigned())
+            line->getLength(&length);
+
+        if (length > 0)
+        {
+            if (!onlyLine.assigned() && text.empty())
+            {
+                onlyLine = std::move(line);
+            }
+            else
+            {
+                if (onlyLine.assigned())
+                {
+                    appendText(onlyLine);
+                    onlyLine = nullptr;
+                }
+                text.append("\n - Caused by: ");
+                appendText(line);
+            }
+        }
+
         ErrCode prevErrCode = OPENDAQ_SUCCESS;
-        it->borrow()->getPreviousErrorCode(&prevErrCode);
+        errorInfo->getPreviousErrorCode(&prevErrCode);
         if (prevErrCode == OPENDAQ_SUCCESS)
             break;
     }
 
-    std::ostringstream ss;
-    bool firstMessage = true;
-    for (auto it = errorList.rbegin(); it != errorList.rend(); ++it)
+    if (onlyLine.assigned())
     {
-        IErrorInfo* errorInfo = *it;
-        IString* errorMessage = nullptr;
-        errorInfo->getFormattedMessage(&errorMessage);
-        if (errorMessage == nullptr)
-            continue;
-
-        ConstCharPtr messagePtr;
-        errorMessage->getCharPtr(&messagePtr);
-        if (messagePtr)
-        {
-            ss << (firstMessage ? "" : "\n") << messagePtr;
-            firstMessage = false;
-        }
-        errorMessage->releaseRef();
+        *message = onlyLine.detach();
     }
-
-    if (filename && !firstMessage)
+    else
     {
-        ss << "\n - Caused by: [ " << filename;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
+        // The next interface boundary turns this message into one entry of its chain, so uncapped it would grow with the call depth
+        capErrorMessage(text);
+        createString(message, text.c_str());
     }
-
-    auto str = ss.str();
-    createString(message, str.c_str());
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     errorInfoList.back().borrow()->getErrorCode(&errCode);
     return errCode;
 }
-#else
-ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
-{
-    if (message == nullptr)
-        return OPENDAQ_IGNORED;
-
-    *message = nullptr;
-    if (errorInfoList.empty())
-        return OPENDAQ_SUCCESS;
-
-    ErrCode errorCode = OPENDAQ_SUCCESS;
-    errorInfoList.back().borrow()->getErrorCode(&errorCode);
-
-    // Try to find the error info with custom message. Otherwise return default message.
-    for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
-    {
-        IErrorInfo* errorInfo = it->borrow();
-
-        if (errorInfo->getMessage(message) == OPENDAQ_SUCCESS)
-            return errorCode;
-
-        ErrCode prevErrCode = OPENDAQ_SUCCESS;
-        errorInfo->getPreviousErrorCode(&prevErrCode);
-
-        if (prevErrCode != errorCode)
-        {
-            auto defaultMessage = ErrorCodeMessage(errorCode);
-            createString(message, defaultMessage.c_str());
-            return errorCode;
-        }
-    }
-    return OPENDAQ_IGNORED;
-}
-#endif
 
 ErrCode ErrorGuardImpl::toString(CharPtr* str)
 {
@@ -604,12 +584,19 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
         return OPENDAQ_SUCCESS;
     }
 
+#ifdef NDEBUG
+    // Release builds add no file and line, so a set message is already the formatted one
+    if (this->message)
+    {
+        *message = this->message;
+        this->message->addRef();
+        return OPENDAQ_SUCCESS;
+    }
+#endif
+
     std::ostringstream ss;
 
-    if (this->prevErrCode != OPENDAQ_SUCCESS)
-        ss << " - Caused by: ";
-
-    [[maybe_unused]] bool needSpace = true;
+    [[maybe_unused]] bool hasText = true;
     if (this->message)
     {
         ConstCharPtr msgCharPtr;
@@ -624,13 +611,14 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
     }
     else
     {
-        needSpace = false;
+        hasText = false;
     }
 
 #ifndef NDEBUG
-    if (this->fileName)
+    // An entry that only passes the error on stays empty, as release builds do not create it, so it never leads a chain
+    if (this->fileName && hasText)
     {
-        ss << (needSpace ? " [ " : "[ ") << this->fileName;
+        ss << " [ " << this->fileName;
         if (this->fileLine != -1)
             ss << ":" << this->fileLine;
         ss << " ]";

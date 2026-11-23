@@ -23,6 +23,7 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/component_type_private.h>
 #include <opendaq/device_info_internal.h>
 #include <opendaq/server_capability_ptr.h>
 #include <coretypes/event_ptr.h>
@@ -158,6 +159,9 @@ protected:
     bool isPropertyChangeable(const StringPtr& propertyName);
 
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
+    // Sets the device type the serialized info carries; an info from a peer that writes none keeps no type.
+    static void DeserializeDeviceType(const SerializedObjectPtr& serialized, const PropertyObjectPtr& info);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
 
@@ -713,9 +717,41 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerialized
 
         Super::DeserializePropertyValues(serialized, context, nullptr, propObjPtr);
 
+        DeserializeDeviceType(serialized, propObjPtr);
+
         *obj = propObjPtr.detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+void DeviceInfoConfigImpl<TInterface, Interfaces...>::DeserializeDeviceType(const SerializedObjectPtr& serialized,
+                                                                            const PropertyObjectPtr& info)
+{
+    if (!serialized.hasKey("deviceType"))
+        return;
+
+    const DeviceTypePtr type = serialized.readObject("deviceType");
+    checkErrorInfo(info.asPtr<IDeviceInfoConfig>(true)->setDeviceType(type));
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    ErrCode errCode = Super::serializeCustomValues(serializer, forUpdate);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    // The type without its default config; clients take the default config from the type catalog.
+    const auto typePrivate = !forUpdate && deviceType.assigned() ? deviceType.asPtrOrNull<IComponentTypePrivate>(true) : nullptr;
+    if (!typePrivate.assigned())
+        return errCode;
+
+    errCode = serializer->key("deviceType");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = typePrivate->serializeWithoutDefaultConfig(serializer);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }

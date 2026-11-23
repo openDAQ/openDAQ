@@ -12,8 +12,12 @@
 #include <opendaq/context_factory.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
+#include <coretypes/version_info_factory.h>
 #include <coreobjects/user_factory.h>
 #include <config_protocol/exceptions.h>
+#include <opendaq/exceptions.h>
 #include <testutils/testutils.h>
 #include <opendaq/recorder_ptr.h>
 
@@ -882,6 +886,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getName(), s.getName());
     ASSERT_EQ(c.getConnectionString(), s.getConnectionString());
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
+    ASSERT_EQ(c.getDeviceType().getId(), "mockAvailableDev");
+    ASSERT_EQ(c.getDeviceType().getConnectionStringPrefix(), s.getDeviceType().getConnectionStringPrefix());
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
@@ -1154,4 +1160,132 @@ TEST_F(ConfigProtocolIntegrationTest, GetServers)
     ListPtr<IServer> servers;
     ASSERT_NO_THROW(servers = clientDevice.getServers());
     ASSERT_EQ(servers.getCount(), serverDevice.getServers().getCount());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ComponentTypesCarriedWithoutDefaultConfig)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    // The physical mock device is the one whose info carries a device type.
+    const auto serverDeviceType = serverDevice.getDevices(search::LocalId("mock_phys_dev"))[0].getInfo().getDeviceType();
+    const auto clientDeviceType = clientDevice.getDevices(search::LocalId("mock_phys_dev"))[0].getInfo().getDeviceType();
+    ASSERT_TRUE(serverDeviceType.assigned());
+    ASSERT_EQ(clientDeviceType.getId(), serverDeviceType.getId());
+    ASSERT_EQ(clientDeviceType.getName(), serverDeviceType.getName());
+    ASSERT_EQ(clientDeviceType.getConnectionStringPrefix(), serverDeviceType.getConnectionStringPrefix());
+
+    const auto serverFbType = serverSubDevice.getFunctionBlocks()[0].getFunctionBlockType();
+    const auto clientFbType = clientSubDevice.getFunctionBlocks()[0].getFunctionBlockType();
+    ASSERT_EQ(clientFbType.getId(), serverFbType.getId());
+    ASSERT_EQ(clientFbType.getName(), serverFbType.getName());
+    ASSERT_EQ(clientFbType.getDescription(), serverFbType.getDescription());
+    ASSERT_EQ(clientFbType.createDefaultConfig().getAllProperties().getCount(), 0u);
+
+    const auto serverSrvType = serverDevice.getServers()[0].getServerType();
+    const auto clientSrvType = clientDevice.getServers()[0].getServerType();
+    ASSERT_EQ(clientSrvType.getName(), serverSrvType.getName());
+    ASSERT_EQ(clientSrvType.getServerKind(), serverSrvType.getServerKind());
+
+    // The carried module info is kept; the serialized module version does not replace it with a placeholder.
+    serverFbType.asPtr<IComponentTypePrivate>()->setModuleInfo(ModuleInfo(VersionInfo(1, 2, 3), "ServerModule", "server_module"));
+    auto secondClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        NullContext(),
+        [this](const PacketBuffer& requestPacket) { return server->processRequestAndGetReply(requestPacket); },
+        [](const PacketBuffer& /*requestPacket*/) {},
+        nullptr,
+        nullptr,
+        nullptr);
+    const auto secondClientFbType = secondClient->connect().getDevices()[0].getFunctionBlocks()[0].getFunctionBlockType();
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getName(), "ServerModule");
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getId(), "server_module");
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getVersionInfo().getMinor(), 2u);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerKind)
+{
+    const auto serverSrv = serverDevice.getServers()[0];
+    const auto clientSrv = clientDevice.getServers()[0];
+
+    ASSERT_EQ(serverSrv.getServerType().getServerKind(), ServerKind::Adapter);
+    ASSERT_EQ(clientSrv.getServerType().getServerKind(), ServerKind::Adapter);
+    ASSERT_EQ(clientSrv.getServerType().getId(), serverSrv.getServerType().getId());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerGetAvailableFunctionBlockTypes)
+{
+    const auto serverSrv = serverDevice.getServers()[0];
+    const auto clientSrv = clientDevice.getServers()[0];
+
+    ASSERT_EQ(clientSrv.getAvailableFunctionBlockTypes(), serverSrv.getAvailableFunctionBlockTypes());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerAddAndRemoveFunctionBlock)
+{
+    const auto serverSrv = serverDevice.getServers()[0];
+    const auto clientSrv = clientDevice.getServers()[0];
+
+    const auto fb = clientSrv.addFunctionBlock("mockfb1");
+    ASSERT_EQ(serverSrv.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientSrv.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(fb, clientSrv.getFunctionBlocks()[0]);
+    ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSrv.getFunctionBlocks()[0].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
+
+    clientSrv.removeFunctionBlock(fb);
+    ASSERT_TRUE(fb.isRemoved());
+    ASSERT_EQ(serverSrv.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(clientSrv.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerFunctionBlocksNested)
+{
+    const auto serverSrv = serverDevice.getServers()[0];
+    const auto clientSrv = clientDevice.getServers()[0];
+    const auto config = PropertyObject();
+    config.addProperty(StringPropertyBuilder("Param", "Value").build());
+
+    const auto fb = clientSrv.addFunctionBlock("mockfb1");
+    const auto nestedFb = fb.addFunctionBlock("mockfb1", config);
+
+    const auto serverFb = serverSrv.getFunctionBlocks()[0];
+    ASSERT_EQ(serverFb.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(nestedFb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverFb.getFunctionBlocks()[0].getGlobalId());
+    ASSERT_EQ(clientSrv.getFunctionBlocks(search::Recursive(search::Any())).getCount(), 2u);
+
+    fb.removeFunctionBlock(nestedFb);
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(serverFb.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerFunctionBlockAddedOnServerSide)
+{
+    const auto serverSrv = serverDevice.getServers()[0];
+    const auto clientSrv = clientDevice.getServers()[0];
+
+    serverSrv.addFunctionBlock("mockfb1");
+    ASSERT_EQ(clientSrv.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientSrv.getFunctionBlocks()[0].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSrv.getFunctionBlocks()[0].getGlobalId());
+
+    serverSrv.removeFunctionBlock(serverSrv.getFunctionBlocks()[0]);
+    ASSERT_EQ(clientSrv.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerFunctionBlocksNeedProtocolVersion26)
+{
+    auto oldClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        NullContext(),
+        [this](const PacketBuffer& requestPacket) { return server->processRequestAndGetReply(requestPacket); },
+        [](const PacketBuffer& /*requestPacket*/) {},
+        nullptr,
+        nullptr,
+        nullptr);
+    const auto oldClientDevice = oldClient->connect(nullptr, 25);
+    const auto oldClientSrv = oldClientDevice.getServers()[0];
+
+    ASSERT_EQ(oldClientSrv.getAvailableFunctionBlockTypes().getCount(), 0u);
+    ASSERT_THROW(oldClientSrv.addFunctionBlock("mockfb1"), ServerVersionTooLowException);
+    ASSERT_EQ(serverDevice.getServers()[0].getFunctionBlocks().getCount(), 0u);
 }

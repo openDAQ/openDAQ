@@ -404,8 +404,7 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
 
     const ErrCode errCode = daqTry([&]
     {
-        // An own port keeps its listener, which holds the intake weakly and goes quiet with the slot: a port does not guard
-        // a listener replaced while its signal sends
+        // An own port keeps its listener, which holds the intake weakly and goes quiet with the slot
         if (slot.ownsPort)
         {
             slot.port.disconnect();

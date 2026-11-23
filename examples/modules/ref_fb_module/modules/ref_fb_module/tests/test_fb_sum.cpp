@@ -72,6 +72,12 @@ protected:
     }
 
 
+    // A handler still running holds the block: released there, it takes the scheduler down on its own worker
+    void TearDown() override
+    {
+        flush();
+    }
+
     // The block's ports run in Scheduler mode under its reader: statuses, port removals and output follow on the scheduler
     void flush()
     {

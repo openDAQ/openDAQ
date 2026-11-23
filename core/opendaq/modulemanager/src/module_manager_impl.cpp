@@ -3,6 +3,7 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/container_utils.h>
+#include <opendaq/connection_string_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -176,6 +177,103 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
                                            type.getId(),
                                            selected,
                                            ids));
+}
+
+// Returns the port set on the config, or -1 if no port is set
+inline Int GetPortSet(const AddDeviceConfigPtr& config)
+{
+    const Int port = config.asPtr<IPropertyObject>().getPropertyValue(PortConfigProperty);
+    return port;
+}
+
+// Applies "?TransportOption='id'" and "?Port=number" of a connection string to a config with transport options
+inline void ApplyConnectionStringTransportOptions(const AddDeviceConfigPtr& config,
+                                                  const tsl::ordered_map<std::string, BaseObjectPtr>& options)
+{
+    if (config.getAvailableTransportOptions().getCount() == 0)
+        return;
+
+    if (const auto it = options.find(TransportOptionConfigProperty); it != options.end())
+    {
+        const StringPtr id = it->second.asPtr<IEvalValue, EvalValuePtr>().getResult();
+        config.setTransportOption(id);
+    }
+
+    if (const auto it = options.find(PortConfigProperty); it != options.end())
+    {
+        const Int port = it->second.asPtr<IEvalValue, EvalValuePtr>().getResult();
+        config.setPort(port);
+    }
+}
+
+inline void CheckPortMatchesConnectionString(const AddDeviceConfigPtr& config, const StringPtr& connectionString)
+{
+    const Int portSet = GetPortSet(config);
+    const auto stringPort = GetConnectionStringPort(connectionString);
+    if (portSet != -1 && stringPort.has_value() && stringPort.value() != portSet)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            R"(The port {} set on the config differs from the port {} of the connection string "{}")",
+                            portSet,
+                            stringPort.value(),
+                            connectionString);
+    }
+}
+
+// Creates the config the module connects with: a copy of the type config with the selected option and the final port.
+// The port is the port set on the config, then the port of the connection string, then the port of the selected option.
+inline PropertyObjectPtr CreateConnectionConfig(const AddDeviceConfigPtr& config,
+                                                const PropertyObjectPtr& typeConfig,
+                                                const StringPtr& connectionString)
+{
+    PropertyObjectPtr connectionConfig;
+    if (typeConfig.assigned())
+        checkErrorInfo(typeConfig.asPtr<IPropertyObjectInternal>()->clone(&connectionConfig));
+
+    const TransportOptionPtr selected = config.getSelectedTransportOption();
+    if (!selected.assigned())
+    {
+        const auto deviceType = config.getDeviceType();
+        if (deviceType.getAvailableTransportOptions().getCount() > 0)
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(The server of "{}" announces no transport option of the device type "{}")",
+                                connectionString,
+                                deviceType.getId());
+        }
+        return connectionConfig;
+    }
+
+    const Int portSet = GetPortSet(config);
+    const Int port = portSet != -1 ? portSet : GetConnectionStringPort(connectionString).value_or(selected.getPort());
+
+    if (!connectionConfig.assigned())
+        connectionConfig = PropertyObject();
+
+    if (connectionConfig.hasProperty(TransportOptionConfigProperty))
+        connectionConfig.setPropertyValue(TransportOptionConfigProperty, selected.getId());
+    else
+        connectionConfig.addProperty(StringProperty(TransportOptionConfigProperty, selected.getId()));
+
+    if (!connectionConfig.hasProperty(PortConfigProperty))
+    {
+        connectionConfig.addProperty(IntProperty(PortConfigProperty, port));
+    }
+    else if (const auto portProperty = connectionConfig.getProperty(PortConfigProperty); portProperty.getValueType() == ctInt)
+    {
+        const Int typeConfigPort = connectionConfig.getPropertyValue(PortConfigProperty);
+        const Int defaultPort = portProperty.getDefaultValue();
+        if (typeConfigPort != defaultPort && typeConfigPort != port)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                R"(The port {} in the type config differs from the port {} of the connection. Use setPort to set the port)",
+                                typeConfigPort,
+                                port);
+        }
+        connectionConfig.setPropertyValue(PortConfigProperty, port);
+    }
+
+    return connectionConfig;
 }
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
@@ -988,6 +1086,9 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     };
 
     const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+    ApplyConnectionStringTransportOptions(addDeviceConfig, connectionStringOptions);
+    if (inputAddDeviceConfig.assigned())
+        CheckPortMatchesConnectionString(addDeviceConfig, connectionStringPtr);
 
     // Check the device type and resolve the address
     const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
@@ -1004,6 +1105,10 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                     typePrefix,
                                     deviceType.getId());
             }
+
+            // A module without transport options learns the port only from the connection string
+            if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getSelectedTransportOption().assigned())
+                return ReplaceConnectionStringPort(connectionStringPtr, portSet);
             return connectionStringPtr;
         }
 
@@ -1029,14 +1134,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     // Connect through the module that has the device type
     PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
     PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
-
-    // The module connects by the TransportOption and Port properties. For now it gets the first option of the type.
-    // They go into a copy, so the saved config does not hold them.
-    PropertyObjectPtr connectionConfig;
-    if (deviceTypeConfig.assigned())
-        checkErrorInfo(deviceTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&connectionConfig));
-    AddTransportSelectionProperties(connectionConfig, deviceType.getAvailableTransportOptions());
-    checkErrorInfo(CheckSelectedTransportOption(deviceType, connectionConfig));
+    const auto connectionConfig = CreateConnectionConfig(addDeviceConfig, deviceTypeConfig, connectionStringPtr);
 
     const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, connectionConfig, authenticationConfig);
     if (device.assigned())

@@ -11,6 +11,8 @@
 #include <opendaq/add_streaming_options_ptr.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/component_private_ptr.h>
+#include <coretypes/updatable_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -67,6 +69,20 @@ public:
 
         // A type of a module that does not use transport options
         deviceTypes.set("legacy", DeviceTypeBuilder().setId("legacy").setName("legacy").setConnectionStringPrefix("legacy").build());
+
+        // A type whose module has a Port of its own in the type config
+        auto portConfig = PropertyObject();
+        portConfig.addProperty(IntProperty(PortConfigProperty, 7000));
+        deviceTypes.set("ported",
+                        DeviceTypeBuilder()
+                            .setId("ported")
+                            .setName("ported")
+                            .setConnectionStringPrefix("ported")
+                            .setDeviceKind(DeviceKind::Mirrored)
+                            .setDefaultConfig(portConfig)
+                            .setAvailableTransportOptions(TransportOptionsById(
+                                {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
+                            .build());
     }
 
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** types) override
@@ -170,6 +186,13 @@ protected:
         return errCode;
     }
 
+    DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
+    {
+        DevicePtr device;
+        checkErrorInfo(utils()->createDevice(&device, connectionString, parent, config));
+        return device;
+    }
+
     ModuleManagerUtilsPtr utils() const
     {
         return manager.asPtr<IModuleManagerUtils>();
@@ -178,6 +201,35 @@ protected:
     PropertyObjectPtr lastTypeConfig() const
     {
         return module->typeConfigs[module->typeConfigs.getCount() - 1];
+    }
+
+    StringPtr lastConnectionString() const
+    {
+        return module->connectionStrings[module->connectionStrings.getCount() - 1];
+    }
+
+    AddDeviceConfigPtr configFor(const StringPtr& connectionString) const
+    {
+        return utils().createAddDeviceConfig(DeviceInfo(connectionString));
+    }
+
+    void expectConnection(const StringPtr& connectionString, const StringPtr& option, Int port) const
+    {
+        ASSERT_EQ(lastConnectionString(), connectionString);
+        ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), option);
+        ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), port);
+    }
+
+    // The config the device stores, read back from its saved form as loading a saved device does
+    AddDeviceConfigPtr savedAndLoaded(const DevicePtr& device) const
+    {
+        const auto serializer = JsonSerializer();
+        device.asPtr<IComponentPrivate>(true).getComponentConfig().asPtr<IUpdatable>().serializeForUpdate(serializer);
+
+        AddDeviceConfigPtr loaded;
+        JsonDeserializer().callCustomProc([&](const SerializedObjectPtr& saved) { loaded = utils().createBoundAddDeviceConfig(saved); },
+                                          serializer.getOutput());
+        return loaded;
     }
 
     ModuleManagerPtr manager;
@@ -346,4 +398,186 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
     ASSERT_FALSE(config.getSelectedTransportOption().assigned());
     ASSERT_EQ(config.getPort(), -1);
+}
+
+// The module connects with the selected option at the final port
+
+TEST_F(TransportSelectionTest, AddressWithoutPortUsesPortOfOption)
+{
+    const auto config = configFor("dev://host");
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "plain", 7420);
+
+    config.setTransportOption("tls");
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+}
+
+TEST_F(TransportSelectionTest, PortSetIsUsedAndStringStaysAsItIs)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, PortOfStringIsUsed)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    ASSERT_EQ(create("dev://host:7500", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, SamePortSetAndInString)
+{
+    const auto config = configFor("dev://host");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host:7500", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, DifferentPortSetAndInStringRejected)
+{
+    const auto config = configFor("dev://host");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host:7600", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringSelectsOptionAndPort)
+{
+    ASSERT_EQ(create("dev://host?TransportOption='tls'", configFor("dev://host")), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+
+    ASSERT_EQ(create("dev://host?TransportOption='tls'&Port=7500", nullptr), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringWithUnknownOptionRejected)
+{
+    ASSERT_EQ(create("dev://host?TransportOption='wss'", configFor("dev://host")), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringPortAndOtherPortInStringRejected)
+{
+    ASSERT_EQ(create("dev://host:7600?Port=7500", configFor("dev://host")), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringOptionsDoNotChangeConfigOfUser)
+{
+    const auto config = configFor("dev://host");
+
+    ASSERT_EQ(create("dev://host?TransportOption='tls'&Port=7500", config), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getPort(), 7420);
+}
+
+// The port of a legacy config wins over the port of the connection string, as it always did
+TEST_F(TransportSelectionTest, LegacyPortWinsOverPortInString)
+{
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7500));
+
+    ASSERT_EQ(create("dev://host:7600", legacy), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, LegacyConfigUsesFirstOption)
+{
+    ASSERT_EQ(create("dev://host:7600", PropertyObject()), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7600);
+}
+
+TEST_F(TransportSelectionTest, ModulePortGetsFinalPort)
+{
+    const auto config = configFor("ported://host");
+    config.setTransportOption("tls");
+
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_SUCCESS);
+    expectConnection("ported://host", "tls", 7421);
+    ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
+}
+
+TEST_F(TransportSelectionTest, ModulePortInsteadOfSetPortRejected)
+{
+    const auto config = configFor("ported://host");
+    config.getTypeConfig().setPropertyValue(PortConfigProperty, 7500);
+
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+
+    config.setPort(7500);
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_SUCCESS);
+    expectConnection("ported://host", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, TypeWithoutOptionsGetsPortSetInString)
+{
+    const auto config = configFor("legacy://host");
+    config.setPort(9000);
+
+    ASSERT_EQ(create("legacy://host", config), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lastConnectionString(), "legacy://host:9000");
+    ASSERT_FALSE(lastTypeConfig().assigned() && lastTypeConfig().hasProperty(TransportOptionConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, TypeWithoutOptionsKeepsString)
+{
+    ASSERT_EQ(create("legacy://host:9000", configFor("legacy://host")), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lastConnectionString(), "legacy://host:9000");
+}
+
+TEST_F(TransportSelectionTest, ServerWithoutOptionsTheTypeKnowsRejected)
+{
+    const auto config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("quic", 17425)})));
+
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+// The selection goes to the module in a copy of the type config
+TEST_F(TransportSelectionTest, StoredConfigHoldsSelectionOutsideTypeConfig)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    const PropertyObjectPtr storedConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    const auto stored = storedConfig.asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
+    ASSERT_EQ(stored.getSelectedTransportOption().getId(), "tls");
+    ASSERT_FALSE(stored.getTypeConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_TRUE(lastTypeConfig().hasProperty(TransportOptionConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, SavedDeviceConnectsWithItsSelection)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+}
+
+TEST_F(TransportSelectionTest, SavedDeviceConnectsAtItsPort)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
 }

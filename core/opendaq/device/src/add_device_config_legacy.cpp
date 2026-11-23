@@ -3,6 +3,8 @@
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
+#include <opendaq/authentication_method_factory.h>
+#include <opendaq/component_type_private_ptr.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
@@ -167,6 +169,21 @@ PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType
     return config.detach();
 }
 
+void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig)
+{
+    if (!authenticationConfig.assigned() || !typeConfig.assigned() || !typeConfig.hasProperty(LegacyAddDeviceConfig::Username))
+        return;
+
+    const StringPtr username = typeConfig.getPropertyValue(LegacyAddDeviceConfig::Username);
+    if (username.getLength() == 0 || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
+        return;
+
+    const StringPtr password =
+        typeConfig.hasProperty(LegacyAddDeviceConfig::Password) ? StringPtr(typeConfig.getPropertyValue(LegacyAddDeviceConfig::Password)) : String("");
+    authenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
+    authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
+}
+
 AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const DeviceTypePtr& deviceType,
                                              const DictPtr<IString, IStreamingType>& streamingTypes,
@@ -191,8 +208,14 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
     detail::translateTypeConfig(config.getTypeConfig(), detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig), general);
+    if (deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+        applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
     for (const auto& [typeId, streamingConfig] : streamingConfigs)
+    {
         detail::translateTypeConfig(streamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, typeId), general);
+        if (streamingConfig.getStreamingType().asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+            applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
+    }
 
     const StringPtr addressType = general.getPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType);
     if (addressType == LegacyAddDeviceConfig::IPv6)

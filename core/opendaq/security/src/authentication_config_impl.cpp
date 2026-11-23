@@ -173,6 +173,16 @@ ErrCode AuthenticationConfigImpl::serialize(ISerializer* serializer)
     });
 }
 
+ErrCode AuthenticationConfigImpl::serializePropertyValue(const StringPtr& name,
+                                                         const ObjectPtr<IBaseObject>& value,
+                                                         ISerializer* serializer,
+                                                         bool forUpdate)
+{
+    if (name == authentication_config::SuppliedCredentialPropertyName)
+        return OPENDAQ_SUCCESS;
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
+}
+
 ErrCode AuthenticationConfigImpl::getSerializeId(ConstCharPtr* id) const
 {
     *id = SerializeId();

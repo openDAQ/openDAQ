@@ -3,6 +3,9 @@
 #include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming/client.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/beast/http/error.hpp>
+#include <coreobjects/exceptions.h>
+#include <opendaq/security_exceptions.h>
 #include "native_streaming_protocol/streaming_manager.h"
 
 #include <opendaq/custom_log.h>
@@ -17,11 +20,11 @@ using namespace daq::native_streaming;
 
 NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
                                                      const PropertyObjectPtr& transportLayerProperties,
-                                                     const PropertyObjectPtr& authenticationObject,
+                                                     const DictPtr<IString, IString>& credentials,
                                                      const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
-    , authenticationObject(authenticationObject)
+    , credentials(credentials)
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientImpl"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
@@ -36,10 +39,10 @@ NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
 
 NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
                                                      const PropertyObjectPtr& transportLayerProperties,
-                                                     const PropertyObjectPtr& authenticationObject,
+                                                     const DictPtr<IString, IString>& credentials,
                                                      const PropertyObjectPtr& tlsProperties,
                                                      const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
-    : NativeStreamingClientImpl(context, transportLayerProperties, authenticationObject, ioContextPtr)
+    : NativeStreamingClientImpl(context, transportLayerProperties, credentials, ioContextPtr)
 {
     this->tlsProperties = tlsProperties;
 }
@@ -287,6 +290,11 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
             connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
                                     "Reconnection failed – the secure connection could not be established");
         }
+        else if (result == ConnectionResult::AuthenticationFailed)
+        {
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
+                                    "Reconnection failed – authentication rejected by the server");
+        }
         else
         {
             tryReconnect();
@@ -362,20 +370,30 @@ void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& st
     getConfigHandlers()->connectionStatusChanged(status, statusMessage);
 }
 
-bool NativeStreamingClientImpl::connect(std::string host,
-                                           std::string port,
-                                           std::string path)
+void NativeStreamingClientImpl::connect(std::string host,
+                                        std::string port,
+                                        std::string path)
 {
     initClient(host, port, path);
     connectedFuture = connectedPromise.get_future();
     client->connect(connectionTimeout);
 
-    if (connectedFuture.wait_for(connectionTimeout) == std::future_status::ready &&
-        connectedFuture.get() == ConnectionResult::Connected)
-            return true;
+    const auto result = connectedFuture.wait_for(connectionTimeout) == std::future_status::ready
+                            ? connectedFuture.get()
+                            : ConnectionResult::ServerUnreachable;
+    if (result == ConnectionResult::Connected)
+        return;
 
     client.reset();
-    return false;
+    if (result == ConnectionResult::AuthenticationFailed)
+    {
+        DAQ_THROW_EXCEPTION(AuthenticationFailedException,
+                            "Authentication rejected by native streaming server - host {} port {} path {}",
+                            host,
+                            port,
+                            path);
+    }
+    DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", host, port, path);
 }
 
 void NativeStreamingClientImpl::subscribeSignal(const StringPtr& signalStringId)
@@ -684,15 +702,16 @@ std::optional<daq::native_streaming::ClientTlsConfig> NativeStreamingClientImpl:
 
 #endif
 
-Authentication NativeStreamingClientImpl::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
+Authentication NativeStreamingClientImpl::initClientAuthentication(const DictPtr<IString, IString>& credentials)
 {
-    const StringPtr username = authenticationObject.getPropertyValue("Username");
-    const StringPtr password = authenticationObject.getPropertyValue("Password");
-
-    if (username.getLength() == 0)
+    // empty credentials - anonymous connection
+    if (!credentials.assigned() || credentials.getCount() == 0)
         return Authentication();
 
-    return Authentication(username, password);
+    if (!credentials.hasKey("UserName") || !credentials.hasKey("Password"))
+        DAQ_THROW_EXCEPTION(CredentialsRequiredException, "Native streaming client credentials must contain both \"UserName\" and \"Password\"");
+
+    return Authentication(credentials.get("UserName"), credentials.get("Password"));
 }
 
 void NativeStreamingClientImpl::onConnectionFailed(const std::string& errorMessage, const ConnectionResult result)
@@ -718,7 +737,7 @@ void NativeStreamingClientImpl::initClient(std::string host,
         primaryPath = path;
     }
 
-    const auto clientAuth = initClientAuthenticationObject(authenticationObject);
+    const auto clientAuth = initClientAuthentication(credentials);
 
     OnNewSessionCallback onNewSessionCallback =
         [thisWeakPtr = this->weak_from_this()](SessionPtr session)
@@ -740,14 +759,24 @@ void NativeStreamingClientImpl::initClient(std::string host,
             thisPtr->onConnectionFailed(fmt::format("Connection failed: {}", ec.message()),
                                         ConnectionResult::ServerUnreachable);
     };
-    OnCompleteCallback onHandshakeFailCallback =
-        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
+    OnHandshakeFailCallback onHandshakeFailCallback =
+        [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec, const std::shared_ptr<const HandshakeResponse>& response)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
         {
-            if (ec.value() == boost::asio::error::connection_reset)
+            // server declined the upgrade with an HTTP reply - 401 means the credentials were rejected
+            if (response && response->result() == boost::beast::http::status::unauthorized)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (authentication rejected by the server): {} {}",
+                                                        response->result_int(),
+                                                        std::string(response->reason())),
+                                            ConnectionResult::AuthenticationFailed);
+            else if (ec.value() == boost::asio::error::connection_reset)
                 thisPtr->onConnectionFailed(fmt::format("Handshake failed (server reset the connection): {}", ec.message()),
                                             ConnectionResult::ServerUnreachable);
+            // older native streaming servers close the connection without any reply when they reject authentication
+            else if (ec == boost::beast::http::error::end_of_stream)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (server closed the connection, authentication rejected): {}", ec.message()),
+                                            ConnectionResult::AuthenticationFailed);
             else
                 thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
                                             ConnectionResult::ServerUnsupported);
@@ -839,10 +868,10 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
 
 NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
                                                            const PropertyObjectPtr& transportLayerProperties,
-                                                           const PropertyObjectPtr& authenticationObject)
+                                                           const DictPtr<IString, IString>& credentials)
     : ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
-    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, ioContextPtr))
+    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, credentials, ioContextPtr))
     , toDeviceStreamingEnabled(true)
     , transport(CONST_NATIVE_TRANSPORT_PLAIN)
 {
@@ -853,11 +882,11 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
 
 NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
                                                            const PropertyObjectPtr& transportLayerProperties,
-                                                           const PropertyObjectPtr& authenticationObject,
+                                                           const DictPtr<IString, IString>& credentials,
                                                            const PropertyObjectPtr& tlsProperties)
     : ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
-    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, tlsProperties, ioContextPtr))
+    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, credentials, tlsProperties, ioContextPtr))
     , toDeviceStreamingEnabled(true)
     , transport(CONST_NATIVE_TRANSPORT_TLS)
 {
@@ -873,9 +902,9 @@ NativeStreamingClientHandler::~NativeStreamingClientHandler()
     clientHandlerPtr.reset();
 }
 
-bool NativeStreamingClientHandler::connect(std::string host, std::string port, std::string path)
+void NativeStreamingClientHandler::connect(std::string host, std::string port, std::string path)
 {
-    return clientHandlerPtr->connect(host, port, path);
+    clientHandlerPtr->connect(host, port, path);
 }
 
 void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)

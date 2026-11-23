@@ -42,11 +42,11 @@ public:
     DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
                                           const PropertyObjectPtr& config,
                                           const LoginParametersPtr& loginParameters) override;
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateAuthenticatedStreaming(const StringPtr& connectionString,
                                                 const PropertyObjectPtr& config,
                                                 const LoginParametersPtr& loginParameters) override;
@@ -57,10 +57,6 @@ private:
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
 
-    /// @brief a copy of `config` (or the default config) with the login's user name and password; a login without
-    /// credentials keeps the "Username" and "Password" the config sets
-    PropertyObjectPtr applyLogin(const PropertyObjectPtr& config, NativeType nativeType, const LoginParametersPtr& loginParameters);
-
     /// @brief reads the transport option the type config names in its "TransportOption" property
     /// (TransportOptionConfigProperty)
     /// @return the selected option of the types, with its default port; the first ("plain") when the config
@@ -70,6 +66,14 @@ private:
 
     /// @brief the options of `serverOptions` this module supports too, in the server's order, with the server's ports
     ListPtr<ITransportOption> supportedTransportOptions(const ListPtr<ITransportOption>& serverOptions) const;
+
+    DevicePtr createDeviceInternal(const StringPtr& connectionString,
+                                   const ComponentPtr& parent,
+                                   const PropertyObjectPtr& config,
+                                   const LoginParametersPtr& loginParameters);
+    StreamingPtr createStreamingInternal(const StringPtr& connectionString,
+                                         const PropertyObjectPtr& config,
+                                         const LoginParametersPtr& loginParameters);
 
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
@@ -108,8 +112,10 @@ private:
         Int port,
         const StringPtr& path,
         const PropertyObjectPtr& config,
-        const StringPtr& transport);
-    PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
+        const StringPtr& transport,
+        const LoginParametersPtr& loginParameters);
+    static DictPtr<IString, IString> ParseConfigCredentials(const PropertyObjectPtr& config);
+    static DictPtr<IString, IString> GetLoginCredentials(const LoginParametersPtr& loginParameters);
     void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
@@ -124,7 +130,8 @@ private:
                                  Int port,
                                  const StringPtr& path,
                                  uint16_t& protocolVersion,
-                                 const StringPtr& transport);
+                                 const StringPtr& transport,
+                                 const LoginParametersPtr& loginParameters);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);

@@ -57,6 +57,11 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+protected:
+    // Skips "SuppliedCredential". The custom `serialize` above doesn't cover `serializeForUpdate`, which is the inherited generic
+    // one writing all property values - used e.g. when the config is saved or bound as a part of an add-device config.
+    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
+
 private:
     void initProperties(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);
 

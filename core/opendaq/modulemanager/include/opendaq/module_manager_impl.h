@@ -127,12 +127,7 @@ private:
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString,
                                    const PropertyObjectPtr& config,
-                                   const AuthenticationConfigPtr& authenticationConfig,
                                    const DevicePtr& owner) const;
-
-    // Returns `authenticationConfig` unchanged if assigned. Otherwise builds and returns the default config for
-    // `componentType`, or unassigned if `componentType` doesn't support authentication.
-    AuthenticationConfigPtr resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const;
 
     // Resolves the credentials for `credentialRequest` - for auth method with at least one field. Consumes
     // whichever single credential provider this manager was constructed with. If

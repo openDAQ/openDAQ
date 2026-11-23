@@ -15,19 +15,6 @@ using namespace daq;
 // rather than calling the demo-module's own `createAuthenticatedDevice`/`createAuthenticatedStreaming` directly,
 // which `examples/modules/credential_demo_module/tests/test_credential_demo_module.cpp` already covers.
 
-// Mirrors the app-layer bridge in `credential_providers.cpp` - `IAuthenticationConfig` isn't yet a first-class
-// part of the add-device/add-streaming config schema, so it's smuggled onto an otherwise plain config property
-// object under this key, which `ModuleManagerImpl` looks for and honors (see `AuthenticationConfigConfigKey`/
-// `ExtractAuthenticationConfig` in `module_manager_impl.cpp`).
-static const char* AuthenticationConfigConfigKey = "__AuthenticationConfig";
-
-static PropertyObjectPtr WithAuthenticationConfig(const AuthenticationConfigPtr& authConfig)
-{
-    auto config = PropertyObject();
-    config.addProperty(ObjectProperty(AuthenticationConfigConfigKey, authConfig));
-    return config;
-}
-
 // The simplest `ICredentialProvider` - returns the one dictionary it was given at construction time,
 // regardless of what's being requested, unless `errorCode` is set to something other than `OPENDAQ_SUCCESS`,
 // in which case it fails with that error code instead (e.g. `OPENDAQ_ERR_PROVIDER_CANCELLED` for a cancelled
@@ -101,12 +88,12 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceSucceedsWithProviderSupplie
     const auto provider = TestCredentialProvider(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
     auto instance = createClientInstance(provider);
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)));
+    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, config));
     ASSERT_TRUE(device.assigned());
 }
 
@@ -115,35 +102,35 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesW
     const auto provider = TestCredentialProvider(Dict<IString, IString>({{"UserName", "user"}, {"Password", "wrong"}}));
     auto instance = createClientInstance(provider);
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), AuthenticationFailedException);
+    ASSERT_THROW(instance.addDevice(DeviceConnectionString, config), AuthenticationFailedException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenNoProviderRegisteredAndCredentialsRequired)
 {
     auto instance = createClientInstance(); // No credential provider registered.
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), CredentialsRequiredException);
+    ASSERT_THROW(instance.addDevice(DeviceConnectionString, config), CredentialsRequiredException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceWithSuppliedCredentialBypassesProvider)
 {
     auto instance = createClientInstance(); // No credential provider registered - must not be needed.
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)));
+    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, config));
     ASSERT_TRUE(device.assigned());
 }
 
@@ -151,8 +138,8 @@ TEST_F(CredentialDemoModuleIntegrationTest, SetSuppliedCredentialThrowsWhenIncom
 {
     auto instance = createClientInstance(); // No credential provider registered.
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     // Missing the "Password" field `UserNamePassword` requires - `AuthenticationConfigImpl::setPropertyValue`
@@ -166,11 +153,11 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderCancels)
     const auto provider = TestCredentialProvider(Dict<IString, IString>(), OPENDAQ_ERR_PROVIDER_CANCELLED);
     auto instance = createClientInstance(provider);
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), ProviderCancelledException);
+    ASSERT_THROW(instance.addDevice(DeviceConnectionString, config), ProviderCancelledException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderFailsWithGenericError)
@@ -178,11 +165,11 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderFailsWith
     const auto provider = TestCredentialProvider(Dict<IString, IString>(), OPENDAQ_ERR_GENERALERROR);
     auto instance = createClientInstance(provider);
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), GeneralErrorException);
+    ASSERT_THROW(instance.addDevice(DeviceConnectionString, config), GeneralErrorException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesIncompleteCredentials)
@@ -191,11 +178,11 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesI
     const auto provider = TestCredentialProvider(Dict<IString, IString>({{"UserName", "user"}}));
     auto instance = createClientInstance(provider);
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), CredentialsRequiredException);
+    ASSERT_THROW(instance.addDevice(DeviceConnectionString, config), CredentialsRequiredException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceWithoutConfigConnectsLinkedStreaming)
@@ -227,12 +214,12 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingSucceedsWithProviderSupp
 
     auto device = addDeviceWithoutStreaming(instance);  // Plain, anonymous device connection.
 
-    const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
-    auto streamingAuthConfig = streamingType.createAuthenticationConfig();
+    const auto streamingConfig = device.createAddStreamingConfig(StreamingConnectionString);
+    auto streamingAuthConfig = streamingConfig.getAuthenticationConfig();
     streamingAuthConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     StreamingPtr streaming;
-    ASSERT_NO_THROW(streaming = device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)));
+    ASSERT_NO_THROW(streaming = device.addStreaming(StreamingConnectionString, streamingConfig));
     ASSERT_TRUE(streaming.assigned());
 }
 
@@ -243,61 +230,11 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
 
     auto device = addDeviceWithoutStreaming(instance);  // Plain, anonymous device connection.
 
-    const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
-    auto streamingAuthConfig = streamingType.createAuthenticationConfig();
+    const auto streamingConfig = device.createAddStreamingConfig(StreamingConnectionString);
+    auto streamingAuthConfig = streamingConfig.getAuthenticationConfig();
     streamingAuthConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
-    ASSERT_THROW(device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)), AuthenticationFailedException);
-}
-
-// The login of an add-device config is used without a credential provider
-TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceUsesLoginOfAddDeviceConfig)
-{
-    auto instance = createClientInstance();
-
-    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
-    config.getStreamingOptions().setStreamingType(nullptr);
-    const auto authConfig = config.getAuthenticationConfig();
-    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
-    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
-
-    DevicePtr device;
-    ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, config));
-    const AuthenticationConfigPtr used = device.asPtr<IComponentPrivate>().getAuthenticationConfig();
-    ASSERT_EQ(used.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
-}
-
-TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWithWrongLoginOfAddDeviceConfig)
-{
-    auto instance = createClientInstance();
-
-    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
-    config.getStreamingOptions().setStreamingType(nullptr);
-    const auto authConfig = config.getAuthenticationConfig();
-    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
-    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "wrong"}}));
-
-    ASSERT_ANY_THROW(instance.addDevice(DeviceConnectionString, config));
-}
-
-// The login of an add-streaming config is used without a credential provider
-TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingUsesLoginOfAddStreamingConfig)
-{
-    auto instance = createClientInstance();
-    auto device = addDeviceWithoutStreaming(instance);
-
-    for (const auto& [password, accepted] : {std::pair<const char*, bool>{"wrong", false}, {"pass", true}})
-    {
-        const auto config = device.createAddStreamingConfig(StreamingConnectionString);
-        const auto authConfig = config.getAuthenticationConfig();
-        authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
-        authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", password}}));
-
-        if (accepted)
-            ASSERT_TRUE(device.addStreaming(StreamingConnectionString, config).assigned());
-        else
-            ASSERT_ANY_THROW(device.addStreaming(StreamingConnectionString, config));
-    }
+    ASSERT_THROW(device.addStreaming(StreamingConnectionString, streamingConfig), AuthenticationFailedException);
 }
 
 TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptionsSucceeds)
@@ -305,12 +242,12 @@ TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptio
     auto instance = createClientInstance(); // No credential provider registered.
 
     // Saved authenticated with UserNamePassword.
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
-    auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));
+    auto device = instance.addDevice(DeviceConnectionString, config);
     ASSERT_TRUE(device.assigned());
     const auto localId = device.getLocalId();
 
@@ -338,12 +275,12 @@ TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptio
 {
     auto instance = createClientInstance(); // No credential provider registered.
 
-    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
-    auto authConfig = deviceType.createAuthenticationConfig();
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto authConfig = config.getAuthenticationConfig();
     authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
-    auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));
+    auto device = instance.addDevice(DeviceConnectionString, config);
     ASSERT_TRUE(device.assigned());
 
     const auto str = instance.saveConfiguration();

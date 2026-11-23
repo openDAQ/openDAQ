@@ -91,14 +91,10 @@ public:
         return config;
     }
 
-    static daq::PropertyObjectPtr createAuthenticationConfig()
+    static daq::DictPtr<daq::IString, daq::IString> createCredentials()
     {
-        auto config = daq::PropertyObject();
-
-        config.addProperty(daq::StringProperty("Username", ""));
-        config.addProperty(daq::StringProperty("Password", ""));
-
-        return config;
+        // no credentials - anonymous connection
+        return daq::Dict<daq::IString, daq::IString>();
     }
 
 private:

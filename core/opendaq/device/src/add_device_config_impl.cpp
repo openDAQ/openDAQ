@@ -9,7 +9,6 @@
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
-#include <opendaq/component_type_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -57,6 +56,8 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
     Super::addProperty(SparseSelectionProperty(
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
+    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
 
     // The selected transport option, and the port to connect at, which is the one of the selected option until it is set
     if (this->transportOptions.getCount() > 0)
@@ -84,9 +85,6 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
     Super::addProperty(ObjectProperty(add_device_config::Streaming, options));
-    // a type without authentication methods has no authentication config (createAuthenticationConfig fails for it)
-    if (deviceType.asPtr<IComponentTypePrivate, ComponentTypePrivatePtr>().getSupportedAuthenticationMethods().getCount() > 0)
-        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const ListPtr<ITransportOption>& transportOptions, Partial)
@@ -159,11 +157,8 @@ ErrCode AddDeviceConfigImpl::getAuthenticationConfig(IAuthenticationConfig** con
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    if (!objPtr.hasProperty(add_device_config::AuthenticationConfig))
-    {
-        *config = nullptr;
-        return OPENDAQ_SUCCESS;
-    }
+    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This device type supports no authentication method");
 
     return daqTry([&] { *config = objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
 }

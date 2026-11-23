@@ -818,12 +818,8 @@ TEST_F(DeviceUpdateOptionsTest, RemapToExistingSibling)
 
 TEST_F(DeviceUpdateOptionsTest, AuthConfigWithUpdateOptions)
 {
-    auto deviceType = instance.getAvailableDeviceTypes().get("TestAuth");
-    auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
-
-    auto addConfig = PropertyObject();
-    addConfig.addProperty(ObjectProperty("__AuthenticationConfig", authConfig));
+    auto addConfig = instance.createAddDeviceConfig(DeviceInfo("daqtestauth://Man9_Ser9"));
+    addConfig.getAuthenticationConfig().setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
     auto authDevice = instance.addDevice("daqtestauth://Man9_Ser9", addConfig);
     ASSERT_TRUE(authDevice.assigned());
 

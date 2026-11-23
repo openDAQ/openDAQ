@@ -136,7 +136,7 @@ TEST_F(COpendaqSynchronizationTest, Synchronization)
     daqConstCharPtr referenceDomainIdStr = nullptr;
     daqString_getCharPtr(referenceDomainId, &referenceDomainIdStr);
 
-    ASSERT_STREQ(idStr, "ClockSyncInterface");
+    ASSERT_STREQ(idStr, "InternalClock");
     ASSERT_STREQ(syncTypeStr, "local");
     ASSERT_STREQ(referenceDomainIdStr, "local:testDevice");
     ASSERT_TRUE(sourceSupported);

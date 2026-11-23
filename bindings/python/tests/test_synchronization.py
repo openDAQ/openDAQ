@@ -11,12 +11,12 @@ class TestSynchronization(opendaq_test.TestCase):
         instance = opendaq.Instance()
         sync = opendaq.Synchronization(instance.context.type_manager, 'testDevice')
 
-        self.assertEqual(list(sync.interfaces.keys()), ['ClockSyncInterface'])
-        self.assertEqual(list(sync.available_sources.keys()), ['ClockSyncInterface'])
+        self.assertEqual(list(sync.interfaces.keys()), ['InternalClock'])
+        self.assertEqual(list(sync.available_sources.keys()), ['InternalClock'])
         self.assertEqual(list(sync.reference_domain_ids), ['local:testDevice'])
 
         source = sync.source
-        self.assertEqual(source.id, 'ClockSyncInterface')
+        self.assertEqual(source.id, 'InternalClock')
         self.assertEqual(source.sync_type, 'local')
         self.assertEqual(source.reference_domain_id, 'local:testDevice')
         self.assertTrue(source.source_supported)
@@ -37,7 +37,7 @@ class TestSynchronization(opendaq_test.TestCase):
 
         with self.assertRaises(Exception):
             sync.source = 'DoesNotExist'
-        self.assertEqual(sync.source.id, 'ClockSyncInterface')
+        self.assertEqual(sync.source.id, 'InternalClock')
 
     def test_device_synchronization(self):
         instance = opendaq.Instance()
@@ -45,7 +45,7 @@ class TestSynchronization(opendaq_test.TestCase):
 
         sync = device.synchronization
         self.assertIsNotNone(sync)
-        self.assertEqual(sync.source.id, 'ClockSyncInterface')
+        self.assertEqual(sync.source.id, 'InternalClock')
         self.assertEqual(sync.source.reference_domain_id, 'local:openDAQ_DevSer0')
 
 

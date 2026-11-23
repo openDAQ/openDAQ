@@ -3,7 +3,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager, const StringPtr& deviceId)
-    : Super(manager, "ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
+    : Super(manager, "InternalClock", {SyncMode::Off, SyncMode::Input})
 {
     if (deviceId.assigned() && deviceId.getLength() != 0)
         localReferenceDomainId = fmt::format("local:{}", deviceId);

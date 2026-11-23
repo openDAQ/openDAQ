@@ -31,7 +31,7 @@ TEST_F(SimulatorDeviceModuleTest, Synchronization)
     const auto sync = device.getSynchronization();
     ASSERT_TRUE(sync.assigned());
     ASSERT_EQ(sync.getInterfaces().getCount(), 1u);
-    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "InternalClock");
     ASSERT_EQ(sync.getSource().getReferenceDomainId().toStdString(), "local:" + device.getLocalId().toStdString());
 }
 

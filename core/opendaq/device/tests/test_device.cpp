@@ -780,7 +780,7 @@ TEST_F(DeviceTest, GetSynchronization)
     ASSERT_EQ(device->getSynchronization(&synchronization), OPENDAQ_SUCCESS);
     ASSERT_TRUE(synchronization.assigned());
     ASSERT_EQ(synchronization.getInterfaces().getCount(), 2u);
-    ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(synchronization.getSource().getId(), "InternalClock");
 }
 
 class TestDeviceSettingSynchronizationTwice : public daq::Device
@@ -822,7 +822,7 @@ TEST_F(DeviceTest, SynchronizationSaveLoad)
     const auto config = device.saveConfiguration();
 
     const auto newDevice = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();
-    ASSERT_EQ(newDevice.getSynchronization().getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(newDevice.getSynchronization().getSource().getId(), "InternalClock");
 
     newDevice.loadConfiguration(config);
 
@@ -830,7 +830,7 @@ TEST_F(DeviceTest, SynchronizationSaveLoad)
     const auto interfaces = synchronization.getInterfaces();
     ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Auto);
-    ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Off);
+    ASSERT_EQ(interfaces.get("InternalClock").getMode(), daq::SyncMode::Off);
 }
 
 TEST_F(DeviceTest, SynchronizationSaveLoadSourceMode)
@@ -847,7 +847,7 @@ TEST_F(DeviceTest, SynchronizationSaveLoadSourceMode)
     const auto interfaces = synchronization.getInterfaces();
     ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Input) << "The saved mode of the source was not restored";
-    ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Off);
+    ASSERT_EQ(interfaces.get("InternalClock").getMode(), daq::SyncMode::Off);
 }
 
 TEST_F(DeviceTest, SynchronizationLoadConfigurationWithoutSynchronization)
@@ -867,7 +867,7 @@ TEST_F(DeviceTest, SynchronizationLoadConfigurationWithoutSynchronization)
     ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
     ASSERT_EQ(synchronization.getInterfaces().get("TestInterface").getMode(), daq::SyncMode::Input);
     ASSERT_EQ(synchronization.getAvailableSources().getCount(), sourcesBefore) << "Loading cleared SourceSelection";
-    ASSERT_NO_THROW(synchronization.setSource("ClockSyncInterface"));
+    ASSERT_NO_THROW(synchronization.setSource("InternalClock"));
 }
 
 TEST_F(DeviceTest, SynchronizationUpdateSourceMode)
@@ -881,12 +881,12 @@ TEST_F(DeviceTest, SynchronizationUpdateSourceMode)
     ASSERT_ERROR_CODE_EQ(synchronization.asPtr<daq::IUpdatable>(true)->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
     const auto serialized = serializer.getOutput();
 
-    synchronization.setSource("ClockSyncInterface");
+    synchronization.setSource("InternalClock");
     daq::JsonDeserializer().update(synchronization.asPtr<daq::IUpdatable>(true), serialized, nullptr);
 
     ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
     ASSERT_EQ(synchronization.getInterfaces().get("TestInterface").getMode(), daq::SyncMode::Input) << "update() did not restore the saved mode of the source";
-    ASSERT_EQ(synchronization.getInterfaces().get("ClockSyncInterface").getMode(), daq::SyncMode::Off);
+    ASSERT_EQ(synchronization.getInterfaces().get("InternalClock").getMode(), daq::SyncMode::Off);
 }
 
 TEST_F(DeviceTest, SynchronizationSaveLoadOutputMode)
@@ -900,8 +900,8 @@ TEST_F(DeviceTest, SynchronizationSaveLoadOutputMode)
 
     const auto synchronization = newDevice.getSynchronization();
     const auto interfaces = synchronization.getInterfaces();
-    ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
-    ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Input);
+    ASSERT_EQ(synchronization.getSource().getId(), "InternalClock");
+    ASSERT_EQ(interfaces.get("InternalClock").getMode(), daq::SyncMode::Input);
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Output) << "The saved mode of a non-source interface was not restored";
 }
 
@@ -920,7 +920,7 @@ TEST_F(DeviceTest, SynchronizationLoadSwitchesSourceBack)
 
     const auto synchronization = newDevice.getSynchronization();
     const auto interfaces = synchronization.getInterfaces();
-    ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
-    ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Input);
+    ASSERT_EQ(synchronization.getSource().getId(), "InternalClock");
+    ASSERT_EQ(interfaces.get("InternalClock").getMode(), daq::SyncMode::Input);
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Output);
 }

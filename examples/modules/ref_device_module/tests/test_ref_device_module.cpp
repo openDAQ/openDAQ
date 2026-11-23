@@ -234,10 +234,10 @@ TEST_F(RefDeviceModuleTest, Synchronization)
 
     const auto interfaces = sync.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
-    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+    ASSERT_TRUE(interfaces.hasKey("InternalClock"));
 
     auto source = sync.getSource();
-    ASSERT_EQ(source.getId(), "ClockSyncInterface");
+    ASSERT_EQ(source.getId(), "InternalClock");
     ASSERT_EQ(source.getMode(), SyncMode::Input);
     ASSERT_EQ(source.getReferenceDomainId(), "local:openDAQ_DevSer1");
     ASSERT_EQ(source.getStatusContainer().getStatus("SyncSourceStatus").getValue(), "Synced");

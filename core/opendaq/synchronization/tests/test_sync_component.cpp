@@ -292,7 +292,7 @@ TEST_F(SynchronizationTest, getInterfaces)
 
     const auto interfaces = sync.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
-    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+    ASSERT_TRUE(interfaces.hasKey("InternalClock"));
     ASSERT_EQ(sync.getSource().getSyncType(), "local");
 }
 
@@ -307,7 +307,7 @@ TEST_F(SynchronizationTest, getAvailableSources)
     // ClockSyncInterface can be a source by default
     const auto sourcesBefore = sync.getAvailableSources();
     ASSERT_EQ(sourcesBefore.getCount(), 1u);
-    ASSERT_TRUE(sourcesBefore.hasKey("ClockSyncInterface"));
+    ASSERT_TRUE(sourcesBefore.hasKey("InternalClock"));
 
     // An interface that can never act as a source (no Input/Auto mode available)
     const auto outputOnlyInterface = TestSyncInterface::Create(manager, "OutputOnlyInterface", {SyncMode::Off, SyncMode::Output});
@@ -318,7 +318,7 @@ TEST_F(SynchronizationTest, getAvailableSources)
 
     const auto sourcesAfter = sync.getAvailableSources();
     ASSERT_EQ(sourcesAfter.getCount(), 1u);
-    ASSERT_TRUE(sourcesAfter.hasKey("ClockSyncInterface"));
+    ASSERT_TRUE(sourcesAfter.hasKey("InternalClock"));
     ASSERT_FALSE(sourcesAfter.hasKey("OutputOnlyInterface"));
 }
 
@@ -329,7 +329,7 @@ TEST_F(SynchronizationTest, setSource)
 
     const auto selectedSource = sync.getSource();
     ASSERT_TRUE(selectedSource.assigned());
-    ASSERT_EQ(selectedSource.getId(), "ClockSyncInterface");
+    ASSERT_EQ(selectedSource.getId(), "InternalClock");
 }
 
 TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
@@ -386,7 +386,7 @@ TEST_F(SynchronizationTest, SetSelectedSourceRevertsOldSource)
 
     // Default source is ClockSyncInterface, which has no Auto mode so it starts as Input
     const auto oldSource = sync.getSource();
-    ASSERT_EQ(oldSource.getId(), "ClockSyncInterface");
+    ASSERT_EQ(oldSource.getId(), "InternalClock");
     ASSERT_EQ(oldSource.getMode(), SyncMode::Input);
 
     const auto newInterface = TestSyncInterface::Create(manager);
@@ -416,13 +416,13 @@ TEST_F(SynchronizationTest, SetSourceRollsBackOnFailure)
     syncPrivate.addInterface(outputOnlyInterface);
 
     const auto originalSource = sync.getSource();
-    ASSERT_EQ(originalSource.getId(), "ClockSyncInterface");
+    ASSERT_EQ(originalSource.getId(), "InternalClock");
     ASSERT_EQ(originalSource.getMode(), SyncMode::Input);
 
     ASSERT_ANY_THROW(sync.setSource("OutputOnlyInterface"));
 
     // Original source should be fully restored, not left demoted mid-switch
-    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "InternalClock");
     ASSERT_EQ(sync.getSource().getMode(), SyncMode::Input);
 
     const auto restoredModes = sync.getSource().getAvailableModes();
@@ -437,13 +437,13 @@ TEST_F(SynchronizationTest, SetSourceUnknownNameFails)
     const auto sync = Synchronization(manager, "testDevice");
 
     const auto originalSource = sync.getSource();
-    ASSERT_EQ(originalSource.getId(), "ClockSyncInterface");
+    ASSERT_EQ(originalSource.getId(), "InternalClock");
     ASSERT_EQ(originalSource.getMode(), SyncMode::Input);
 
     ASSERT_ANY_THROW(sync.setSource("DoesNotExist"));
 
     // Failing to resolve the requested interface should leave the current source untouched
-    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "InternalClock");
     ASSERT_EQ(sync.getSource().getMode(), SyncMode::Input);
 }
 
@@ -485,7 +485,7 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSourc
 
     // ClockSyncInterface starts out as the selected source
     const DictPtr<IString, ISyncInterface> interfaces = sync.getInterfaces();
-    const SyncInterfacePtr clockSyncInterface = interfaces.get("ClockSyncInterface");
+    const SyncInterfacePtr clockSyncInterface = interfaces.get("InternalClock");
     ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "local:testDevice");
 
     // Demote it by switching the source to another interface
@@ -546,7 +546,7 @@ TEST_F(SynchronizationTest, SetSourceRestoresOldSourceWhenDemotionFails)
     refusing.setMode(SyncMode::Input);
     dynamic_cast<RefusesOffSyncInterface*>(refusing.getObject())->refuseOff = true;
 
-    ASSERT_THROW(sync.setSource("ClockSyncInterface"), InvalidOperationException) << "The rollback replaced the original error";
+    ASSERT_THROW(sync.setSource("InternalClock"), InvalidOperationException) << "The rollback replaced the original error";
 
     ASSERT_EQ(sync.getSource().getId(), "Refusing");
     ASSERT_EQ(static_cast<StringPtr>(sync.asPtr<IPropertyObject>(true).getPropertyValue("Source")), "Refusing");
@@ -554,7 +554,7 @@ TEST_F(SynchronizationTest, SetSourceRestoresOldSourceWhenDemotionFails)
     ASSERT_TRUE(refusing.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Input)));
     ASSERT_FALSE(refusing.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Off)));
 
-    ASSERT_EQ(sync.getInterfaces().get("ClockSyncInterface").getMode(), SyncMode::Off);
+    ASSERT_EQ(sync.getInterfaces().get("InternalClock").getMode(), SyncMode::Off);
 }
 
 TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)
@@ -565,7 +565,7 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)
     const auto sync = Synchronization(manager, "testDevice");
     sync.asPtr<ISynchronizationPrivate>(true).addInterface(TestSyncInterface::Create(manager));
 
-    const SyncInterfacePtr clockSyncInterface = sync.getInterfaces().get("ClockSyncInterface");
+    const SyncInterfacePtr clockSyncInterface = sync.getInterfaces().get("InternalClock");
     const auto statuses = clockSyncInterface.getStatusContainer();
     ASSERT_EQ(clockSyncInterface.getMode(), SyncMode::Input);
     ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Input");
@@ -576,7 +576,7 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)
     ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Off");
     ASSERT_EQ(statuses.getStatus("SyncSourceStatus").getValue(), "Off");
 
-    sync.setSource("ClockSyncInterface");
+    sync.setSource("InternalClock");
     ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Input");
     ASSERT_EQ(statuses.getStatus("SyncSourceStatus").getValue(), "Synced");
 }
@@ -595,7 +595,7 @@ TEST_F(SynchronizationTest, InterfaceInOffHasNoReferenceDomainId)
     impl->setReferenceDomainId("ptp:0:001122fffe334455");
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "ptp:0:001122fffe334455");
 
-    sync.setSource("ClockSyncInterface");
+    sync.setSource("InternalClock");
     ASSERT_EQ(syncInterface.getMode(), SyncMode::Off);
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
 
@@ -737,7 +737,7 @@ TEST_F(PtpSyncInterfaceTest, GetId)
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
-    ASSERT_EQ(iface.getId(), "PtpSyncInterface");
+    ASSERT_EQ(iface.getId(), "PTP");
 }
 
 TEST_F(PtpSyncInterfaceTest, GetSyncType)
@@ -960,7 +960,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     ASSERT_NO_THROW(syncPrivate.addInterface(iface));
 
     // Check default values
-    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "InternalClock");
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
@@ -970,12 +970,12 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_SUCCESS);
 
     // Do some changes after serialization to verify that deserialization will restore them
-    sync.setSource("PtpSyncInterface");
+    sync.setSource("PTP");
     configuration.setPropertyValue("TransportProtocol", "UDP_IPV4");
     configuration.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
 
     // Check that changes are applied
-    ASSERT_EQ(sync.getSource().getId(), "PtpSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "PTP");
     ASSERT_EQ(iface.getMode(), SyncMode::Auto);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "UDP_IPV4");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
@@ -985,7 +985,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     deserializer.update(updateableSync, serializer.getOutput(), nullptr);
 
     // Verify that values are restored to defaults
-    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "InternalClock");
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");

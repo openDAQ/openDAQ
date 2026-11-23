@@ -152,9 +152,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) = 0;
 
     /*!
-     * @brief Gets the authentication config this device was saved with - the same methods + selected id
-     * `IComponentPrivate::getAuthenticationConfig()` persisted, never the credential (which is never saved at
-     * all). Unassigned if the device wasn't saved with authentication.
+     * @brief Gets the authentication config this device was saved (serialized) with - the methods + selected id of its
+     * add-device config's authentication config, never the credential (which is never saved at all).
+     * Unassigned if the device wasn't saved with authentication (legacy or device type does not support authentication).
      * @param authenticationConfig The device's saved authentication config, or unassigned if none.
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** authenticationConfig) = 0;

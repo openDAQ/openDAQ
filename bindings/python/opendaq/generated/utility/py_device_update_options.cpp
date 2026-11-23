@@ -157,5 +157,5 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             return objectPtr.getAuthenticationConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the authentication config this device was saved with - the same methods + selected id `IComponentPrivate::getAuthenticationConfig()` persisted, never the credential (which is never saved at all). Unassigned if the device wasn't saved with authentication.");
+        "Gets the authentication config this device was saved (serialized) with - the methods + selected id of its add-device config's authentication config, never the credential (which is never saved at all). Unassigned if the device wasn't saved with authentication (legacy or device type does not support authentication).");
 }

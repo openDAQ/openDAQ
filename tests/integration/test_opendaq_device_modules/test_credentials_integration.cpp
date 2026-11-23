@@ -196,6 +196,22 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceWithoutConfigConnectsLinked
     ASSERT_EQ(sources[0].getConnectionString(), StreamingConnectionString);
 }
 
+TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceConnectsStreamingWithSeparatelySuppliedCredential)
+{
+    auto instance = createClientInstance(); // No credential provider registered - must not be needed.
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    auto streamingAuthConfig = config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig();
+    streamingAuthConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    streamingAuthConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    auto device = instance.addDevice(DeviceConnectionString, config);
+
+    const auto sources = device.asPtr<IMirroredDevice>().getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), StreamingConnectionString);
+}
+
 TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingSucceedsAnonymously)
 {
     auto instance = createClientInstance(); // No credential provider registered - must not be needed.

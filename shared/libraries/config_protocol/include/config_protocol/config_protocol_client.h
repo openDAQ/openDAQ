@@ -92,13 +92,13 @@ public:
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
     void clearPropertyValues(const std::string& globalId, const std::string& path = "");
 
-    DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb = false);
+    DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, uint16_t minServerVersion = 0);
     ComponentHolderPtr addFunctionBlock(const std::string& globalId,
                                         const StringPtr& typeId,
                                         const PropertyObjectPtr& config = nullptr,
                                         const ComponentPtr& parentComponent = nullptr,
-                                        bool isFb = false);
-    void removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId, bool isFb = false);
+                                        uint16_t minServerVersion = 0);
+    void removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId, uint16_t minServerVersion = 0);
 
     uint64_t getTicksSinceOrigin(const std::string& globalId);
     ListPtr<IDeviceInfo> getAvailableDevices(const std::string& globalId);

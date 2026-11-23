@@ -124,6 +124,9 @@ runs:
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
+      with:
+        # CMake 4.5 rejects source_group(TREE) in Boost locale's CMakeLists
+        cmake-version: '4.4.x'
 
     - name: Install Windows dependencies
       if: runner.os == 'Windows' && inputs.additional-dependencies != ''

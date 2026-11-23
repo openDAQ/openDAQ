@@ -1214,12 +1214,15 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::SafeOperation};
+    return {OperationModeType::Operation};
 }
 
 template <typename TInterface, typename... Interfaces>
 OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
 {
+    // Devices that do not list Operation start in SafeOperation
+    if (this->onGetAvailableOperationModes().count(OperationModeType::Operation))
+        return OperationModeType::Operation;
     return OperationModeType::SafeOperation;
 }
 
@@ -2596,6 +2599,19 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                            "",
                            [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
                            { updateIoFolderItem(this->ioFolder, localId, obj, context); });
+    }
+
+    // Servers are not created or removed by an update; only those present under the same local ID are updated.
+    if (obj.hasKey("Srv"))
+    {
+        this->updateFolder(obj.readSerializedObject("Srv"),
+                           "Folder",
+                           "",
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           {
+                               if (servers.hasItem(localId))
+                                   servers.getItem(localId).template asPtr<IUpdatable>(true).updateInternal(obj, context);
+                           });
     }
 
     const auto keys = obj.getKeys();

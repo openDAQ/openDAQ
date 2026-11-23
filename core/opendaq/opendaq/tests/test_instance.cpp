@@ -380,6 +380,95 @@ TEST_F(InstanceTest, AddStandardServers)
     ASSERT_EQ(instance.getServers(), servers);
 }
 
+TEST_F(InstanceTest, ServerTypeCarriesModuleInfo)
+{
+    auto instance = test_helpers::setupInstance();
+    const auto moduleInfo = instance.addServer("MockServer", nullptr).getServerType().getModuleInfo();
+
+    ASSERT_TRUE(moduleInfo.assigned());
+    ASSERT_EQ(moduleInfo.getName(), "MockModule");
+    ASSERT_EQ(moduleInfo.getId(), "mock");
+}
+
+TEST_F(InstanceTest, ServerOffersOnlyItsOwnFunctionBlockTypes)
+{
+    auto instance = test_helpers::setupInstance();
+    auto server = instance.addServer("MockServer", nullptr);
+
+    const auto serverTypes = server.getAvailableFunctionBlockTypes();
+    ASSERT_EQ(serverTypes.getKeyList(), List<IString>("mockfb1"));
+
+    const auto instanceTypes = instance.getAvailableFunctionBlockTypes();
+    ASSERT_GT(instanceTypes.getCount(), 0u);
+    for (const auto& typeId : instanceTypes.getKeyList())
+        ASSERT_FALSE(serverTypes.hasKey(typeId));
+}
+
+TEST_F(InstanceTest, ServerFunctionBlockConnectsToDeviceSignal)
+{
+    auto instance = test_helpers::setupInstance();
+    auto device = instance.addDevice("daqmock://phys_device");
+    auto server = instance.addServer("MockServer", nullptr);
+
+    const auto fb = server.addFunctionBlock("mockfb1");
+    const auto signal = device.getSignals(search::Recursive(search::Any()))[0];
+    ASSERT_NO_THROW(fb.getInputPorts()[0].connect(signal));
+    ASSERT_EQ(fb.getInputPorts()[0].getSignal(), signal);
+}
+
+TEST_F(InstanceTest, ServerFunctionBlockSignalsAreNotDeviceSignals)
+{
+    auto instance = test_helpers::setupInstance();
+    auto server = instance.addServer("MockServer", nullptr);
+    const auto fbSignal = server.addFunctionBlock("mockfb1").getSignals()[0];
+
+    for (const auto& signal : instance.getRootDevice().getSignals(search::Recursive(search::Any())))
+        ASSERT_NE(signal, fbSignal);
+}
+
+TEST_F(InstanceTest, LoadRestoresServerFunctionBlocks)
+{
+    auto instance = test_helpers::setupInstance();
+    const auto device = instance.addDevice("daqmock://phys_device");
+    const auto deviceSignal = device.getSignals(search::Recursive(search::Any()))[0];
+
+    auto server = instance.addServer("MockServer", nullptr);
+    server.addProperty(StringProperty("ServerString", "Default"));
+    server.setPropertyValue("ServerString", "Saved");
+
+    const auto fbConfig = PropertyObject();
+    fbConfig.addProperty(StringProperty("LocalId", "customFb"));
+    const auto fb = server.addFunctionBlock("mockfb1", fbConfig);
+    fb.setPropertyValue("MockString", "Saved");
+    fb.getInputPorts()[0].connect(deviceSignal);
+
+    const auto config = instance.saveConfiguration();
+    server.setPropertyValue("ServerString", "Changed");
+    server.removeFunctionBlock(fb);
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 0u);
+
+    instance.loadConfiguration(config);
+
+    ASSERT_EQ(server.getPropertyValue("ServerString"), "Saved");
+    ASSERT_EQ(server.getFunctionBlocks().getCount(), 1u);
+    const auto restored = server.getFunctionBlocks()[0];
+    ASSERT_EQ(restored.getLocalId(), "customFb");
+    ASSERT_EQ(restored.getPropertyValue("MockString"), "Saved");
+    ASSERT_EQ(restored.getInputPorts()[0].getSignal(), deviceSignal);
+}
+
+TEST_F(InstanceTest, LoadDoesNotAddMissingServers)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addServer("MockServer", nullptr).addFunctionBlock("mockfb1");
+    const auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    ASSERT_EQ(instance2.getServers().getCount(), 0u);
+}
+
 TEST_F(InstanceTest, RemoveServer)
 {
     auto instance = test_helpers::setupInstance();

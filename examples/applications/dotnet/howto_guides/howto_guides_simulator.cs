@@ -31,11 +31,6 @@ instanceBuilder.SetRootDevice("daqref://device1", config);
 // Creating a new instance from builder
 var instance = instanceBuilder.Build();
 
-// Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
-var ltsServer = instance.AddServer("OpenDAQLTStreaming", null);
-Console.WriteLine($"Enabling discovery of {ltsServer.Name} ...");
-ltsServer.EnableDiscovery();
-
 // Start the openDAQ OPC UA and native streaming servers
 var servers = instance.AddStandardServers();
 

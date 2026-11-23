@@ -1,0 +1,58 @@
+name: Integration Tests
+
+# Runs openDAQ/Integration-tests against the core of the branch this workflow runs on, and the OpcUaModules and
+# LTStreamingModulesModern revisions given as inputs. openDAQ-CI's integration-tests.yml stages the three for the test
+# platform (ubuntu-22.04 x86_64 gcc release), builds the integration tests against the stagings and runs them.
+#
+# By hand: Actions > Integration Tests > Run workflow, choosing the core branch under "Use workflow from", or
+#   gh workflow run integration_tests.yml --ref <core branch> -f opcua-modules=<ref> -f lt-streaming-modules=<ref>
+# GitHub offers "Run workflow" for a workflow on the default branch; on another branch, once a pull request has run
+# it, by gh. The branch it runs on has to contain this file; the opendaq input tests another core from it:
+#   gh workflow run integration_tests.yml --ref <branch with this file> -f opendaq=<core branch, tag or commit>
+#
+# On a pull request that changes this file it runs once, against the pull request's head and the modules' main.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/integration_tests.yml
+  workflow_dispatch:
+    inputs:
+      opendaq:
+        description: "openDAQ: a branch, tag or full commit (empty: the branch this runs on)"
+        type: string
+        default: ''
+      opcua-modules:
+        description: "OpcUaModules: a branch, tag or full commit"
+        type: string
+        default: main
+      lt-streaming-modules:
+        description: "LTStreamingModulesModern: a branch, tag or full commit"
+        type: string
+        default: main
+
+run-name: >-
+  Integration tests: openDAQ ${{ inputs.opendaq || github.head_ref || github.ref_name }},
+  OpcUaModules ${{ inputs.opcua-modules || 'main' }},
+  LTStreamingModulesModern ${{ inputs.lt-streaming-modules || 'main' }}
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.ref }}-${{ inputs.opendaq }}-${{ inputs.opcua-modules }}-${{ inputs.lt-streaming-modules }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Integration tests
+    permissions:
+      contents: read
+      packages: write      # integration-tests.yml asks for it
+    # The branch of openDAQ-CI#22 until integration-tests.yml is released under v4
+    uses: openDAQ/openDAQ-CI/.github/workflows/integration-tests.yml@Integration_test_multi_repo_workflow
+    with:
+      # The core's commit in full: the head of the branch the run was started on, or of the pull request
+      opendaq: ${{ inputs.opendaq || github.event.pull_request.head.sha || github.sha }}
+      opcua-modules: ${{ inputs.opcua-modules || 'main' }}
+      lt-streaming-modules: ${{ inputs.lt-streaming-modules || 'main' }}

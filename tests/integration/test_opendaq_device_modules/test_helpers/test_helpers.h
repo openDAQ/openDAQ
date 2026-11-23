@@ -465,7 +465,22 @@ namespace test_helpers
     {
         if (!useLegacyConfig)
             return instance.createAddDeviceConfig(DeviceInfo(connectionString));
+        // The legacy config mode exercises the still-functional but deprecated legacy add-device config API
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
         return instance.createDefaultAddDeviceConfig();
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     }
 
     [[maybe_unused]]

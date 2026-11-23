@@ -161,7 +161,7 @@ TEST_F(TlsTransportTest, Connect)
     startServer();
     createClient();
 
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
 
 #ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
@@ -171,7 +171,7 @@ TEST_F(TlsTransportTest, ConnectsRegardlessOfCertificateAuthority)
     startServer(/*mutualTls*/ false, OtherCaCert, OtherCaKey);
     createClient();
 
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
 
 #else
@@ -181,7 +181,7 @@ TEST_F(TlsTransportTest, ConnectMutualTls)
     startServer(/*mutualTls*/ true);
     createClient(CaCert, /*mutualTls*/ true);
 
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
 
 TEST_F(TlsTransportTest, ConnectWithoutVerification)
@@ -189,7 +189,7 @@ TEST_F(TlsTransportTest, ConnectWithoutVerification)
     startServer();
     createClient(/*caCert*/ nullptr);
 
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
 
 TEST_F(TlsTransportTest, RejectedByWrongCertificateAuthority)
@@ -197,7 +197,7 @@ TEST_F(TlsTransportTest, RejectedByWrongCertificateAuthority)
     startServer();
     createClient(OtherCaCert);
 
-    ASSERT_FALSE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT), NotFoundException);
 }
 
 #endif
@@ -207,14 +207,14 @@ TEST_F(TlsTransportTest, RejectedByMutualTlsWithoutClientCertificate)
     startServer(/*mutualTls*/ true);
     createClient(CaCert, /*mutualTls*/ false);
 
-    ASSERT_FALSE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT), NotFoundException);
 }
 
 TEST_F(TlsTransportTest, ConfigProtocolOverTls)
 {
     startServer();
     createClient();
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 
     clientHandler->sendConfigRequest(config_protocol::PacketBuffer::createGetProtocolInfoRequest(0));
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
@@ -224,7 +224,7 @@ TEST_F(TlsTransportTest, Reconnection)
 {
     startServer();
     createClient();
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 
     stopServer();
     ASSERT_EQ(connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
@@ -252,7 +252,7 @@ TEST_F(TlsTransportTest, ReconnectionRejectedBySecurity)
 {
     startServer();
     createClient();
-    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+    ASSERT_NO_THROW(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 
     stopServer();
     ASSERT_EQ(connectionStatusFuture.wait_for(std::chrono::seconds(20)), std::future_status::ready);

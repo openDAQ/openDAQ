@@ -197,7 +197,7 @@ inline void StreamingSourceManager::componentUpdated(const ComponentPtr& sender,
         }
         else
         {
-            if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredSignalConfig>();
+            if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredDeviceConfig>();
                 updatedDevice.assigned() && streamingMode == StreamingMode::MinHops)
                 completeStreamingConnections(updatedDevice);
             enableStreamingForUpdatedComponent(updatedComponent);
@@ -426,20 +426,17 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    auto sorted = sortAddressInfos(availableAddressesInfo, primaryAddressType);
+    auto addresses = availableAddressesInfo.toVector();
     if (deviceConnectionAddress.assigned())
     {
         const auto isConnectionAddress = [&deviceConnectionAddress](const AddressInfoPtr& addressInfo)
         {
             return addressInfo.getAddress() == deviceConnectionAddress.getAddress();
         };
-        std::stable_partition(sorted.begin(), sorted.end(), isConnectionAddress);
+        std::stable_partition(addresses.begin(), addresses.end(), isConnectionAddress);
     }
 
-    auto result = List<IAddressInfo>();
-    for (const auto& addressInfo : sorted)
-        result.pushBack(addressInfo);
-    return result;
+    return sortAddressInfos(addresses, primaryAddressType);
 }
 
 inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const DevicePtr& device)
@@ -549,19 +546,41 @@ inline void StreamingSourceManager::completeStreamingConnections(const MirroredD
 
 inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDeviceConfigPtr& device)
 {
+    const auto getPrefix = [](const std::string& connectionString) -> StringPtr
+    {
+        const auto end = connectionString.find("://");
+        return connectionString.substr(0, end);
+    };
+
+    for (const auto& source : device.getStreamingSources())
+        if (getPrefix(source.getConnectionString()) == requiredStreamingPrefix)
+            return;
+
     // Get the full address information used for device configuration connection
     const auto deviceConnectionAddress = getDeviceConnectionAddress(device);
-
-    // None streaming sources are expected at this stage
-    const auto addedStreamingSources = device.getStreamingSources();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
 
     // Build a map of discovered addresses by protocol ID for quick lookup
     const auto discoveredAddrsByProtocol = buildDiscoveredStreamingAddrsByProtocol(device);
 
+    const auto connect = [&managerUtils, &device, this](const StringPtr& connectionString)
+    {
+        StreamingPtr streaming;
+        const auto errCode = daqTry(
+            [&]()
+            {
+                streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
+                return OPENDAQ_SUCCESS;
+            });
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        return streaming;
+    };
+
     // Keeps the only streaming connection to be established here
     StreamingPtr establishedStreaming;
+    bool advertised = false;
 
     // The transport the user selected for the configuration connection
     const auto deviceTransport = getDeviceTransport(managerUtils);
@@ -582,6 +601,8 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         const StringPtr capabilityProtocolId = cap.getProtocolId();
         if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
+
+        advertised = true;
 
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
@@ -644,44 +665,56 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             if (!connectionString.assigned())
                 continue;
 
-            if (std::any_of(addedStreamingSources.begin(),
-                            addedStreamingSources.end(),
-                            [&connectionString](const StreamingPtr& source) { return connectionString == source.getConnectionString(); }))
-                break;
-
-            StreamingPtr streaming;
-            auto errCode = daqTry(
-                [&]()
-                {
-                    streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
-                    return OPENDAQ_SUCCESS;
-                });
-            if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo();
-            if (!streaming.assigned())
-            {
+            establishedStreaming = connect(connectionString);
+            if (!establishedStreaming.assigned())
                 continue;
-            }
-            else
-            {
-                establishedStreaming = streaming;
 
-                if (transport.assigned() && deviceTransport.assigned() && transport != deviceTransport)
-                    LOG_W("Device {} is configured over the '{}' transport, while its streaming {} connects over '{}'. "
-                          "The streaming transport is selected separately, in 'Streaming.{}.{}' of the "
-                          "add-device config",
-                          device.getGlobalId(),
-                          deviceTransport,
-                          connectionString,
-                          transport,
-                          streamingTypeId,
-                          TransportOptionConfigProperty);
-                break;
-            }
+            if (transport.assigned() && deviceTransport.assigned() && transport != deviceTransport)
+                LOG_W("Device {} is configured over the '{}' transport, while its streaming {} connects over '{}'. "
+                      "The streaming transport is selected separately, in 'Streaming.{}.{}' of the "
+                      "add-device config",
+                      device.getGlobalId(),
+                      deviceTransport,
+                      connectionString,
+                      transport,
+                      streamingTypeId,
+                      TransportOptionConfigProperty);
+            break;
         }
         if (establishedStreaming.assigned())
             break;
     }
+
+    const auto tryUnadvertisedStreaming = [this, &device, &deviceConnectionAddress, &connect]() -> StreamingPtr
+    {
+        const auto ownerDevice = ownerDeviceRef.assigned() ? ownerDeviceRef.getRef() : nullptr;
+        const auto configurationConnectionInfo = device.getInfo().getConfigurationConnectionInfo();
+        const bool isOwner = ownerDevice.assigned() && device.getGlobalId() == ownerDevice.getGlobalId();
+        if (!isOwner || !configurationConnectionInfo.assigned())
+            return nullptr;
+
+        auto hosts = List<IString>();
+        for (const auto& addressInfo : getSuitableAddressesInfo(configurationConnectionInfo.getAddressInfo(), deviceConnectionAddress))
+            hosts.pushBack(addressInfo.getAddress());
+        if (hosts.empty())
+            hosts = configurationConnectionInfo.getAddresses();
+
+        const PropertyObjectPtr typeConfig = streamingConfig.getTypeConfig();
+        const std::string port = typeConfig.hasProperty("Port") ? fmt::format(":{}", typeConfig.getPropertyValue("Port")) : "";
+
+        for (const auto& host : hosts)
+        {
+            const StringPtr connectionString = fmt::format("{}://{}{}", requiredStreamingPrefix, host, port);
+            LOG_I("Device {} does not advertise {} streaming, trying {}", device.getGlobalId(), requiredStreamingPrefix, connectionString);
+            if (const auto streaming = connect(connectionString); streaming.assigned())
+                return streaming;
+        }
+
+        return nullptr;
+    };
+
+    if (!advertised)
+        establishedStreaming = tryUnadvertisedStreaming();
 
     // add single established streaming source
     if (establishedStreaming.assigned())

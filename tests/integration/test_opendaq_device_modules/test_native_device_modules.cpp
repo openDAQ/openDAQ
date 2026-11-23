@@ -3541,6 +3541,71 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }
 
+TEST_F(NativeDeviceModulesTest, StreamingNotAdvertised)
+{
+    SKIP_TEST_MAC_CI;
+
+    const auto server = test_helpers::createInstance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+
+    server.setRootDevice("daqref.root://device0");
+    const auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    serverConfig.setPropertyValue("NativeStreamingPort", 7415);
+    server.addServer("OpenDAQNativeStreaming", serverConfig);
+    server.getInfo().asPtr<IDeviceInfoInternal>(true).removeServerCapability("OpenDAQNativeStreaming");
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const StringPtr connectionString = "daq.nd://127.0.0.1:7415";
+    const auto config = client.createAddDeviceConfig(DeviceInfo(connectionString));
+    const auto streamingTypeConfig = config.getStreamingOptions().getStreamingConfig().getTypeConfig();
+
+    streamingTypeConfig.setPropertyValue("Port", 7416);
+    MirroredDeviceConfigPtr dev = client.addDevice(connectionString, config);
+    ASSERT_FALSE(dev.getInfo().hasServerCapability("OpenDAQNativeStreaming"));
+    ASSERT_EQ(dev.getStreamingSources().getCount(), 0u);
+    client.removeDevice(dev);
+
+    streamingTypeConfig.setPropertyValue("Port", 7415);
+    dev = client.addDevice(connectionString, config);
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7415");
+}
+
+TEST_F(NativeDeviceModulesTest, PrimaryAddressTypeBeforeConnectionAddress)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    const auto server = test_helpers::createInstance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+
+    server.setRootDevice("daqref.root://device0");
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    const auto mockModule = createWithImplementation<IModule, MockNativeModule>(client.getContext());
+    client.getModuleManager().addModule(mockModule);
+
+    client.getAvailableDevices();
+    const StringPtr connectionString = "daq.nd://127.0.0.1:7420/";
+    const auto config = client.createAddDeviceConfig(DeviceInfo(connectionString));
+    config.setPrimaryAddressType(AddressType::IPv6);
+
+    const MirroredDeviceConfigPtr dev = client.addDevice(connectionString, config);
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://[::1]:7420/");
+}
+
 TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
 {
     SKIP_TEST_MAC_CI;
@@ -5863,6 +5928,67 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
     }
 }
 
+TEST_F(NativeDeviceModulesTest, NestedDeviceUpdateRestoresStreaming)
+{
+    SKIP_TEST_MAC_CI;
+
+    auto server = test_helpers::createInstance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+    server.setRootDevice("daqref.root://device0");
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto gateway = test_helpers::createInstance("[[none]]", "gateway");
+    addNativeClientModule(gateway);
+    addNativeServerModule(gateway);
+    const auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addServer("OpenDAQNativeStreaming", gatewayServerConfig);
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const StringPtr connectionString = "daq.nd://127.0.0.1:7421/";
+    const auto config = client.createAddDeviceConfig(DeviceInfo(connectionString));
+    config.getStreamingOptions().setStreamingMode(StreamingMode::MinHops);
+    const auto dev = client.addDevice(connectionString, config);
+    dev.addDevice("daq.nd://127.0.0.1");
+
+    const MirroredDeviceConfigPtr leaf = dev.getDevices()[0];
+    ASSERT_EQ(leaf.getStreamingSources().getCount(), 1u);
+    const auto leafStreaming = leaf.getStreamingSources()[0].getConnectionString();
+    leaf.removeStreamingSource(leafStreaming);
+
+    triggerUpdateEnd(client, leaf).get();
+
+    const auto sources = leaf.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), leafStreaming);
+}
+
+TEST_F(NativeDeviceModulesTest, UpdateKeepsExistingStreaming)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    auto server = CreateServerInstance();
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1");
+    ASSERT_EQ(dev.getStreamingSources().getCount(), 1u);
+    dev.removeStreamingSource(dev.getStreamingSources()[0].getConnectionString());
+    dev.addStreaming("daq.ns://[::1]:7420");
+
+    triggerUpdateEnd(client, dev).get();
+
+    const auto sources = dev.getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://[::1]:7420");
+}
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

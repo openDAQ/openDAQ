@@ -1517,7 +1517,7 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     return OPENDAQ_NOTFOUND;
 }
 
-ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix)
+ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix, IDevice* parent)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
     OPENDAQ_PARAM_NOT_NULL(info);
@@ -1528,7 +1528,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const StringPtr prefixPtr = (prefix != nullptr) ? StringPtr(prefix) : StringPtr("");
 
         DictPtr<IString, IDeviceType> deviceTypes;
-        checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        checkErrorInfo((parent != nullptr) ? parent->getAvailableDeviceTypes(&deviceTypes) : getAvailableDeviceTypes(&deviceTypes));
         DictPtr<IString, IStreamingType> streamingTypes;
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
@@ -1571,10 +1571,7 @@ ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config,
     return daqTry([&]()
     {
         DictPtr<IString, IDeviceType> deviceTypes;
-        if (parent != nullptr)
-            checkErrorInfo(parent->getAvailableDeviceTypes(&deviceTypes));
-        else
-            checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        checkErrorInfo((parent != nullptr) ? parent->getAvailableDeviceTypes(&deviceTypes) : getAvailableDeviceTypes(&deviceTypes));
         DictPtr<IString, IStreamingType> streamingTypes;
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 

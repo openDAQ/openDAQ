@@ -20,6 +20,8 @@
 #include <opendaq/exceptions.h>
 #include <testutils/testutils.h>
 #include <opendaq/recorder_ptr.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/streaming_type_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -31,10 +33,17 @@ class ConfigProtocolIntegrationTest : public Test
 public:
     void SetUp() override
     {
-        auto anonymousUser = User("", "");
-
         serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+        clientContext = NullContext();
+        connectClient();
+    }
+
+    void connectClient(uint16_t protocolVersion = GetLatestConfigProtocolVersion())
+    {
+        auto anonymousUser = User("", "");
+
         server = std::make_unique<ConfigProtocolServer>(
             serverDevice,
             std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1),
@@ -42,7 +51,6 @@ public:
             ClientType::Control,
             test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
-        clientContext = NullContext();
         client =
             std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
                 clientContext,
@@ -52,7 +60,7 @@ public:
                 nullptr,
                 nullptr
             );
-        clientDevice = client->connect();
+        clientDevice = client->connect(nullptr, protocolVersion);
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
@@ -1104,6 +1112,29 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
     ASSERT_TRUE(fbComponentConfig.assigned());
     ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
     ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ClientDeviceHasAddDeviceConfigOfServerDevice)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto s1 = StreamingTypeBuilder().setId("s1").setName("s1").setConnectionStringPrefix("s1").build();
+    const auto s2 = StreamingTypeBuilder().setId("s2").setName("s2").setConnectionStringPrefix("s2").build();
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}});
+    const auto addConfig = AddDeviceConfig(deviceType, streamingTypes, False);
+    addConfig.getStreamingOptions().setStreamingType("s1");
+
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    serverSubDevice.asPtr<IDevicePrivate>().setAsRoot();
+    serverSubDevice.asPtr<IComponentPrivate>().setComponentConfig(addConfig);
+
+    connectClient(26);
+    const auto config = clientDevice.getDevices()[0].getAddDeviceConfig();
+    ASSERT_TRUE(config.assigned());
+    ASSERT_EQ(config.getDeviceType().getId(), "dev");
+    ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getStreamingType().getId(), "s1");
+
+    connectClient(25);
+    ASSERT_FALSE(clientDevice.getDevices()[0].getAddDeviceConfig().assigned());
 }
 
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)

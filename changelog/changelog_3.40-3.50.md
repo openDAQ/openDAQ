@@ -123,6 +123,11 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 
 `loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
 
+### [#1407](https://github.com/openDAQ/openDAQ/pull/1407) A remote device's add config is an `IAddDeviceConfig`
+
+On a client connected with protocol 26 or later, `IComponentPrivate::getComponentConfig` of a remote device that its server added through the module manager returns an `IAddDeviceConfig`, not the old three-section config.
+Read its values through the `IAddDeviceConfig` getters instead of property names.
+
 ## Required module changes
 
 ### [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A public value signal cannot have a private domain signal

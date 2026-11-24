@@ -23,11 +23,6 @@ class MockStreamingImpl : public daq::Streaming
 public:
     explicit MockStreamingImpl(const daq::StringPtr& connectionString, const daq::ContextPtr& context);
 
-    MockStreamingImpl(const daq::StringPtr& connectionString,
-                      const daq::ContextPtr& context,
-                      const daq::StringPtr& protocolId,
-                      const daq::StringPtr& protocolGroupId);
-
 protected:
     void onSetActive(bool active) override;
     void onAddSignal(const daq::MirroredSignalConfigPtr& signal) override;
@@ -43,15 +38,4 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     MockStreaming, daq::IStreaming,
     daq::IString*, connectionString,
     daq::IContext*, context
-)
-
-// Same mock, but with a caller-defined protocol id and protocol group id
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    INTERNAL_FACTORY,
-    MockStreamingWithProtocol, daq::IStreaming,
-    createMockStreamingWithProtocol,
-    daq::IString*, connectionString,
-    daq::IContext*, context,
-    daq::IString*, protocolId,
-    daq::IString*, protocolGroupId
 )

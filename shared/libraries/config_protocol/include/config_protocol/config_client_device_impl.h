@@ -272,7 +272,10 @@ template <class TDeviceBase>
 AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix)
 {
     if (this->clientComm->getProtocolVersion() < 26)
-        DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config is not supported on a config client device.");
+    {
+        const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+        return managerUtils.createAddDeviceConfig(info, prefix, this->template borrowPtr<DevicePtr>());
+    }
 
     return this->clientComm->createAddDeviceConfig(this->remoteGlobalId, info, prefix);
 }

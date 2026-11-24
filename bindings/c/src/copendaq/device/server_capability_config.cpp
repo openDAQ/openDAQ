@@ -32,11 +32,6 @@ daqErrCode daqServerCapabilityConfig_addConnectionString(daqServerCapabilityConf
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addConnectionString(reinterpret_cast<daq::IString*>(connectionString));
 }
 
-daqErrCode daqServerCapabilityConfig_setProtocolGroupId(daqServerCapabilityConfig* self, daqString* protocolGroupId)
-{
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolGroupId(reinterpret_cast<daq::IString*>(protocolGroupId));
-}
-
 daqErrCode daqServerCapabilityConfig_setProtocolId(daqServerCapabilityConfig* self, daqString* protocolId)
 {
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolId(reinterpret_cast<daq::IString*>(protocolId));
@@ -85,11 +80,6 @@ daqErrCode daqServerCapabilityConfig_addAddressInfo(daqServerCapabilityConfig* s
 daqErrCode daqServerCapabilityConfig_setProtocolVersion(daqServerCapabilityConfig* self, daqString* version)
 {
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolVersion(reinterpret_cast<daq::IString*>(version));
-}
-
-daqErrCode daqServerCapabilityConfig_setProtocolSecurityLevel(daqServerCapabilityConfig* self, daqInteger* securityLevel)
-{
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolSecurityLevel(reinterpret_cast<daq::IInteger*>(securityLevel));
 }
 
 daqErrCode daqServerCapabilityConfig_addAuthenticationMethod(daqServerCapabilityConfig* self, daqString* methodId)

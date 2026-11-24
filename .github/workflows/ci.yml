@@ -31,7 +31,7 @@ jobs:
         [
           {
             "match-jobs": ["windows-2025-x86_64-msvs-v145-debug"],
-            "run": "$k = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\'; foreach ($exe in @('test_opcuatms_integration_debug.exe', 'test_ref_device_module_debug.exe')) { reg add ($k + $exe) /v GlobalFlag /t REG_SZ /d 0x02000000 /f; reg add ($k + $exe) /v PageHeapFlags /t REG_SZ /d 0x3 /f }"
+            "run": "$k = \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\\"; foreach ($exe in @(\"test_opcuatms_integration_debug.exe\", \"test_ref_device_module.exe\")) { reg add ($k + $exe) /v GlobalFlag /t REG_SZ /d 0x02000000 /f; reg add ($k + $exe) /v PageHeapFlags /t REG_SZ /d 0x3 /f }"
           },
           {
             "match-jobs": ["ubuntu-*-x86_64-*", "ubuntu-*-armv8-*"],

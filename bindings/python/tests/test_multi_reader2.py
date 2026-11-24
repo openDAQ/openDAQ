@@ -79,8 +79,11 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.ctx = None
         super().tearDown()
 
+    def params(self, **kwargs):
+        return daq.MultiReader2Params(self.signals, **kwargs)
+
     def started(self, **kwargs):
-        reader = daq.MultiReader2(self.signals, **kwargs)
+        reader = daq.MultiReader2(self.params(**kwargs))
         first = read_available(reader)
         self.assertEqual([(r.count, r.status.has_changes) for r in first], [(0, True), (0, False)])
         return reader
@@ -91,7 +94,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertTrue(wait_until(lambda: reader.available_count >= count))
 
     def test_first_status(self):
-        reader = daq.MultiReader2(self.signals)
+        reader = daq.MultiReader2(self.params())
         r = reader.read(10)
         self.assertEqual(r.count, 0)
         status = r.status
@@ -196,7 +199,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         np.testing.assert_array_equal(r[0], np.arange(10, 30))
 
     def test_read_until_caught_up(self):
-        reader = daq.MultiReader2(self.signals)
+        reader = daq.MultiReader2(self.params())
         for i, signal in enumerate(self.signals):
             send(signal, 0, np.arange(25) + 1000 * i)
         results = []
@@ -212,51 +215,90 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertEqual([(r.count, r.status.has_changes) for r in read_available(reader)], [(0, False)])
         self.assertFalse(hasattr(reader, 'drain'))
 
-    def test_configure_keeps_unnamed_fields(self):
-        reader = daq.MultiReader2(self.signals, min_read_count=5, error_policy=daq.MultiReader2ErrorPolicy.Exclude)
-        status = reader.configure(value_read_type=daq.SampleType.Int32)
-        self.assertTrue(status.has_changes)
-        params = reader.params
+    def test_params_constructor(self):
+        params = daq.MultiReader2Params(self.signals, min_read_count=5, main_input=self.signals[1])
+        self.assertEqual([s.global_id for s in params.inputs], [s.global_id for s in self.signals])
+        self.assertEqual(params.min_read_count, 5)
+        self.assertEqual(params.main_input.global_id, self.signals[1].global_id)
+        self.assertEqual(params.value_read_type, daq.SampleType.Float64)
+        self.assertEqual(params.error_policy, daq.MultiReader2ErrorPolicy.Invalidate)
+        self.assertIsNone(params.accepts_descriptor)
+        self.assertEqual(daq.MultiReader2Params().inputs, [])
+        self.assertEqual(len(daq.MultiReader2Params(inputs=self.signals).inputs), 3)
+
+    def test_update_keeps_unnamed_fields(self):
+        params = self.params(min_read_count=5, error_policy=daq.MultiReader2ErrorPolicy.Exclude)
+        reader = daq.MultiReader2(params)
+        self.assertIsNone(params.update(value_read_type=daq.SampleType.Int32))
         self.assertEqual(params.value_read_type, daq.SampleType.Int32)
         self.assertEqual(params.min_read_count, 5)
         self.assertEqual(params.error_policy, daq.MultiReader2ErrorPolicy.Exclude)
         self.assertEqual(len(params.inputs), 3)
 
+        self.assertTrue(reader.configure(params).has_changes)
         self.feed(reader, 0, 10)
         r = reader.read(10)
         self.assertEqual(r[0].dtype, np.int32)
         np.testing.assert_array_equal(r[1], np.arange(10) + 1000)
 
-    def test_configure_with_params_object(self):
+    def test_update_is_all_or_nothing(self):
+        params = self.params(min_read_count=5)
+        with self.assertRaises(TypeError):
+            params.update(min_read_count=3, timeout_ms=10)
+        with self.assertRaises(TypeError):
+            params.update(min_read_count=3, accepts_descriptor=lambda inp: True)
+        self.assertEqual(params.min_read_count, 5)
+        self.assertIsNone(params.accepts_descriptor)
+        params.update(inputs=self.signals[:2], min_read_count=3)
+        self.assertEqual((len(params.inputs), params.min_read_count), (2, 3))
+
+    def test_reader_keeps_its_own_copy(self):
         reader = self.started()
-        params = daq.MultiReader2Params(inputs=self.signals[:2], value_read_type=daq.SampleType.Int64)
-        status = reader.configure(params, min_read_count=2)
+        params = daq.MultiReader2Params(self.signals[:2], value_read_type=daq.SampleType.Int64)
+        status = reader.configure(params)
         self.assertEqual(len(status.inputs), 2)
-        self.assertEqual(reader.params.min_read_count, 2)
-        params.min_read_count = 7                                     # the reader keeps its own copy
-        self.assertEqual(reader.params.min_read_count, 2)
+        params.update(value_read_type=daq.SampleType.Int32)          # not applied until the next configure
+        self.feed(reader, 0, 10, signals=self.signals[:2])
+        self.assertEqual(reader.read(10)[0].dtype, np.int64)
+        self.assertFalse(hasattr(reader, 'params'))
 
     def test_rejected_arguments(self):
         with self.assertRaises(ValueError):
-            daq.MultiReader2(self.signals, value_read_type=daq.SampleType.Undefined)
+            daq.MultiReader2(self.params(value_read_type=daq.SampleType.Undefined))
         with self.assertRaises(TypeError):
-            daq.MultiReader2(self.signals, timeout_ms=10)
+            self.params(timeout_ms=10)
+        with self.assertRaisesRegex(TypeError, 'property of the reader'):
+            self.params(on_data_available=print)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2Params(self.signals, inputs=self.signals)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2(self.signals)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2(None)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2(self.params(), min_read_count=2)
+
         reader = self.started()
+        with self.assertRaises(TypeError):
+            reader.configure()
+        with self.assertRaises(TypeError):
+            reader.configure(min_read_count=3)
         with self.assertRaises(ValueError):
-            reader.configure(value_read_type=daq.SampleType.Undefined)
-        with self.assertRaises(TypeError):                            # rejected before anything is applied
-            reader.configure(min_read_count=3, on_data_available=5)
-        self.assertEqual(reader.params.min_read_count, 1)
+            reader.configure(self.params(value_read_type=daq.SampleType.Undefined))
         with self.assertRaises(Exception):
-            reader.configure(main_input=make_signal(self.ctx, 'stranger'))
-        self.assertEqual(reader.params.value_read_type, daq.SampleType.Float64)
+            reader.configure(self.params(main_input=make_signal(self.ctx, 'stranger')))
+        with self.assertRaises(TypeError):
+            reader.on_data_available = 5
+        self.feed(reader, 0, 10)                                      # the rejected configures changed nothing
+        r = reader.read(10)
+        self.assertEqual((r.count, r[0].dtype), (10, np.float64))
 
     def test_exclude_rejected_input(self):
         amps = make_signal(self.ctx, 'amps', unit='A')
         inputs = self.signals[:2] + [amps]
-        reader = daq.MultiReader2(inputs,
-                                  error_policy=daq.MultiReader2ErrorPolicy.Exclude,
-                                  accepts_descriptor=lambda inp, desc, dom: desc.unit.symbol == 'V')
+        reader = daq.MultiReader2(daq.MultiReader2Params(inputs,
+                                                         error_policy=daq.MultiReader2ErrorPolicy.Exclude,
+                                                         accepts_descriptor=lambda inp, desc, dom: desc.unit.symbol == 'V'))
         status = reader.read(0).status
         self.assertEqual(status.health, daq.ComponentStatus.Warning)
         self.assertFalse(status.ok)
@@ -279,34 +321,31 @@ class TestMultiReader2(opendaq_test.TestCase):
     def test_raising_accepts_is_a_rejection(self):
         def accepts(inp, desc, dom):
             raise RuntimeError('nope')
-        reader = daq.MultiReader2(self.signals, accepts_descriptor=accepts)
+        reader = daq.MultiReader2(self.params(accepts_descriptor=accepts))
         status = reader.read(0).status
         self.assertEqual(status.health, daq.ComponentStatus.Error)
         self.assertEqual(len(status.errors), 3)
 
     def test_accepts_signature_is_checked(self):
         with self.assertRaisesRegex(TypeError, 'three arguments'):
-            daq.MultiReader2(self.signals, accepts_descriptor=lambda desc: True)
+            self.params(accepts_descriptor=lambda desc: True)
         with self.assertRaises(TypeError):
-            daq.MultiReader2(self.signals, accepts_descriptor=lambda inp, desc, dom, extra: True)
-        with self.assertRaises(TypeError):
-            daq.MultiReader2Params(accepts_descriptor=lambda: True)
-        params = daq.MultiReader2Params()
+            self.params(accepts_descriptor=lambda inp, desc, dom, extra: True)
+        params = self.params()
         with self.assertRaises(TypeError):
             params.accepts_descriptor = lambda inp, desc: True
-        reader = self.started()
-        with self.assertRaises(TypeError):                            # rejected before anything is applied
-            reader.configure(min_read_count=3, accepts_descriptor=lambda inp: True)
-        self.assertEqual(reader.params.min_read_count, 1)
+        with self.assertRaises(TypeError):
+            params.update(accepts_descriptor=lambda: True)
 
+        reader = self.started()
         for accepts in (lambda *args: True,
                         lambda inp, desc, dom=None, extra=None: True,
                         functools.partial(lambda flag, inp, desc, dom: flag, True)):
-            status = reader.configure(accepts_descriptor=accepts)
-            self.assertTrue(status.ok)
+            params.update(accepts_descriptor=accepts)
+            self.assertTrue(reader.configure(params).ok)
 
     def test_accepts_cannot_call_its_own_reader(self):
-        holder = [daq.MultiReader2(self.signals)]
+        holder = [daq.MultiReader2(self.params())]
         raised = []
 
         def accepts(inp, desc, dom):
@@ -317,7 +356,7 @@ class TestMultiReader2(opendaq_test.TestCase):
                 raise
             return True
 
-        status = holder[0].configure(accepts_descriptor=accepts)
+        status = holder[0].configure(self.params(accepts_descriptor=accepts))
         self.assertEqual(status.health, daq.ComponentStatus.Error)
         self.assertEqual(len(status.errors), 3)
         self.assertIn('cannot call its own reader', raised[0])
@@ -325,7 +364,7 @@ class TestMultiReader2(opendaq_test.TestCase):
 
     def test_vector_input(self):
         vectors = [make_signal(self.ctx, f'vec{i}', dims=4) for i in range(2)]
-        reader = daq.MultiReader2(vectors)
+        reader = daq.MultiReader2(daq.MultiReader2Params(vectors))
         reader.read(0)
         for i, signal in enumerate(vectors):
             send(signal, 0, np.arange(40).reshape(10, 4) + 100 * i)
@@ -342,7 +381,7 @@ class TestMultiReader2(opendaq_test.TestCase):
 
     def test_mixed_dimensions(self):
         inputs = [self.signals[0], make_signal(self.ctx, 'vec', dims=2)]
-        reader = daq.MultiReader2(inputs)
+        reader = daq.MultiReader2(daq.MultiReader2Params(inputs))
         reader.read(0)
         send(inputs[0], 0, np.arange(5))
         send(inputs[1], 0, np.arange(10).reshape(5, 2))
@@ -362,15 +401,25 @@ class TestMultiReader2(opendaq_test.TestCase):
 
     def test_on_data_available(self):
         calls = threading.Event()
-        reader = daq.MultiReader2(self.signals, on_data_available=calls.set)
+        reader = daq.MultiReader2(self.params())
+        self.assertIsNone(reader.on_data_available)
+        reader.on_data_available = calls.set
+        self.assertEqual(reader.on_data_available, calls.set)
         reader.read(0)
         self.feed(reader, 0, 10)
         self.assertTrue(calls.wait(3))
 
-        reader.configure(on_data_available=None)
-        reader.read(0)
+        reader.configure(self.params())                               # the handler survives a configure
+        read_available(reader)
         calls.clear()
         self.feed(reader, 10, 10)
+        self.assertTrue(calls.wait(3))
+
+        reader.on_data_available = None
+        self.assertIsNone(reader.on_data_available)
+        read_available(reader)
+        calls.clear()
+        self.feed(reader, 20, 10)
         time.sleep(0.1)
         self.assertFalse(calls.is_set())
 
@@ -384,7 +433,8 @@ class TestMultiReader2(opendaq_test.TestCase):
                     if r.count:
                         received.append(np.stack(r.values))
 
-        reader = daq.MultiReader2(self.signals, on_data_available=on_data)
+        reader = daq.MultiReader2(self.params())
+        reader.on_data_available = on_data
         for i, signal in enumerate(self.signals):
             send(signal, 0, np.arange(30) + 1000 * i)
         self.assertTrue(wait_until(lambda: sum(a.shape[1] for a in received) >= 30))

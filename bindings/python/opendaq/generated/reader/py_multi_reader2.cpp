@@ -372,25 +372,36 @@ daq::FunctionPtr toFunction(const py::handle& obj)
     return daq::createWithImplementation<daq::IFunction, PyCallableFunction>(py::reinterpret_borrow<py::object>(obj));
 }
 
-daq::MultiReader2ParamsPtr copyParams(const daq::MultiReader2ParamsPtr& source)
+void assignParams(const daq::MultiReader2ParamsPtr& target, const daq::MultiReader2ParamsPtr& source)
 {
-    auto copy = daq::MultiReader2Params();
     auto inputs = daq::List<daq::IComponent>();
     if (const auto sourceInputs = source.getInputs(); sourceInputs.assigned())
     {
         for (const auto& input : sourceInputs)
             inputs.pushBack(input);
     }
-    copy.setInputs(inputs);
-    copy.setMainInput(source.getMainInput());
-    copy.setAcceptsDescriptor(source.getAcceptsDescriptor());
-    copy.setValueReadType(source.getValueReadType());
-    copy.setMinReadCount(source.getMinReadCount());
-    copy.setErrorPolicy(source.getErrorPolicy());
+    target.setInputs(inputs);
+    target.setMainInput(source.getMainInput());
+    target.setAcceptsDescriptor(source.getAcceptsDescriptor());
+    target.setValueReadType(source.getValueReadType());
+    target.setMinReadCount(source.getMinReadCount());
+    target.setErrorPolicy(source.getErrorPolicy());
+}
+
+daq::MultiReader2ParamsPtr copyParams(const daq::MultiReader2ParamsPtr& source)
+{
+    auto copy = daq::MultiReader2Params();
+    assignParams(copy, source);
     return copy;
 }
 
-// Applies keyword arguments named as the params' properties; on_data_available is taken out by the caller first
+daq::MultiReader2ParamsPtr paramsFrom(const py::object& obj, const char* caller)
+{
+    if (!py::isinstance<daq::IMultiReader2Params>(obj))
+        throw py::type_error(std::string(caller) + " takes a MultiReader2Params object");
+    return copyParams(ownedFrom<daq::MultiReader2ParamsPtr, daq::IMultiReader2Params>(obj));
+}
+
 void applyKwargs(const daq::MultiReader2ParamsPtr& params, const py::kwargs& kwargs)
 {
     for (const auto& [key, value] : kwargs)
@@ -408,6 +419,8 @@ void applyKwargs(const daq::MultiReader2ParamsPtr& params, const py::kwargs& kwa
             params.setMinReadCount(value.cast<daq::SizeT>());
         else if (name == "error_policy")
             params.setErrorPolicy(value.cast<daq::MultiReader2ErrorPolicy>());
+        else if (name == "on_data_available")
+            throw py::type_error("on_data_available is not a params field; set it as a property of the reader");
         else
             throw py::type_error("MultiReader2: unexpected keyword argument '" + name + "'");
     }
@@ -660,26 +673,10 @@ public:
         handlerSlot.reset();
     }
 
-    static std::unique_ptr<PyMultiReader2> create(const py::object& inputsOrParams, const py::kwargs& kwargs)
+    static std::unique_ptr<PyMultiReader2> create(const py::object& paramsArg)
     {
         auto self = std::make_unique<PyMultiReader2>();
-
-        py::kwargs rest;
-        py::object onDataAvailable;
-        bool handlerGiven = false;
-        splitKwargs(kwargs, rest, onDataAvailable, handlerGiven);
-
-        daq::MultiReader2ParamsPtr params;
-        if (py::isinstance<daq::IMultiReader2Params>(inputsOrParams))
-        {
-            params = copyParams(ownedFrom<daq::MultiReader2ParamsPtr, daq::IMultiReader2Params>(inputsOrParams));
-        }
-        else
-        {
-            params = daq::MultiReader2Params();
-            params.setInputs(toComponentList(inputsOrParams));
-        }
-        applyKwargs(params, rest);
+        const auto params = paramsFrom(paramsArg, "MultiReader2");
         requireNumeric(params.getValueReadType());
 
         self->inputs = componentsToPy(params.getInputs());
@@ -693,39 +690,12 @@ public:
             self->params = params;
             self->inputIds = std::move(ids);
         }
-
-        if (handlerGiven)
-            self->setHandler(onDataAvailable);
         return self;
     }
 
-    py::object configure(const py::object& paramsArg, const py::kwargs& kwargs)
+    py::object configure(const py::object& paramsArg)
     {
-        py::kwargs rest;
-        py::object onDataAvailable;
-        bool handlerGiven = false;
-        splitKwargs(kwargs, rest, onDataAvailable, handlerGiven);
-
-        daq::MultiReader2ParamsPtr next;
-        if (paramsArg.is_none())
-        {
-            daq::MultiReader2ParamsPtr current;
-            {
-                py::gil_scoped_release release;
-                std::scoped_lock lock(mutex);
-                current = params;
-            }
-            next = copyParams(current);
-        }
-        else if (py::isinstance<daq::IMultiReader2Params>(paramsArg))
-        {
-            next = copyParams(ownedFrom<daq::MultiReader2ParamsPtr, daq::IMultiReader2Params>(paramsArg));
-        }
-        else
-        {
-            throw py::type_error("configure takes a MultiReader2Params object and keyword arguments");
-        }
-        applyKwargs(next, rest);
+        const auto next = paramsFrom(paramsArg, "configure");
         requireNumeric(next.getValueReadType());
 
         py::list nextInputs = componentsToPy(next.getInputs());
@@ -743,8 +713,6 @@ public:
             inputIds = std::move(ids);
         }
         inputs = nextInputs;
-        if (handlerGiven)
-            setHandler(onDataAvailable);
         return statusToPy(status);
     }
 
@@ -758,17 +726,6 @@ public:
             layout = makeLayout(status, params.getValueReadType());
         }
         return statusToPy(status);
-    }
-
-    py::object getParams()
-    {
-        daq::MultiReader2ParamsPtr current;
-        {
-            py::gil_scoped_release release;
-            std::scoped_lock lock(mutex);
-            current = params;
-        }
-        return paramsToPy(copyParams(current));
     }
 
     daq::SizeT availableCount()
@@ -987,9 +944,15 @@ public:
         return py::make_tuple(skipped, offset, statusToPy(status));
     }
 
-    // The callable was checked by splitKwargs
+    py::object getHandler() const
+    {
+        return handlerSlot->callable ? handlerSlot->callable : py::none();
+    }
+
     void setHandler(const py::object& callable)
     {
+        if (!callable.is_none() && !PyCallable_Check(callable.ptr()))
+            throw py::type_error("on_data_available must be callable without arguments, or None");
         handlerSlot->callable = callable.is_none() ? py::object() : callable;
 
         if (!callable.is_none())
@@ -1003,26 +966,6 @@ public:
                 daq::checkErrorInfo(reader->getOnDataAvailable(&rawEvent));
                 const daq::ObjectPtr<daq::IEvent> event(std::move(rawEvent));
                 daq::checkErrorInfo(event->addHandler(handler));
-            }
-        }
-    }
-
-private:
-    static void splitKwargs(const py::kwargs& kwargs, py::kwargs& rest, py::object& onDataAvailable, bool& handlerGiven)
-    {
-        for (const auto& [key, value] : kwargs)
-        {
-            if (key.cast<std::string>() == "on_data_available")
-            {
-                // Checked here, before anything is applied
-                if (!value.is_none() && !PyCallable_Check(value.ptr()))
-                    throw py::type_error("on_data_available must be callable without arguments, or None");
-                onDataAvailable = py::reinterpret_borrow<py::object>(value);
-                handlerGiven = true;
-            }
-            else
-            {
-                rest[key] = value;
             }
         }
     }
@@ -1128,20 +1071,28 @@ void wrapMultiReader2(pybind11::module_ m)
 
     m.def(
         "MultiReader2Params",
-        [](const py::kwargs& kwargs)
+        [](const py::object& inputs, const py::kwargs& kwargs)
         {
             auto params = daq::MultiReader2Params();
-            for (const auto& [key, value] : kwargs)
-            {
-                if (key.cast<std::string>() == "on_data_available")
-                    throw py::type_error("on_data_available is not a params field; pass it to MultiReader2 or configure");
-            }
+            params.setInputs(toComponentList(inputs));
             applyKwargs(params, kwargs);
             return paramsToPy(params);
         },
-        "Creates params with the defaults value_read_type=SampleType.Float64, min_read_count=1, "
-        "error_policy=MultiReader2ErrorPolicy.Invalidate, main_input=None (automatic) and accepts_descriptor=None; "
-        "keyword arguments set fields.");
+        py::arg("inputs") = py::list(),
+        "MultiReader2Params(inputs=[], **fields): the inputs in slot order, the other fields as keyword arguments. "
+        "Defaults: value_read_type=SampleType.Float64, min_read_count=1, error_policy=MultiReader2ErrorPolicy.Invalidate, "
+        "main_input=None (automatic) and accepts_descriptor=None.");
+
+    paramsCls.def(
+        "update",
+        [](daq::IMultiReader2Params* object, const py::kwargs& kwargs)
+        {
+            const auto params = daq::MultiReader2ParamsPtr::Borrow(object);
+            const auto staged = copyParams(params);
+            applyKwargs(staged, kwargs);
+            assignParams(params, staged);
+        },
+        "Sets the fields named as keyword arguments, the same as the constructor takes; all of them or none.");
 
     paramsCls.def_property(
         "inputs",
@@ -1360,18 +1311,18 @@ void wrapMultiReader2(pybind11::module_ m)
 
     readerCls.doc() =
         "Reads several equal-rate signals at once, aligned onto the main input's tick grid.\n\n"
-        "MultiReader2(inputs, **params) or MultiReader2(params, **changes). Keywords: value_read_type, main_input, "
-        "accepts_descriptor, min_read_count, error_policy, on_data_available (a callable without arguments).";
+        "MultiReader2(params): params is a MultiReader2Params, read at construction and not retained.";
 
     readerCls
-        .def(py::init([](const py::object& inputs, const py::kwargs& kwargs) { return PyMultiReader2::create(inputs, kwargs); }),
-             py::arg("inputs"))
-        .def("configure", &PyMultiReader2::configure, py::arg("params") = py::none(),
-             "Configure the reader with the provided params. Using named fields updates existing configuration and applies it "
-             "(e. g. on_data_available=None removes the handler). Returns status of a 0-count read.")
+        .def(py::init([](const py::object& params) { return PyMultiReader2::create(params); }), py::arg("params"))
+        .def("configure", &PyMultiReader2::configure, py::arg("params"),
+             "Applies the params as if the reader were newly constructed; the params are read here and not retained. "
+             "Returns the status of a 0-count read.")
         .def("reevaluate", &PyMultiReader2::reevaluate, "Judges every input again by accepts_descriptor; returns the status of a 0-count read.")
         .def_property_readonly("available_count", &PyMultiReader2::availableCount, "The aligned samples a read can return now.")
-        .def_property_readonly("params", &PyMultiReader2::getParams, "A copy of the applied params.")
+        .def_property("on_data_available", &PyMultiReader2::getHandler, &PyMultiReader2::setHandler,
+                      "A callable without arguments, called on a scheduler thread when data becomes readable or a status "
+                      "with changes awaits a read; None removes it. Survives configure.")
         .def("read", &PyMultiReader2::read, py::arg("count"), "Reads up to count aligned samples; returns a MultiReader2ReadResult.")
         .def("read_into", &PyMultiReader2::readInto, py::arg("buffers"), py::arg("count"),
              "Reads up to count samples into buffers: one numpy array (or None) per input, shaped (N, *dims) with N at least count; "

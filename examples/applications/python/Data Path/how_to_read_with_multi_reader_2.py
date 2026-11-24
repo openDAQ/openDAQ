@@ -1,7 +1,7 @@
 ##
 # Example that reads three synthetic signals with MultiReader2 and shows each operation of its Python binding:
-# construction with keyword arguments, the read result, the main domain as ticks and times, reading into your own
-# buffers, skipping, reading until caught up, the status, reconfiguring with keyword arguments and rejecting inputs.
+# params built from keyword arguments, the read result, the main domain as ticks and times, reading into your own
+# buffers, skipping, the status, reconfiguring with changed params, rejecting inputs and reading from the handler.
 #
 # MultiReader2 reads equal-rate signals aligned onto the main input's tick grid: sample i of every input's array is
 # the same tick. Everything the reader has to say comes back on the read, as one status per read.
@@ -62,13 +62,14 @@ def send(signal, first_tick, values):
 ctx = make_context()
 signals = [make_signal(ctx, name) for name in ('ch0', 'ch1', 'ch2')]
 
+# The params: the inputs, then the other fields as keyword arguments. The reader reads them at construction and on
+# each configure and keeps none of them, so the application keeps its own params and changes them there
+params = daq.MultiReader2Params(signals, value_read_type=daq.SampleType.Float64)
+reader = daq.MultiReader2(params)
+
 # The reader calls on_data_available on a scheduler thread when data becomes readable or a status awaits a read
 data_ready = threading.Event()
-
-# Construct: the inputs plus keyword arguments named as the params' properties
-reader = daq.MultiReader2(signals,
-                          value_read_type=daq.SampleType.Float64,
-                          on_data_available=data_ready.set)
+reader.on_data_available = data_ready.set
 
 # The first read after construction has no samples; its status reports the descriptors
 print('first status:', reader.read(0).status)             # descriptors of every input, resynchronized
@@ -110,11 +111,12 @@ print('read_into', r.count, 'samples; r[0] is a view of row 0:', np.shares_memor
 skipped, offset, status = reader.skip_samples(8)
 print('skipped', skipped, 'samples at offset', offset)    # 8 at offset 92
 
-# Reconfigure: name only what changes, the rest of the reader's params is kept. A configure is a fresh start, so its
-# status reports the descriptors again and the queued data is dropped
-status = reader.configure(value_read_type=daq.SampleType.Int32)
+# Reconfigure: change your params, then configure with them. update() sets several fields at once and keeps the rest;
+# a property sets one. A configure is a fresh start, so its status reports the descriptors again and the queued data
+# is dropped
+params.value_read_type = daq.SampleType.Int32
+status = reader.configure(params)
 print('after configure:', status)
-print('applied params:', reader.params.value_read_type, reader.params.error_policy)
 
 for i, signal in enumerate(signals):
     send(signal, 100, np.arange(100, 150) + 1000 * i)
@@ -128,11 +130,13 @@ def accepts(signal, descriptor, domain_descriptor):
     return descriptor.unit is not None and descriptor.unit.symbol == 'V'
 
 
-status = reader.configure(error_policy=daq.MultiReader2ErrorPolicy.Exclude, accepts_descriptor=accepts)
+params.update(error_policy=daq.MultiReader2ErrorPolicy.Exclude, accepts_descriptor=accepts)
+status = reader.configure(params)
 print('accept all volts:', status.health, status.errors)
 
 amps = make_signal(ctx, 'ch3', unit='A')
-status = reader.configure(inputs=signals + [amps])
+params.inputs = signals + [amps]
+status = reader.configure(params)
 print('with an ampere channel:', status)                 # Warning: ch3 rejected by the owner
 for inp, error in status.errors.items():
     print('  ', inp.local_id, error)
@@ -161,7 +165,7 @@ def on_data():
             print('handler saw a status:', r.status)
 
 
-reader.configure(on_data_available=on_data)
+reader.on_data_available = on_data                        # replaces data_ready.set; a reader has one handler
 for signal in signals + [amps]:
     send(signal, 170, np.arange(170, 200))
 deadline = time.monotonic() + 2.0
@@ -169,4 +173,4 @@ while sum(a.shape[1] for a in received) < 30 and time.monotonic() < deadline:
     time.sleep(0.01)
 print('handler received', sum(a.shape[1] for a in received), 'samples per input')
 
-reader.configure(on_data_available=None)                  # removes the handler
+reader.on_data_available = None                           # removes the handler

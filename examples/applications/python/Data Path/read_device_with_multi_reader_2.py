@@ -38,12 +38,17 @@ def accepts_descriptor(signal, descriptor, domain_descriptor):
     return len(descriptor.dimensions) == 0
 
 
-# ADAPT: the reader's settings, named as the params' fields. Exclude keeps reading the healthy inputs when one is
-# rejected or fails; Invalidate (the default) stops all of them until it recovers. The first input is the main input:
-# its time stamps are the ones a read returns
-SETTINGS = dict(value_read_type=daq.SampleType.Float64,
-                error_policy=daq.MultiReader2ErrorPolicy.Exclude,
-                accepts_descriptor=accepts_descriptor)
+def make_params(signals):
+    '''
+    ADAPT: the reader's settings. Exclude keeps reading the healthy inputs when one is rejected or fails; Invalidate
+    (the default) stops all of them until it recovers. The first input is the main input: its time stamps are the ones
+    a read returns. The reader keeps none of the params: to change a setting later, change these params and configure
+    the reader with them.
+    '''
+    return daq.MultiReader2Params(signals,
+                                  value_read_type=daq.SampleType.Float64,
+                                  error_policy=daq.MultiReader2ErrorPolicy.Exclude,
+                                  accepts_descriptor=accepts_descriptor)
 
 
 def process(r):
@@ -92,7 +97,7 @@ def read_by_polling(signals, seconds):
     '''
     Reads everything available every 500 ms.
     '''
-    reader = daq.MultiReader2(signals, **SETTINGS)
+    reader = daq.MultiReader2(make_params(signals))
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         read_available(reader)
@@ -101,23 +106,21 @@ def read_by_polling(signals, seconds):
 
 def read_from_handler(signals, seconds):
     '''
-    Reads whenever the reader announces data, on a scheduler thread. The handler is set at construction: a later
-    configure is a fresh start that drops the queued data. Every reader call goes under the same lock as the
-    handler's reads, so a configure can't land in the middle of them.
+    Reads whenever the reader announces data, on a scheduler thread. Setting the handler drops nothing, unlike a
+    configure. Every reader call goes under the same lock as the handler's reads, so a configure can't land in the
+    middle of them.
     '''
     lock = threading.Lock()
-    reader = None
+    reader = daq.MultiReader2(make_params(signals))
 
     def on_data_available():
         with lock:
             read_available(reader)
 
-    with lock:  # a handler call that comes early waits here until reader is set
-        reader = daq.MultiReader2(signals, on_data_available=on_data_available, **SETTINGS)
-    on_data_available()  # the first status: the reader announces data, not the status it owes from construction
+    reader.on_data_available = on_data_available
+    on_data_available()  # the status owed from construction may have been announced before the handler was set
     time.sleep(seconds)
-    with lock:
-        reader.configure(on_data_available=None)  # removes the handler
+    reader.on_data_available = None  # removes the handler
 
 
 if __name__ == '__main__':

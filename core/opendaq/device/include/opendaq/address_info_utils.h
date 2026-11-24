@@ -16,6 +16,9 @@
 
 #pragma once
 #include <opendaq/address_info_ptr.h>
+#include <opendaq/address_info_factory.h>
+#include <opendaq/server_capability_ptr.h>
+#include <opendaq/streaming_type_utils.h>
 #include <coretypes/exceptions.h>
 #include <algorithm>
 #include <utility>
@@ -75,6 +78,44 @@ inline std::vector<AddressInfoPtr> sortAddressInfos(const ListPtr<IAddressInfo>&
     std::vector<AddressInfoPtr> sorted(addressInfos.begin(), addressInfos.end());
     std::stable_sort(sorted.begin(), sorted.end(), [&rank](const AddressInfoPtr& a, const AddressInfoPtr& b) { return rank(a) < rank(b); });
     return sorted;
+}
+
+/*!
+ * @brief Resolves a `daq://` connection string to a connection string of the capability with the given prefix.
+ * @param connectionString The `daq://` connection string
+ * @param capabilities The server capabilities of the device
+ * @param typePrefix The connection string prefix of the device type
+ * @param primaryAddressType The preferred address type
+ * @returns The address info whose connection string to connect to.
+ * @throws NotFoundException when the device has no capability with the prefix.
+ *
+ * The capability's address infos are sorted by `sortAddressInfos`, and the first is returned.
+ * Without address infos, an address info with the capability's connection string is returned.
+ */
+inline AddressInfoPtr resolveSmartConnectionString(const StringPtr& connectionString,
+                                                   const ListPtr<IServerCapability>& capabilities,
+                                                   const StringPtr& typePrefix,
+                                                   AddressType primaryAddressType)
+{
+    const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
+    {
+        return getServerCapabilityPrefix(capability) == typePrefix;
+    };
+    const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
+    if (it == capabilities.end())
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException,
+                            R"(Device with connection string "{}" has no server capability with the prefix "{}")",
+                            connectionString,
+                            typePrefix);
+    }
+
+    const ServerCapabilityPtr capability = *it;
+    const auto addressInfos = sortAddressInfos(capability.getAddressInfo(), primaryAddressType);
+    if (addressInfos.empty())
+        return AddressInfoBuilder().setAddress("").setType("").setConnectionString(capability.getConnectionString()).build();
+
+    return addressInfos.front();
 }
 
 END_NAMESPACE_OPENDAQ

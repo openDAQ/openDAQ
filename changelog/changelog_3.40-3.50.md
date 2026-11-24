@@ -16,7 +16,7 @@
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
 - [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `createAddDeviceConfig` picks the default device type from the device's capabilities: native configuration first, else the first Mirrored type. The default streaming type is the one linked to the device type, else native streaming, else the first one the device advertises. `addDevice` without a config uses the same defaults.
-- [#1407](https://github.com/openDAQ/openDAQ/pull/1407) `createAddDeviceConfig` works on a remote device at protocol 26 or later. The server builds the config.
+- [#1407](https://github.com/openDAQ/openDAQ/pull/1407) `createAddDeviceConfig` works on a remote device. A server at protocol 26 or later builds the config. For an older server, the client builds it from the server's device types.
 
 ## Python
 

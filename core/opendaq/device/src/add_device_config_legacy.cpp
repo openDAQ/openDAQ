@@ -270,7 +270,8 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     if (options.assigned())
     {
         for (const auto& [typeId, streamingConfig] : options.getAvailableStreamingConfigs())
-            streamingSection.addProperty(ObjectProperty(typeId, cloneTypeConfig(streamingConfig.getTypeConfig())));
+            if (streamingConfig.assigned())
+                streamingSection.addProperty(ObjectProperty(typeId, cloneTypeConfig(streamingConfig.getTypeConfig())));
 
         const auto selected = options.getStreamingConfig();
         if (selected.assigned())

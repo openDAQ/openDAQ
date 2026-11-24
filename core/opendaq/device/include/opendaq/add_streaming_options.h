@@ -61,6 +61,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
     /*!
      * @brief Gets the listed streaming configs.
      * @param[out] configs The streaming configs keyed by Streaming type ID
+     *
+     * A Streaming type offered without a config maps to null.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingConfigs(IDict** configs) = 0;
 
@@ -73,7 +75,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
     /*!
      * @brief Selects the streaming config listed under a Streaming type ID.
      * @param typeId The Streaming type ID
-     * @retval OPENDAQ_ERR_NOTFOUND when no config is listed under the ID.
+     * @retval OPENDAQ_ERR_NOTFOUND when the ID is not offered.
      *
      * Null, an empty ID or `None` selects none.
      * The newly selected config becomes visible, while others are hidden.
@@ -82,7 +84,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
 
     /*!
      * @brief Gets the selected streaming config.
-     * @param[out] config The streaming config, or null when none is selected
+     * @param[out] config The streaming config, or null when none is selected or the selection has no config
      */
     virtual ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config) = 0;
 

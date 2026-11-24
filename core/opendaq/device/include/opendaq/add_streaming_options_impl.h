@@ -65,8 +65,9 @@ protected:
                                    bool forUpdate) override;
 
 private:
-    ListPtr<IString> offeredTypeIds();
+    ListPtr<IString> offeredTypeIds(bool withConfig = false);
     bool isOffered(const StringPtr& typeId);
+    AddStreamingConfigPtr getConfig(const StringPtr& typeId);
 
     // In case of remote device adds, the config is created on the server, and sent to the client
     // with the current impl, it makes sense for the client to drop unselected streaming configs when sending back

@@ -598,6 +598,31 @@ TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
     ASSERT_FALSE(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions().assigned());
 }
 
+TEST_F(AddDeviceConfigTest, BindDropsUndefinedSavedValues)
+{
+    const auto config = createMirroredConfig();
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("a");
+    const auto addDroppedField = [](const PropertyObjectPtr& obj)
+    {
+        obj.addProperty(IntProperty("Dropped", 0));
+        obj.setPropertyValue("Dropped", 1);
+    };
+    addDroppedField(config);
+    addDroppedField(options);
+    addDroppedField(options.getStreamingConfig());
+
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", config.getDeviceType()}});
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
+    const auto bound = bindSaved(serializeForUpdate(config), deviceTypes, streamingTypes);
+
+    const auto boundOptions = bound.getStreamingOptions();
+    ASSERT_EQ(boundOptions.getStreamingType(), "a");
+    ASSERT_FALSE(bound.asPtr<IPropertyObject>().hasProperty("Dropped"));
+    ASSERT_FALSE(boundOptions.asPtr<IPropertyObject>().hasProperty("Dropped"));
+    ASSERT_FALSE(boundOptions.getStreamingConfig().asPtr<IPropertyObject>().hasProperty("Dropped"));
+}
+
 TEST_F(AddDeviceConfigTest, SortAddressInfos)
 {
     using Status = AddressReachabilityStatus;

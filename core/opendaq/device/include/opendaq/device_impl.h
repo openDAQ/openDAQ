@@ -1782,7 +1782,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::createAddStreamingConfig(IAddS
 template <typename TInterface, typename... Interfaces>
 AddDeviceConfigPtr GenericDevice<TInterface, Interfaces...>::onGetAddDeviceConfig()
 {
-    if (this->isRootDevice)
+    if (this->isRootDevice && !this->parent.assigned())
         return nullptr;
 
     PropertyObjectPtr componentConfig;

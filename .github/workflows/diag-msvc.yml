@@ -10,6 +10,9 @@ jobs:
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
+      - uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: 4.3.2
       - name: Presets
         shell: bash
         run: |

@@ -2037,8 +2037,9 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
-             this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
-             folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+            // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+            this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
         }
 
         return folder;

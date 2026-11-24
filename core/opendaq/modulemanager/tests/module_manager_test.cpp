@@ -890,19 +890,19 @@ protected:
         return info;
     }
 
-    ErrCode create(const DeviceInfoPtr& info, const StringPtr& prefix, AddDeviceConfigPtr& config)
+    ErrCode create(const DeviceInfoPtr& info, const StringPtr& prefix, AddDeviceConfigPtr& config, const DevicePtr& parent = nullptr)
     {
         IAddDeviceConfig* raw = nullptr;
-        const ErrCode errCode = manager.asPtr<IModuleManagerUtils>()->createAddDeviceConfig(&raw, info, prefix);
+        const ErrCode errCode = manager.asPtr<IModuleManagerUtils>()->createAddDeviceConfig(&raw, info, prefix, parent);
         config = AddDeviceConfigPtr::Adopt(raw);
         daqClearErrorInfo();
         return errCode;
     }
 
-    AddDeviceConfigPtr create(const DeviceInfoPtr& info, const StringPtr& prefix = nullptr)
+    AddDeviceConfigPtr create(const DeviceInfoPtr& info, const StringPtr& prefix = nullptr, const DevicePtr& parent = nullptr)
     {
         AddDeviceConfigPtr config;
-        EXPECT_EQ(create(info, prefix, config), OPENDAQ_SUCCESS);
+        EXPECT_EQ(create(info, prefix, config, parent), OPENDAQ_SUCCESS);
         return config;
     }
 
@@ -1100,6 +1100,32 @@ TEST_F(ModuleManagerAddConfigTest, NativeSelectedWithoutLinkedType)
     ASSERT_EQ(selected(create(deviceInfo("unlinked://"))), "OpenDAQNativeStreaming");
     ASSERT_EQ(selected(create(deviceInfo("mockdev://"))), "mockstr");
     ASSERT_EQ(selected(create(deviceInfo("daq://x", {{"unlinked", cfg}, {"free", streaming}}))), "free");
+}
+
+class ParentTypesTestDevice : public Device
+{
+public:
+    ParentTypesTestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+        : Device(ctx, parent, localId)
+    {
+    }
+
+protected:
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        const auto type = DeviceTypeBuilder().setId("parentdev").setName("parentdev").setConnectionStringPrefix("parentdev").build();
+        return Dict<IString, IDeviceType>({{"parentdev", type}});
+    }
+};
+
+TEST_F(ModuleManagerAddConfigTest, ParentDeviceTypes)
+{
+    const DevicePtr parent = createWithImplementation<IDevice, ParentTypesTestDevice>(NullContext(), nullptr, "parent");
+    const auto info = deviceInfo("daq://x", {{"mockdev", cfg}, {"parentdev", cfg}, {"free", streaming}});
+
+    const auto config = create(info, nullptr, parent);
+    ASSERT_EQ(config.getDeviceType().getId(), "parentdev");
+    ASSERT_EQ(listed(config), (Strs{"free"}));
 }
 
 TEST_F(ModuleManagerAddConfigTest, ScanOnAddSeededFromModuleManager)

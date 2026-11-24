@@ -63,9 +63,8 @@ AddStreamingOptionsImpl::AddStreamingOptionsImpl(const DictPtr<IString, IAddStre
     addOptionsProperty(SparseSelectionPropertyBuilder(
         add_streaming_options::StreamingMode, add_streaming_options::streamingModeNames(), static_cast<Int>(StreamingMode::MinHops)));
 
-    for (const auto& typeId : offeredTypeIds())
+    for (const auto& [typeId, config] : streamingConfigs)
     {
-        const auto config = streamingConfigs.get(typeId);
         const auto visible = EvalValue(fmt::format("${} == '{}'", add_streaming_options::StreamingType, typeId));
         Super::addProperty(ObjectPropertyBuilder(typeId, config).setVisible(visible).build());
     }
@@ -84,7 +83,7 @@ ErrCode AddStreamingOptionsImpl::getAvailableStreamingConfigs(IDict** configs)
     {
         auto dict = Dict<IString, IAddStreamingConfig>();
         for (const auto& typeId : offeredTypeIds())
-            dict.set(typeId, objPtr.getPropertyValue(typeId).asPtr<IAddStreamingConfig>());
+            dict.set(typeId, getConfig(typeId));
 
         *configs = dict.detach();
     });
@@ -116,13 +115,7 @@ ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config
     {
         StringPtr id;
         checkErrorInfo(getStreamingType(&id));
-        if (!id.assigned())
-        {
-            *config = nullptr;
-            return;
-        }
-
-        *config = objPtr.getPropertyValue(id).asPtr<IAddStreamingConfig>().detach();
+        *config = id.assigned() ? getConfig(id).detach() : nullptr;
     });
 }
 
@@ -177,7 +170,7 @@ void AddStreamingOptionsImpl::removeUnselected()
     {
         if (isKept(typeId))
             selectionValues.pushBack(typeId);
-        else if (objPtr.hasProperty(typeId) && objPtr.getPropertyValue(typeId).supportsInterface<IAddStreamingConfig>())
+        else if (getConfig(typeId).assigned())
             checkErrorInfo(Super::removeProperty(typeId));
     }
 
@@ -212,7 +205,7 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
         else
             checkErrorInfo(Super::clearPropertyValue(String(add_streaming_options::StreamingMode)));
 
-        for (const auto& typeId : offeredTypeIds())
+        for (const auto& typeId : offeredTypeIds(true))
         {
             if (!values.hasKey(typeId))
                 continue;
@@ -309,17 +302,25 @@ StringPtr AddStreamingOptionsImpl::SavedStreamingType(const SerializedObjectPtr&
     return values.readString(add_streaming_options::StreamingType);
 }
 
-ListPtr<IString> AddStreamingOptionsImpl::offeredTypeIds()
+ListPtr<IString> AddStreamingOptionsImpl::offeredTypeIds(bool withConfig)
 {
     const ListPtr<IString> selectionValues = objPtr.getProperty(add_streaming_options::StreamingType).getSelectionValues();
     auto typeIds = List<IString>();
     for (const auto& typeId : selectionValues)
     {
-        if (typeId != add_streaming_options::NoStreamingType)
+        if (typeId != add_streaming_options::NoStreamingType && (!withConfig || getConfig(typeId).assigned()))
             typeIds.pushBack(typeId);
     }
 
     return typeIds;
+}
+
+AddStreamingConfigPtr AddStreamingOptionsImpl::getConfig(const StringPtr& typeId)
+{
+    if (!objPtr.hasProperty(typeId))
+        return nullptr;
+
+    return objPtr.getPropertyValue(typeId).asPtrOrNull<IAddStreamingConfig>();
 }
 
 bool AddStreamingOptionsImpl::isOffered(const StringPtr& typeId)

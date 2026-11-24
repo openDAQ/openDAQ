@@ -74,7 +74,7 @@ void CheckKeyedByIds(IDict* dict)
 {
     for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(dict))
     {
-        const auto id = key.asPtrOrNull<IString, StringPtr>();
+        const auto id = key.template asPtrOrNull<IString, StringPtr>();
         const auto value = item.template asPtrOrNull<TInterface, TPtr>();
         if (!id.assigned() || !value.assigned())
             DAQ_THROW_EXCEPTION(InvalidTypeException,

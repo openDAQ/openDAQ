@@ -421,6 +421,18 @@
                     "name": "test_py_opendaq"
                 }
             }
+        },
+        {
+            "name": "diag_opcuatms_repeat",
+            "inherits": ["run_tests_nightly"],
+            "filter": { "include": { "name": "^test_opcuatms_integration$" } },
+            "execution": { "repetition": { "mode": "until-fail", "count": 12 } }
+        },
+        {
+            "name": "diag_opcuatms_fb_repeat",
+            "inherits": ["run_tests_nightly"],
+            "filter": { "include": { "name": "^test_opcuatms_integration$" } },
+            "environment": { "GTEST_FILTER": "TmsFunctionBlockTest.*:TmsChannelTest.*", "GTEST_REPEAT": "200" }
         }
     ]
 }

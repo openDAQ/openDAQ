@@ -516,6 +516,27 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
     ASSERT_TRUE(isLegacy(clientFolder.getItem("newFb").asPtr<IComponentPrivate>().getComponentConfig()));
 }
 
+TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesServerInFormOfProtocolVersion)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto addConfig = AddDeviceConfig(deviceType, nullptr, False);
+    addConfig.asPtr<IPropertyObject>().addProperty(ObjectProperty("__AuthenticationConfig", PropertyObject()));
+
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    connectClient(26);
+    const auto device = clientDevice.addDevice("mock://test", addConfig);
+    const auto uploadedConfig = mock->lastAddDeviceConfig.asPtrOrNull<IAddDeviceConfig>();
+    ASSERT_TRUE(uploadedConfig.assigned());
+    ASSERT_TRUE(uploadedConfig.asPtr<IPropertyObject>().hasProperty("__AuthenticationConfig"));
+
+    clientDevice.removeDevice(device);
+    connectClient(25);
+    clientDevice.addDevice("mock://test", addConfig);
+    ASSERT_FALSE(mock->lastAddDeviceConfig.supportsInterface<IAddDeviceConfig>());
+    ASSERT_TRUE(mock->lastAddDeviceConfig.hasProperty("General"));
+}
+
 TEST_F(ConfigCoreEventTest, ServerComponentAdded)
 {
     int addCount = 0;

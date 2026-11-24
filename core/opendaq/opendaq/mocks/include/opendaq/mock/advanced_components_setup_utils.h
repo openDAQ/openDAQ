@@ -95,6 +95,8 @@ namespace daq::test_utils
             this->deviceInfo = deviceInfo;
         }
 
+        PropertyObjectPtr lastAddDeviceConfig;
+
     protected:
         bool allowAddDevicesFromModules() override
         {
@@ -176,10 +178,11 @@ namespace daq::test_utils
             return addedDevices;
         }
 
-        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
         {
             if (connectionString == "mock://test")
             {
+                lastAddDeviceConfig = config;
                 auto dev = createTestSubDevice();
                 this->devices.addItem(dev);
                 return dev;

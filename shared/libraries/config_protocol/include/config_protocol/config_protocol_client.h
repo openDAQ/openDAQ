@@ -164,6 +164,7 @@ public:
                                         const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
+    SerializerPtr createSerializer() const;
 
 private:
     ContextPtr daqContext;
@@ -446,12 +447,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
     StringPtr serializedClientRootDevice;
     if (restoreLocalConfig)
     {
-        SerializerPtr serializer;
-        if (getProtocolVersion() < 10)
-            serializer = JsonSerializerWithVersion(1);
-        else
-            serializer = JsonSerializerWithVersion(2);
-
+        const auto serializer = clientComm->createSerializer();
         rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
         serializedClientRootDevice = serializer.getOutput();
     }

@@ -475,16 +475,20 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
     return obj;
 }
 
+SerializerPtr ConfigProtocolClientComm::createSerializer() const
+{
+    if (getProtocolVersion() < 10)
+        return JsonSerializerWithVersion(1);
+    if (getProtocolVersion() < 26)
+        return JsonSerializerWithVersion(2);
+    return JsonSerializerWithVersion(4);
+}
+
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
 
-    SerializerPtr serializer;
-    if (getProtocolVersion() < 10)
-        serializer = JsonSerializerWithVersion(1);
-    else
-        serializer = JsonSerializerWithVersion(2);
-
+    const auto serializer = createSerializer();
     obj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -700,12 +704,7 @@ bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGloba
 
 StringPtr ConfigProtocolClientComm::getSerializedSignal(const SignalPtr& signal)
 {
-    SerializerPtr serializer;
-    if (getProtocolVersion() < 10)
-        serializer = JsonSerializerWithVersion(1);
-    else
-        serializer = JsonSerializerWithVersion(2);
-
+    const auto serializer = createSerializer();
     signal.serialize(serializer);
     return serializer.getOutput();
 }

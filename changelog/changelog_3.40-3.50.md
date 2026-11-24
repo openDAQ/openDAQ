@@ -56,6 +56,8 @@
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix a deadlock in the native configuration server between sending core events and threads that change the device, and client calls that stalled until the request timeout when a server event arrived.
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix a crash of the native streaming pseudo device when it is removed while its signals change.
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix the property type that a client reports for properties with `onSelectionValuesRead` listeners.
+- [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Fix a hang when a native streaming client is destroyed: its transport thread is drained instead of stopped, and a connection attempt still in flight is closed (libNativeStreaming v1.0.23), so removing a device that is connecting or reconnecting to a host that does not answer no longer blocks.
+- [#1386](https://github.com/openDAQ/openDAQ/pull/1386) The native inactivity timeout runs from the moment connection activity monitoring starts, so a peer that never sends anything after connecting is timed out like any other silent peer. Before, the timeout started with the first received frame.
 
 ## Misc
 
@@ -71,6 +73,8 @@
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
 - [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
+- [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Reduce the native streaming client's cost per received packet: a packet buffer is received into one allocation, received packets reach the processing thread in bursts, and session inactivity is checked from a timestamp instead of re-arming a timer on every read.
+- [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Bump libNativeStreaming to v1.0.23.
 
 ## Required application changes
 

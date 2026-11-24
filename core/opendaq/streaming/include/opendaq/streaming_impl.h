@@ -16,6 +16,9 @@
 
 #pragma once
 #include <opendaq/context_ptr.h>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <coreobjects/property_object_ptr.h>
 #include <opendaq/streaming.h>
 #include <coretypes/impl.h>
@@ -140,6 +143,11 @@ protected:
     virtual void onUnregisterStreamedClientSignal(const SignalPtr& signal);
 
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
+
+    // Forwards a burst of packets in arrival order, resolving each signal once per burst.
+    using StreamingPacket = std::pair<StringPtr, PacketPtr>;
+    void onPackets(const std::vector<StreamingPacket>& packets);
+
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
     void triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed);
 
@@ -759,6 +767,51 @@ void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const Pac
         signal.getActiveStreamingSource() == connectionString)
     {
         const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+        if (eventPacket.assigned())
+            handleEventPacket(signal, eventPacket);
+        else
+            signal.sendPacket(packet);
+    }
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::onPackets(const std::vector<StreamingPacket>& packets)
+{
+    // Keyed by string identity; a different object for the same id only costs a second resolution.
+    std::unordered_map<IString*, size_t> resolvedIndex;
+    std::vector<MirroredSignalConfigPtr> resolved;
+    resolvedIndex.reserve(packets.size());
+
+    {
+        std::scoped_lock lock(sync);
+
+        if (!this->isActive)
+            return;
+
+        for (const auto& [signalId, packet] : packets)
+        {
+            if (!packet.assigned() || resolvedIndex.count(signalId.getObject()) != 0)
+                continue;
+
+            MirroredSignalConfigPtr signal;
+            if (auto it = streamingSignalsItems.find(signalId); it != streamingSignalsItems.end())
+                signal = it->second.second.getRef();
+            resolvedIndex.emplace(signalId.getObject(), resolved.size());
+            resolved.push_back(std::move(signal));
+        }
+    }
+
+    for (const auto& [signalId, packet] : packets)
+    {
+        if (!packet.assigned())
+            continue;
+
+        // Checked for each packet right before it is sent, as in onPacket: both can change while a burst is processed.
+        const auto& signal = resolved[resolvedIndex[signalId.getObject()]];
+        if (!signal.assigned() || !signal.getStreamed() || signal.getActiveStreamingSource() != connectionString)
+            continue;
+
+        const auto eventPacket = packet.template asPtrOrNull<IEventPacket>();
         if (eventPacket.assigned())
             handleEventPacket(signal, eventPacket);
         else

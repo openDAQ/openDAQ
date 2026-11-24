@@ -1008,6 +1008,23 @@ TEST_P(StreamingProtocolTest, AddNotPublicSignalInConstructor)
     }
 }
 
+// A connection attempt that got no answer is still pending when the handler is destroyed; the destructor
+// has to cancel it rather than wait for the transport thread's stop timeout.
+TEST(StreamingProtocolClientTest, DestroyAfterUnansweredConnect)
+{
+    auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
+        NullContext(), ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
+
+    // The address is not routed, so nothing answers the connection attempt.
+    ASSERT_FALSE(clientHandler->connect("10.255.255.1", "7420"));
+
+    const auto start = std::chrono::steady_clock::now();
+    clientHandler.reset();
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+
+    ASSERT_LT(elapsed, std::chrono::seconds(2));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     StreamingProtocolTest,

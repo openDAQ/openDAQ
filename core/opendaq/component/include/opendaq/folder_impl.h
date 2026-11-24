@@ -63,6 +63,7 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -327,6 +328,23 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::setLockingStrategy(LockingStrategy strategy)
+{
+    const ErrCode errCode = ComponentImpl<Intf, Intfs...>::setLockingStrategy(strategy);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    // Protect 'items' from concurrent access
+    auto lock = this->getRecursiveConfigLock2();
+    for (const auto& [_, item] : items)
+    {
+        const ErrCode err = this->resolveChildLock(item);
+        OPENDAQ_RETURN_IF_FAILED(err);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

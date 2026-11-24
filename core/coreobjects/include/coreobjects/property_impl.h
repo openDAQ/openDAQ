@@ -26,6 +26,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_object_utils.h>
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/serialization_utils.h>
 #include <coreobjects/unit_ptr.h>
@@ -40,33 +41,6 @@
 #include <coreobjects/property_metadata_read_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-namespace details
-{
-    static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
-        {IBoolean::Id, ctBool},
-        {IInteger::Id, ctInt},
-        {IFloat::Id, ctFloat},
-        {IString::Id, ctString},
-        {IList::Id, ctList},
-        {IDict::Id, ctDict},
-        {IRatio::Id, ctRatio},
-        {IProcedure::Id, ctProc},
-        {IFunction::Id, ctFunc},
-        {IBinaryData::Id, ctBinaryData},
-        {IComplexNumber::Id, ctComplexNumber},
-        {IPropertyObject::Id, ctObject}
-    };
-
-    static CoreType intfIdToCoreType(IntfID intfID)
-    {
-        if (intfIdToCoreTypeMap.find(intfID) == intfIdToCoreTypeMap.end())
-        {
-            return ctUndefined;
-        }
-
-        return intfIdToCoreTypeMap.at(intfID);
-    }
-}
 
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
@@ -394,7 +368,6 @@ public:
         OPENDAQ_PARAM_NOT_NULL(type);
         const ErrCode errCode = daqTry([&]()
         {
-            IntfID intfID = IUnknown::Id;
             *type = ctUndefined;
 
             if (this->propertyType == PropertyType::Undefined)
@@ -423,35 +396,8 @@ public:
             if (!value.assigned())
                 return err;
 
-            if (const auto dictElementType = value.asPtrOrNull<IDictElementType>(true); dictElementType.assigned())
-            {
-                err = dictElementType->getValueInterfaceId(&intfID);
-                OPENDAQ_RETURN_IF_FAILED(err);
-            }
-            else if (const auto listElementType = value.asPtrOrNull<IListElementType>(true); listElementType.assigned())
-            {
-                err = listElementType->getElementInterfaceId(&intfID);
-                OPENDAQ_RETURN_IF_FAILED(err);
-            }
-            auto coreType = details::intfIdToCoreType(intfID);
-
-            // TODO: Workaround if item type of dict/list is undefined
-            if (coreType == ctUndefined)
-            {
-                if (const auto asList = value.asPtrOrNull<IList>(); asList.assigned() && asList.getCount() > 0)
-                {
-                    coreType = asList[0].getCoreType();
-                    err = OPENDAQ_SUCCESS;
-                }
-                else if (const auto asDict = value.asPtrOrNull<IDict>();asDict.assigned() && asDict.getCount() > 0)
-                {
-                    coreType = asDict.getValueList()[0].getCoreType();
-                    err = OPENDAQ_SUCCESS;
-                }
-            }
-
-            *type = coreType;
-            return err;
+            *type = object_utils::getItemCoreType(value);
+            return OPENDAQ_SUCCESS;
         });
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get item type of property");
         return errCode;

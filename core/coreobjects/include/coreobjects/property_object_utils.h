@@ -19,12 +19,42 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coreobjects/object_lock_guard.h>
 #include <map>
+#include <unordered_map>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permissions_internal_ptr.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/object_lock_guard_ptr.h>
+#include <coretypes/coretypes.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+namespace details
+{
+    static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
+        {IBoolean::Id, ctBool},
+        {IInteger::Id, ctInt},
+        {IFloat::Id, ctFloat},
+        {IString::Id, ctString},
+        {IList::Id, ctList},
+        {IDict::Id, ctDict},
+        {IRatio::Id, ctRatio},
+        {IProcedure::Id, ctProc},
+        {IFunction::Id, ctFunc},
+        {IBinaryData::Id, ctBinaryData},
+        {IComplexNumber::Id, ctComplexNumber},
+        {IPropertyObject::Id, ctObject}
+    };
+
+    static CoreType intfIdToCoreType(IntfID intfID)
+    {
+        if (intfIdToCoreTypeMap.find(intfID) == intfIdToCoreTypeMap.end())
+        {
+            return ctUndefined;
+        }
+
+        return intfIdToCoreTypeMap.at(intfID);
+    }
+}
 
 namespace object_utils
 {
@@ -46,6 +76,24 @@ namespace object_utils
         }
         return permissions;
     }();
+
+    // The type of the items in a list or dictionary; the first item's type when the container does not declare one
+    inline CoreType getItemCoreType(const BaseObjectPtr& container)
+    {
+        IntfID intfID = IUnknown::Id;
+        if (const auto dictElementType = container.asPtrOrNull<IDictElementType>(true); dictElementType.assigned())
+            checkErrorInfo(dictElementType->getValueInterfaceId(&intfID));
+        else if (const auto listElementType = container.asPtrOrNull<IListElementType>(true); listElementType.assigned())
+            checkErrorInfo(listElementType->getElementInterfaceId(&intfID));
+
+        if (const auto coreType = details::intfIdToCoreType(intfID); coreType != ctUndefined)
+            return coreType;
+        if (const auto list = container.asPtrOrNull<IList>(); list.assigned() && list.getCount() > 0)
+            return list[0].getCoreType();
+        if (const auto dict = container.asPtrOrNull<IDict>(); dict.assigned() && dict.getCount() > 0)
+            return dict.getValueList()[0].getCoreType();
+        return ctUndefined;
+    }
 }
 
 // RecursiveConfigLockGuard

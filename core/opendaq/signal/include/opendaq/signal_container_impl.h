@@ -436,12 +436,13 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
+            // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                     CoreEventId::ComponentAdded,
                     Dict<IString, IBaseObject>({{"Component", folder}}));
             
             this->triggerCoreEvent(args);
-            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
         return folder;
@@ -474,12 +475,13 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
+            // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+            component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                     CoreEventId::ComponentAdded,
                     Dict<IString, IBaseObject>({{"Component", component}}));
             
             this->triggerCoreEvent(args);
-            component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
         return component;
@@ -506,12 +508,13 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addExistingComponent(co
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
+            // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+            component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                     CoreEventId::ComponentAdded,
                     Dict<IString, IBaseObject>({{"Component", component}}));
             
             this->triggerCoreEvent(args);
-            component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
         return component;

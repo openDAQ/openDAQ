@@ -76,15 +76,26 @@ def process(r):
         print(f'{r.count} samples from {r.times[0]}; mean {means}')
 
 
+def read_available(reader):
+    '''
+    Reads what is available now. A read without changes took all of it, and data that arrives later is for the next
+    call; a read with changes stopped at the change, so it reads again.
+    '''
+    while True:
+        r = reader.read(reader.available_count)
+        process(r)
+        if not r.status.has_changes:
+            return
+
+
 def read_by_polling(signals, seconds):
     '''
-    Reads everything available every 500 ms. drain() reads until it has caught up; it never waits.
+    Reads everything available every 500 ms.
     '''
     reader = daq.MultiReader2(signals, **SETTINGS)
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        for r in reader.drain():
-            process(r)
+        read_available(reader)
         time.sleep(0.5)
 
 
@@ -92,15 +103,14 @@ def read_from_handler(signals, seconds):
     '''
     Reads whenever the reader announces data, on a scheduler thread. The handler is set at construction: a later
     configure is a fresh start that drops the queued data. Every reader call goes under the same lock as the
-    handler's drain, so a configure can't land in the middle of it.
+    handler's reads, so a configure can't land in the middle of them.
     '''
     lock = threading.Lock()
     reader = None
 
     def on_data_available():
         with lock:
-            for r in reader.drain():
-                process(r)
+            read_available(reader)
 
     with lock:  # a handler call that comes early waits here until reader is set
         reader = daq.MultiReader2(signals, on_data_available=on_data_available, **SETTINGS)

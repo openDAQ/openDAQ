@@ -1,7 +1,7 @@
 ##
 # Example that reads three synthetic signals with MultiReader2 and shows each operation of its Python binding:
 # construction with keyword arguments, the read result, the main domain as ticks and times, reading into your own
-# buffers, skipping, draining, the status, reconfiguring with keyword arguments and rejecting inputs.
+# buffers, skipping, reading until caught up, the status, reconfiguring with keyword arguments and rejecting inputs.
 #
 # MultiReader2 reads equal-rate signals aligned onto the main input's tick grid: sample i of every input's array is
 # the same tick. Everything the reader has to say comes back on the read, as one status per read.
@@ -70,9 +70,8 @@ reader = daq.MultiReader2(signals,
                           value_read_type=daq.SampleType.Float64,
                           on_data_available=data_ready.set)
 
-# The first read after construction reports the descriptors; drain() reads until nothing is left
-for r in reader.drain():
-    print('first status:', r.status)                      # descriptors of every input, resynchronized
+# The first read after construction has no samples; its status reports the descriptors
+print('first status:', reader.read(0).status)             # descriptors of every input, resynchronized
 
 # Send 100 samples per signal: ch1 = ch0 + 1000, ch2 = ch0 + 2000
 for i, signal in enumerate(signals):
@@ -145,18 +144,21 @@ r = reader.read(reader.available_count)
 print('read:', r.count, 'samples;', [None if v is None else v.shape for v in r.values])   # ch3: None
 
 
-# Drain from the handler: the samples of each read first, then its status
+# Read from the handler. A read without changes took everything available, and data that arrives later calls the
+# handler again; a read with changes stopped at the change, so the handler reads again
 lock = threading.Lock()
 received = []
 
 
 def on_data():
     with lock:
-        for r in reader.drain():
+        while True:
+            r = reader.read(reader.available_count)
             if r.count:
                 received.append(np.stack([v for v in r.values if v is not None]))   # ch3 is set aside
-            if r.status.has_changes:
-                print('handler saw a status:', r.status)
+            if not r.status.has_changes:
+                break
+            print('handler saw a status:', r.status)
 
 
 reader.configure(on_data_available=on_data)

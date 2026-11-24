@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <limits>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -334,6 +333,33 @@ daq::ListPtr<daq::IComponent> toComponentList(const py::handle& obj)
     return list;
 }
 
+// A call with the wrong arguments would fail every time, and the reader would count each failure as a rejection
+void requireAcceptsSignature(const py::handle& callable)
+{
+    py::object signature;
+    try
+    {
+        signature = py::module_::import("inspect").attr("signature")(callable);
+    }
+    catch (const py::error_already_set& e)
+    {
+        if (e.matches(PyExc_ValueError) || e.matches(PyExc_TypeError))
+            return; // no signature to check, as for some built-ins
+        throw;
+    }
+    try
+    {
+        signature.attr("bind")(py::none(), py::none(), py::none());
+    }
+    catch (const py::error_already_set& e)
+    {
+        if (!e.matches(PyExc_TypeError))
+            throw;
+        throw py::type_error("accepts_descriptor must take three arguments (input, value_descriptor, domain_descriptor); its signature is " +
+                             py::str(signature).cast<std::string>());
+    }
+}
+
 daq::FunctionPtr toFunction(const py::handle& obj)
 {
     if (obj.is_none())
@@ -342,6 +368,7 @@ daq::FunctionPtr toFunction(const py::handle& obj)
     // only the wrapper releases its Python object under the GIL
     if (!PyCallable_Check(obj.ptr()))
         throw py::type_error("accepts_descriptor must be callable: (input, value_descriptor, domain_descriptor) -> bool");
+    requireAcceptsSignature(obj);
     return daq::createWithImplementation<daq::IFunction, PyCallableFunction>(py::reinterpret_borrow<py::object>(obj));
 }
 
@@ -1001,42 +1028,6 @@ private:
     }
 };
 
-// drain(): one result per read until nothing is deliverable and nothing changed
-class PyDrain
-{
-public:
-    explicit PyDrain(py::object owner)
-        : owner(std::move(owner))
-    {
-    }
-
-    py::object next()
-    {
-        if (done)
-            throw py::stop_iteration();
-        auto& self = owner.cast<PyMultiReader2&>();
-        ReadOutcome outcome;
-        py::list resultInputs = self.inputs;
-        std::vector<std::string> ids;
-        {
-            py::gil_scoped_release release;
-            std::scoped_lock lock(self.mutex);
-            outcome = self.readLocked(std::numeric_limits<size_t>::max(), nullptr);
-            ids = self.inputIds;
-        }
-        if (outcome.count == 0 && !outcome.status.getHasChanges())
-        {
-            done = true;
-            throw py::stop_iteration();
-        }
-        return self.buildResult(std::move(outcome), nullptr, resultInputs, ids);
-    }
-
-private:
-    py::object owner;
-    bool done = false;
-};
-
 std::string localIdOf(const daq::ComponentPtr& component)
 {
     return component.assigned() ? component.getLocalId().toStdString() : std::string("?");
@@ -1331,10 +1322,6 @@ void wrapMultiReader2(pybind11::module_ m)
                         py::repr(r.status).cast<std::string>() + ">";
              });
 
-    py::class_<PyDrain>(m, "MultiReader2Drain")
-        .def("__iter__", [](py::object self) { return self; })
-        .def("__next__", &PyDrain::next);
-
     // Reader
 
     py::class_<PyMultiReader2> readerCls(
@@ -1390,7 +1377,5 @@ void wrapMultiReader2(pybind11::module_ m)
              "Reads up to count samples into buffers: one numpy array (or None) per input, shaped (N, *dims) with N at least count; "
              "a single array (inputs, N, *dims) works when all inputs share a sample shape.")
         .def("skip_samples", &PyMultiReader2::skipSamples, py::arg("count"),
-             "Behaves like read without copying; returns (count, offset, status).")
-        .def("drain", [](py::object self) { return PyDrain(std::move(self)); },
-             "Yields a read result per read until nothing is deliverable and nothing changed.");
+             "Behaves like read without copying; returns (count, offset, status).");
 }

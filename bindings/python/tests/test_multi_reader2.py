@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import functools
 import threading
 import time
 import unittest
@@ -48,6 +49,15 @@ def send(signal, first_tick, values):
     daq.ISignalConfig.cast_from(signal).send_packet(packet)
 
 
+def read_available(reader):
+    results = []
+    while True:
+        r = reader.read(reader.available_count)
+        results.append(r)
+        if not r.status.has_changes:
+            return results
+
+
 def wait_until(predicate, timeout=3.0):
     deadline = time.monotonic() + timeout
     while not predicate():
@@ -71,9 +81,8 @@ class TestMultiReader2(opendaq_test.TestCase):
 
     def started(self, **kwargs):
         reader = daq.MultiReader2(self.signals, **kwargs)
-        first = list(reader.drain())
-        self.assertEqual(len(first), 1)
-        self.assertTrue(first[0].status.has_changes)
+        first = read_available(reader)
+        self.assertEqual([(r.count, r.status.has_changes) for r in first], [(0, True), (0, False)])
         return reader
 
     def feed(self, reader, first_tick, count, signals=None):
@@ -186,20 +195,22 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertEqual(r.offset, 10)
         np.testing.assert_array_equal(r[0], np.arange(10, 30))
 
-    def test_drain(self):
+    def test_read_until_caught_up(self):
         reader = daq.MultiReader2(self.signals)
         for i, signal in enumerate(self.signals):
             send(signal, 0, np.arange(25) + 1000 * i)
         results = []
 
         def pull():
-            results.extend(reader.drain())
+            results.extend(read_available(reader))
             return sum(r.count for r in results) >= 25
 
         self.assertTrue(wait_until(pull))
         self.assertTrue(results[0].status.has_changes)
+        self.assertFalse(results[-1].status.has_changes)
         self.assertEqual(sum(r.count for r in results), 25)
-        self.assertEqual(list(reader.drain()), [])
+        self.assertEqual([(r.count, r.status.has_changes) for r in read_available(reader)], [(0, False)])
+        self.assertFalse(hasattr(reader, 'drain'))
 
     def test_configure_keeps_unnamed_fields(self):
         reader = daq.MultiReader2(self.signals, min_read_count=5, error_policy=daq.MultiReader2ErrorPolicy.Exclude)
@@ -273,6 +284,27 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertEqual(status.health, daq.ComponentStatus.Error)
         self.assertEqual(len(status.errors), 3)
 
+    def test_accepts_signature_is_checked(self):
+        with self.assertRaisesRegex(TypeError, 'three arguments'):
+            daq.MultiReader2(self.signals, accepts_descriptor=lambda desc: True)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2(self.signals, accepts_descriptor=lambda inp, desc, dom, extra: True)
+        with self.assertRaises(TypeError):
+            daq.MultiReader2Params(accepts_descriptor=lambda: True)
+        params = daq.MultiReader2Params()
+        with self.assertRaises(TypeError):
+            params.accepts_descriptor = lambda inp, desc: True
+        reader = self.started()
+        with self.assertRaises(TypeError):                            # rejected before anything is applied
+            reader.configure(min_read_count=3, accepts_descriptor=lambda inp: True)
+        self.assertEqual(reader.params.min_read_count, 1)
+
+        for accepts in (lambda *args: True,
+                        lambda inp, desc, dom=None, extra=None: True,
+                        functools.partial(lambda flag, inp, desc, dom: flag, True)):
+            status = reader.configure(accepts_descriptor=accepts)
+            self.assertTrue(status.ok)
+
     def test_accepts_cannot_call_its_own_reader(self):
         holder = [daq.MultiReader2(self.signals)]
         raised = []
@@ -342,13 +374,13 @@ class TestMultiReader2(opendaq_test.TestCase):
         time.sleep(0.1)
         self.assertFalse(calls.is_set())
 
-    def test_handler_drains(self):
+    def test_handler_reads_until_caught_up(self):
         lock = threading.Lock()
         received = []
 
         def on_data():
             with lock:
-                for r in reader.drain():
+                for r in read_available(reader):
                     if r.count:
                         received.append(np.stack(r.values))
 

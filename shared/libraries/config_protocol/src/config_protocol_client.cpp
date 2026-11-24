@@ -394,6 +394,20 @@ PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std:
     return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
 }
 
+AddDeviceConfigPtr ConfigProtocolClientComm::createAddDeviceConfig(const std::string& globalId,
+                                                                   const DeviceInfoPtr& info,
+                                                                   const StringPtr& prefix)
+{
+    const auto command = ClientCommand("CreateAddDeviceConfig", 26);
+    requireMinServerVersion(command);
+
+    const auto params = Dict<IString, IBaseObject>(
+        {{"ComponentGlobalId", String(globalId)}, {"Info", info}, {"Prefix", prefix.assigned() ? prefix : String("")}});
+    auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
+    const auto reply = sendRequestCallback(request);
+    return parseLocalRpcOrRejectReply(reply.parseRpcRequestOrReply());
+}
+
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
 {
     sendComponentCommand(globalId, ClientCommand("StartRecording", 14));
@@ -553,6 +567,26 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
         throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
     }
 
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::parseLocalRpcOrRejectReply(const StringPtr& jsonReply)
+{
+    ParamsDictPtr reply;
+    try
+    {
+        reply = JsonDeserializer().deserialize(jsonReply, daqContext.getTypeManager());
+    }
+    catch (const std::exception& e)
+    {
+        throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
+    }
+
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::getRpcReturnValue(const ParamsDictPtr& reply)
+{
     if (!reply.hasKey("ErrorCode"))
         throw ConfigProtocolException("Invalid reply");
 

@@ -50,6 +50,7 @@ public:
     static BaseObjectPtr setOperationModeRecursive(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getDefaultAddDeviceConfig(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr createAddDeviceConfig(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
@@ -334,6 +335,17 @@ inline BaseObjectPtr ConfigServerDevice::getDefaultAddDeviceConfig(const RpcCont
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return device.createDefaultAddDeviceConfig();
+}
+
+inline BaseObjectPtr ConfigServerDevice::createAddDeviceConfig(const RpcContext& context,
+                                                               const DevicePtr& device,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const DeviceInfoPtr info = params.get("Info");
+    const StringPtr prefix = params.get("Prefix");
+    return device.createAddDeviceConfig(info, prefix);
 }
 
 }

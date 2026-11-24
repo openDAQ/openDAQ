@@ -20,13 +20,49 @@
 #include <opendaq/exceptions.h>
 #include <testutils/testutils.h>
 #include <opendaq/recorder_ptr.h>
+#include <opendaq/module_impl.h>
+#include <opendaq/module_manager_ptr.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/streaming_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 using namespace daq;
 using namespace config_protocol;
 using namespace testing;
 using namespace std::placeholders;
+
+class StreamingTypesModule : public Module
+{
+public:
+    explicit StreamingTypesModule(const ContextPtr& ctx)
+        : Module("Streaming types", VersionInfo(1, 0, 0), ctx, "StreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("Host", "localhost"));
+        const auto deviceType = DeviceTypeBuilder()
+                                    .setId("mock_mirrored")
+                                    .setName("Mock mirrored")
+                                    .setConnectionStringPrefix("daqmirrored")
+                                    .setDeviceKind(DeviceKind::Mirrored)
+                                    .setDefaultConfig(config)
+                                    .build();
+        return Dict<IString, IDeviceType>({{"mock_mirrored", deviceType}});
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        const auto streamingB =
+            StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
+        const auto streamingC =
+            StreamingTypeBuilder().setId("mock_streaming_c").setName("Mock streaming C").setConnectionStringPrefix("daqmockc").build();
+        return Dict<IString, IStreamingType>({{"mock_streaming_b", streamingB}, {"mock_streaming_c", streamingC}});
+    }
+};
 
 class ConfigProtocolIntegrationTest : public Test
 {
@@ -72,6 +108,15 @@ public:
         return str;
     }
     
+    static DeviceInfoPtr createMirroredDeviceInfo()
+    {
+        const auto info = DeviceInfo("daqmirrored://device");
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockc"));
+        infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::Streaming).setPrefix("daqmockb"));
+        infoInternal.addServerCapability(ServerCapability("m", "m", ProtocolType::Configuration).setPrefix("daqmirrored"));
+        return info;
+    }
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
@@ -1032,9 +1077,28 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     ASSERT_EQ(s.getDeviceKind(), DeviceKind::Mirrored);
 }
 
-TEST_F(ConfigProtocolIntegrationTest, CreateAddConfigNotImplemented)
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfig)
 {
-    ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("daq://mock")), NotImplementedException);
+    const ModuleManagerPtr manager = serverDevice.getContext().getModuleManager();
+    manager.addModule(createWithImplementation<IModule, StreamingTypesModule>(NullContext()));
+
+    const auto info = createMirroredDeviceInfo();
+
+    const auto serverConfig = serverDevice.createAddDeviceConfig(info, "daqmirrored");
+    const auto clientConfig = clientDevice.createAddDeviceConfig(info, "daqmirrored");
+
+    const auto serverOptions = serverConfig.getStreamingOptions();
+    const auto clientOptions = clientConfig.getStreamingOptions();
+    ASSERT_EQ(clientConfig.getDeviceType().getId(), serverConfig.getDeviceType().getId());
+    ASSERT_EQ(clientOptions.getAvailableStreamingConfigs().getKeyList(), serverOptions.getAvailableStreamingConfigs().getKeyList());
+    ASSERT_EQ(clientOptions.getStreamingType(), serverOptions.getStreamingType());
+    ASSERT_FALSE(clientConfig.getTypeConfig().supportsInterface<IConfigClientObject>());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigErrorsReachClient)
+{
+    ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("unknown://device")), NotFoundException);
+    ASSERT_THROW(clientDevice.getDevices()[0].createAddDeviceConfig(DeviceInfo("unknown://device")), NotSupportedException);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)

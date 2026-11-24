@@ -129,6 +129,7 @@ public:
 
     PropertyObjectPtr getComponentConfig(const std::string& globalId);
     PropertyObjectPtr getDefaultAddDeviceConfig(const std::string& globalId);
+    AddDeviceConfigPtr createAddDeviceConfig(const std::string& globalId, const DeviceInfoPtr& info, const StringPtr& prefix);
 
     void startRecording(const std::string& globalId);
     void stopRecording(const std::string& globalId);
@@ -192,6 +193,8 @@ private:
     BaseObjectPtr parseRpcOrRejectReply(const StringPtr& jsonReply,
                                         const ComponentDeserializeContextPtr& context = nullptr,
                                         bool isGetRootDeviceReply = false);
+    BaseObjectPtr parseLocalRpcOrRejectReply(const StringPtr& jsonReply);
+    static BaseObjectPtr getRpcReturnValue(const ParamsDictPtr& reply);
     uint64_t generateId();
 
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId,

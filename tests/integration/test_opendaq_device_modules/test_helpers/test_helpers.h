@@ -313,6 +313,56 @@ namespace test_helpers
                 str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
     }
 
+    // Whether the first IPv4 address and, when checkIPv6 is set, the first IPv6 address of a capability have the given reachability
+    [[maybe_unused]]
+    inline bool firstAddressesHaveReachability(const ServerCapabilityPtr& capability,
+                                               AddressReachabilityStatus reachability,
+                                               bool checkIPv6)
+    {
+        bool hasIPv4 = false;
+        bool hasIPv6 = !checkIPv6;
+        for (const auto& addressInfo : capability.getAddressInfo())
+        {
+            const std::string type = addressInfo.getType().toStdString();
+            bool& checked = type == "IPv4" ? hasIPv4 : hasIPv6;
+            if ((type != "IPv4" && type != "IPv6") || checked)
+                continue;
+            if (addressInfo.getReachabilityStatus() != reachability)
+                return false;
+            checked = true;
+        }
+        return hasIPv4 && hasIPv6;
+    }
+
+    // An mDNS answer arrives within the client's query window only while the runner keeps up, so the client queries until the
+    // capability of the server at the path is listed and accepted, or the timeout passes. Returns the last one listed, or nullptr.
+    [[maybe_unused]]
+    inline ServerCapabilityPtr discoverCapability(const InstancePtr& client,
+                                                  const std::string& path,
+                                                  const std::string& protocolName,
+                                                  const std::function<bool(const ServerCapabilityPtr&)>& accept,
+                                                  std::chrono::milliseconds timeout = std::chrono::seconds(10))
+    {
+        ServerCapabilityPtr listed;
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        do
+        {
+            for (const auto& deviceInfo : client.getAvailableDevices())
+            {
+                for (const auto& capability : deviceInfo.getServerCapabilities())
+                {
+                    if (!isSufix(capability.getConnectionString(), path) || capability.getProtocolName() != protocolName)
+                        continue;
+                    listed = capability;
+                    if (accept(capability))
+                        return capability;
+                }
+            }
+        }
+        while (std::chrono::steady_clock::now() < deadline);
+        return listed;
+    }
+
     [[maybe_unused]]
     inline Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
     {

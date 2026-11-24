@@ -24,13 +24,15 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                      Int initTimeout,
-                                                     const DeviceTypePtr& type)
+                                                     const DeviceTypePtr& type,
+                                                     std::shared_ptr<std::atomic<bool>> callbacksHoldDevice)
 : Device(ctx, parent, localId)
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
   , connectedStatusMessage(buildConnectedStatusMessage(transportProtocolClient->getTransport()))
   , deviceType(type)
   , transportProtocolClient(transportProtocolClient)
+  , callbacksHoldDevice(std::move(callbacksHoldDevice))
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -84,23 +86,46 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                       Int initTimeout)
 {
+    // The streaming object can call these when the device is removed or released: a call holds the device, or is dropped
+    const auto thisRef = this->template getWeakRefInternal<IDevice>();
+    const auto runOnDevice = [thisRef, required = callbacksHoldDevice](const auto& handler)
+    {
+        const DevicePtr device = thisRef.getRef();
+        if (!device.assigned() && *required)
+            return;
+
+        handler();
+    };
+
+    // Signal changes hold the device lock and are dropped once the device is removed
+    const auto runLockedOnDevice = [this, runOnDevice](const auto& handler)
+    {
+        runOnDevice(
+            [&]
+            {
+                const auto lock = this->getRecursiveConfigLock2();
+                if (!this->isComponentRemoved)
+                    handler();
+            });
+    };
+
     ProcedurePtr onSignalAvailableCallback =
-        Procedure([this](const StringPtr& signalStringId,
-                         const StringPtr& serializedSignal)
+        Procedure([this, runLockedOnDevice](const StringPtr& signalStringId,
+                                            const StringPtr& serializedSignal)
                   {
-                      signalAvailableHandler(signalStringId, serializedSignal);
+                      runLockedOnDevice([&] { signalAvailableHandler(signalStringId, serializedSignal); });
                   });
 
     ProcedurePtr onSignalUnavailableCallback =
-        Procedure([this](const StringPtr& signalStringId)
+        Procedure([this, runLockedOnDevice](const StringPtr& signalStringId)
                   {
-                      signalUnavailableHandler(signalStringId);
+                      runLockedOnDevice([&] { signalUnavailableHandler(signalStringId); });
                   });
 
     OnConnectionStatusChangedCallback onConnectionStatusChangedCallback =
-        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
+        [this, runOnDevice](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
-            connectionStatusChangedHandler(status, statusMessage);
+            runOnDevice([&] { connectionStatusChangedHandler(status, statusMessage); });
         };
 
     nativeStreaming =
@@ -272,33 +297,44 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
 
 void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    if (status == "Connected")
+    StreamingPtr streaming;
     {
-        // remove signals which no longer exist after reconnection
-        for (const auto& item : deviceSignals)
+        const auto lock = this->getRecursiveConfigLock2();
+        if (this->isComponentRemoved)
+            return;
+
+        if (status == "Connected")
         {
-            auto signalId = item.first;
-            auto signal = item.second.first;
-
-            if (auto iter = deviceSignalsReconnection.find(signalId); iter == deviceSignalsReconnection.end())
+            // remove signals which no longer exist after reconnection
+            for (const auto& item : deviceSignals)
             {
-                this->removeSignal(signal);
+                auto signalId = item.first;
+                auto signal = item.second.first;
+
+                if (auto iter = deviceSignalsReconnection.find(signalId); iter == deviceSignalsReconnection.end())
+                {
+                    this->removeSignal(signal);
+                }
             }
+
+            // replace signal container with new one
+            deviceSignals = deviceSignalsReconnection;
+            deviceSignalsReconnection.clear();
         }
-
-        // replace signal container with new one
-        deviceSignals = deviceSignalsReconnection;
-        deviceSignalsReconnection.clear();
+        connectionStatus = status;
+        streaming = nativeStreaming;
     }
-    connectionStatus = status;
 
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", connectionStatus, statusMessage);
-    this->connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
-        this->connectionString,
-        connectionStatus,
-        nativeStreaming,
-        status == "Connected" && statusMessage == "" ? connectedStatusMessage : statusMessage
-    );
+    // Published without the device lock, which only the signal changes above need, against a removal at the same time
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", status, statusMessage);
+
+    // A removal since the lock was released has dropped the connection status, so there is nothing to update
+    const ErrCode errCode =
+        this->connectionStatusContainer->updateConnectionStatusWithMessage(this->connectionString,
+                                                                      status,
+                                                                      streaming,
+                                                                      status == "Connected" && statusMessage == "" ? connectedStatusMessage : statusMessage);
+    checkErrorInfoExcept(errCode, OPENDAQ_ERR_NOTFOUND);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

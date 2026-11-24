@@ -362,7 +362,7 @@ private:
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValuesInternal(bool protectedAccess);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, bool lock);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
@@ -1716,15 +1716,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    auto lock = getRecursiveConfigLock2();
-    return getPropertySelectionValueNoLock(propertyName, value);
+    return getPropertySelectionValueInternal(propertyName, value, true);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueNoLock(IString* propertyName,
                                                                                                     IBaseObject** value)
 {
-    return getPropertySelectionValueInternal(propertyName, value, true);
+    return getPropertySelectionValueInternal(propertyName, value, false);
 }
 
 template <class PropObjInterface, typename... Interfaces>
@@ -2250,7 +2249,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueInternal(IString* propertyName,
                                                                                                       IBaseObject** value,
-                                                                                                      Bool retrieveUpdatingValue)
+                                                                                                      bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -2261,6 +2260,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     {
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
+        LockGuardPtr lockGuard;
+        if (lock)
+            lockGuard = getRecursiveConfigLock2();
 
         if (isChildProperty(propName))
         {
@@ -2270,12 +2272,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         }
         else
         {
-            const ErrCode errCode = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            const ErrCode errCode = getPropertyAndValueInternal(propName, valuePtr, prop, true, true);
             OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
         }
 
+        // Values a listener computes are read without this object's lock, and before the type, which a client deduces from them
         const auto propInternal = prop.asPtr<IPropertyInternal>(true);
-        auto values = propInternal.getSelectionValuesNoLock();
+        if (propInternal.getHasOnGetSelectionValuesListeners())
+            lockGuard.release();
+        const BaseObjectPtr values = lock ? prop.getSelectionValues() : propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
@@ -2298,7 +2303,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         }
         else if (propType == PropertyType::Selection)
         {
-            if (propInternal.getValueTypeNoLock() != valuePtr.getCoreType())
+            const CoreType valueType = lock ? prop.getValueType() : propInternal.getValueTypeNoLock();
+            if (valueType != valuePtr.getCoreType())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, fmt::format(R"(Selection item type mismatch for property "{}")", propName));
 
             *value = valuePtr.detach();
@@ -2310,7 +2316,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
                                        fmt::format(R"(Property "{}" is not an index selection or sparse selection property)", propName));
         }
 
-        if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
+        if (object_utils::getItemCoreType(values) != valuePtr.getCoreType())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, fmt::format(R"(List item type mismatch for property "{}")", propName));
 
         *value = valuePtr.detach();

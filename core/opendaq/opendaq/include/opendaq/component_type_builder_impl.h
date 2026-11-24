@@ -68,6 +68,15 @@ public:
     ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
     ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
 
+    ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) override;
+    ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
+
+    ErrCode INTERFACE_FUNC setSingleton(Bool singleton) override;
+    ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
+
+    ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) override;
+    ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -81,6 +90,9 @@ private:
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
     ListPtr<ITransportOption> transportOptions;
+    FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
+    Bool isSingleton = False;
+    StringPtr commonSettingsTypeId = nullptr;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -30,8 +30,11 @@
 #include <packet_streaming/packet_streaming_client.h>
 #include <packet_streaming/packet_streaming_server.h>
 
+#include <atomic>
+#include <chrono>
 #include <future>
 #include <optional>
+#include <memory>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -102,6 +105,9 @@ public:
 
     void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
 
+    // Closes the connection and stops reconnecting, so that the transport thread runs out of work.
+    void shutdown();
+
 protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
@@ -126,6 +132,7 @@ protected:
                       bool available);
 
     void checkReconnectionResult(const boost::system::error_code& ec);
+    void armReconnectionTimer();
     void tryReconnect();
     void connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
@@ -183,6 +190,7 @@ protected:
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
+    std::atomic<bool> shuttingDown{false};
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;
@@ -296,7 +304,14 @@ protected:
     void startTransportOperations();
     void stopTransportOperations();
 
+    using TransportWorkGuard = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
+    static constexpr std::chrono::milliseconds transportStopTimeout{5000};
+
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
+    // Keeps the IO thread's run() alive while the handler exists; released to drain the thread on stop.
+    std::unique_ptr<TransportWorkGuard> transportWorkGuard;
+    std::promise<void> ioThreadFinishedPromise;
+    std::future<void> ioThreadFinished;
     std::thread ioThread;
     LoggerComponentPtr loggerComponent;
     std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;

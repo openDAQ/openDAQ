@@ -1,3 +1,5 @@
+#include <atomic>
+#include <thread>
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
@@ -1008,6 +1010,54 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+// Signal callbacks of the streaming connection must not reach a pseudo device that is destroyed while signals come and go.
+// Without the guard this fails by a crash, which a release build shows only in some runs.
+TEST_F(NativeStreamingModulesTest, DestroyDeviceWhileServerSignalsChange)
+{
+    auto server = CreateServerInstance();
+    auto serverRefDevice = server.getDevices()[0];
+
+    // The server changes its signals only while the client is destroyed, not while it connects
+    std::atomic<bool> stop{false};
+    std::atomic<bool> change{false};
+    std::atomic<bool> idle{false};
+    std::thread changer(
+        [&]
+        {
+            for (Int channels = 1; !stop; channels = channels % 3 + 1)
+            {
+                idle = !change;
+                if (change)
+                    serverRefDevice.setPropertyValue("NumberOfChannels", channels);
+                else
+                    std::this_thread::yield();
+            }
+        });
+
+    std::string error;
+    try
+    {
+        for (int i = 0; i < 40; ++i)
+        {
+            const auto client = CreateClientInstance();
+            change = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            client.removeDevice(client.getDevices()[0]);
+            change = false;
+            while (!idle)
+                std::this_thread::yield();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        error = e.what();
+    }
+
+    stop = true;
+    changer.join();
+    ASSERT_TRUE(error.empty()) << error;
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeStreamingModulesCredentialsTest, testing::Bool(), test_helpers::configModeName);

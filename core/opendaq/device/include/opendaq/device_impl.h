@@ -1228,12 +1228,15 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::SafeOperation};
+    return {OperationModeType::Operation};
 }
 
 template <typename TInterface, typename... Interfaces>
 OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
 {
+    // Devices that do not list Operation start in SafeOperation
+    if (this->onGetAvailableOperationModes().count(OperationModeType::Operation))
+        return OperationModeType::Operation;
     return OperationModeType::SafeOperation;
 }
 
@@ -2158,8 +2161,9 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
-             this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
-             folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+            // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+            this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
         }
 
         return folder;

@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m)
 {
+    py::enum_<daq::FunctionBlockInputPolicy>(m, "FunctionBlockInputPolicy")
+        .value("Unspecified", daq::FunctionBlockInputPolicy::Unspecified)
+        .value("Fixed", daq::FunctionBlockInputPolicy::Fixed)
+        .value("OneAlwaysEmpty", daq::FunctionBlockInputPolicy::OneAlwaysEmpty)
+        .value("SettingsDriven", daq::FunctionBlockInputPolicy::SettingsDriven);
+
     return wrapInterface<daq::IFunctionBlockType, daq::IComponentType>(m, "IFunctionBlockType");
 }
 
@@ -44,4 +50,33 @@ void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock
         return daq::FunctionBlockType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);
     }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
 
+
+    cls.def_property_readonly("input_policy",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            return objectPtr.getInputPolicy();
+        },
+        "Gets the input policy of the function block type.");
+    cls.def_property_readonly("singleton",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            return objectPtr.getSingleton();
+        },
+        "Gets the singleton flag value.");
+    cls.def_property_readonly("common_settings_type_id",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            const auto typeId = objectPtr.getCommonSettingsTypeId();
+            std::optional<std::string> result;
+            if (typeId.assigned())
+                result = typeId.toStdString();
+            return result;
+        },
+        "Gets the commonSettingsTypeId - the Id for which this FB type acts as a common settings folder. None when the type does not declare one.");
 }

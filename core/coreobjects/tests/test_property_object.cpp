@@ -2718,6 +2718,40 @@ TEST_F(PropertyObjectTest, OnGetSparseSelectionValues)
     }
 }
 
+TEST_F(PropertyObjectTest, SelectionValueReadsListenerOnceWithoutTheObjectLock)
+{
+    const auto obj = PropertyObject();
+    obj.addProperty(IntProperty("Other", 0));
+    const auto selectionProp = SelectionProperty("Selection", List<IString>(), 1);
+
+    bool armed = false;
+    int calls = 0;
+    bool writeFinished = false;
+    std::thread writer;
+    selectionProp.getOnSelectionValuesRead() += [&](const PropertyPtr&, const PropertyMetadataReadArgsPtr& args)
+    {
+        args.setValue(List<IString>("a", "b"));
+        if (!armed || calls++ > 0)
+            return;
+
+        // The write blocks while the reading thread holds the object's lock
+        std::packaged_task<void()> task([&] { obj.setPropertyValue("Other", 1); });
+        auto result = task.get_future();
+        writer = std::thread(std::move(task));
+        writeFinished = result.wait_for(std::chrono::seconds(1)) == std::future_status::ready;
+    };
+    obj.addProperty(selectionProp);
+
+    armed = true;
+    const auto selected = obj.getPropertySelectionValue("Selection");
+    if (writer.joinable())
+        writer.join();
+
+    ASSERT_TRUE(writeFinished);
+    ASSERT_EQ(selected, "b");
+    ASSERT_EQ(calls, 1);
+}
+
 TEST_F(PropertyObjectTest, OnGetSuggestedValues)
 {
     auto obj = PropertyObject();

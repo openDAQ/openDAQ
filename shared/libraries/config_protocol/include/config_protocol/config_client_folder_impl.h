@@ -57,6 +57,9 @@ protected:
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 
+    // The server enforces the singleton flag; its events can arrive in an order that briefly shows two instances.
+    void validateSingletonFunctionBlock(const ComponentPtr& component) override;
+
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
@@ -204,6 +207,11 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
     }
 
     ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+}
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::validateSingletonFunctionBlock(const ComponentPtr& /*component*/)
+{
 }
 
 template <class Impl>

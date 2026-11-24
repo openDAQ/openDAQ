@@ -15,11 +15,15 @@
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
 - [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types: how their blocks create input ports, at most one instance per parent (enforced by the core), and common settings for nested blocks of another type.
 
 ## Python
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Expose the function block type options: the `FunctionBlockInputPolicy` enum and the read-only `IFunctionBlockType` properties `input_policy`, `singleton` and `common_settings_type_id`. `common_settings_type_id` is `None` when the type does not declare a common settings relationship. The options can only be read from Python, as the component type builder has no Python binding.
+
 ## Bug fixes
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) `IList::equals` no longer dereferences a null element when only one of the two lists holds `nullptr` at a position. The comparison crashed or returned the right answer depending on operand order; it is now symmetric and reports the lists as not equal. Structs compare their field values as lists, so this also fixes crashes when comparing structs with unassigned fields, such as a device type without a connection string prefix.
 - [#1399](https://github.com/openDAQ/openDAQ/pull/1399) Harden the native server's connection accept path against slow, silent or malformed clients
 - [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
@@ -135,6 +139,36 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 
 A device that does not override `onGetAvailableOperationModes` lists `Operation` as its only mode instead of `SafeOperation`. A device that lists `Operation` and does not override `onGetDefaultOperationMode` starts in `Operation` instead of `SafeOperation`; override `onGetDefaultOperationMode` to keep starting in `SafeOperation`. A device that does not list `Operation` still starts in `SafeOperation`.
 
+### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
+
+`IFunctionBlockType` and `IComponentTypeBuilder` each gained new methods. Interface IDs in openDAQ are derived
+from the interface name alone, so a module built against an older SDK still passes `queryInterface` while its
+vtable is missing the new slots. Modules must be rebuilt against this SDK version.
+
+Modules that construct function block types through the `FunctionBlockType()` factory or `FunctionBlockTypeBuilder()`
+need no source changes; the defaults (`Unspecified`, `False`, unassigned) preserve the previous behaviour. Any module that
+implements `IFunctionBlockType` itself must add `getInputPolicy`, `getSingleton` and `getCommonSettingsTypeId`.
+
+The serialized form stays compatible in both directions: a newer SDK reading an older payload falls back to the
+defaults, and an older SDK reading a newer payload ignores the three new keys. Note that an older peer therefore
+drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server. The input policy is
+serialized as an integer; a value this SDK version does not know is read as `Unspecified`.
+
+Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an
+empty `CommonSettingsTypeId` is stored as unassigned. The options are also fields of the `FunctionBlockType` struct (the input
+policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their
+options do not compare equal.
+
+The `Singleton` flag is enforced by the function blocks folder of devices, servers and function blocks: adding a function block
+of a singleton type to a folder that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. The
+check runs under the folder's lock together with the addition, so it covers concurrent additions, and function blocks
+that modules add themselves with `addNestedFunctionBlock` or `createAndAddNestedFunctionBlock`. `addFunctionBlock` also
+checks the flag before calling `onAddFunctionBlock`, so module code does not create an instance that would be refused.
+Modules must create function block instances with the same type, including its flags, that they advertise through
+`onGetAvailableFunctionBlockTypes`: the check reads the types of the instances, so an instance created with a separately
+built type that lacks the flag is not counted. Loading a configuration that holds a second instance of a singleton type
+skips that instance with a warning, also on devices reached through the config protocol.
+
 ## Interface API changes
 
 ### New interfaces
@@ -224,9 +258,22 @@ A device that does not override `onGetAvailableOperationModes` lists `Operation`
 ```diff
 + IComponentTypeBuilder::setServerKind(ServerKind kind);
 + IComponentTypeBuilder::getServerKind(ServerKind* kind);
++ IComponentTypeBuilder::setInputPolicy(FunctionBlockInputPolicy policy);
++ IComponentTypeBuilder::getInputPolicy(FunctionBlockInputPolicy* policy);
++ IComponentTypeBuilder::setSingleton(Bool singleton);
++ IComponentTypeBuilder::getSingleton(Bool* singleton);
++ IComponentTypeBuilder::setCommonSettingsTypeId(IString* typeId);
++ IComponentTypeBuilder::getCommonSettingsTypeId(IString** typeId);
 ```
 
 #### `IComponentTypePrivate`
 ```diff
 + IComponentTypePrivate::serializeWithoutDefaultConfig(ISerializer* serializer);
+```
+
+#### `IFunctionBlockType`
+```diff
++ IFunctionBlockType::getInputPolicy(FunctionBlockInputPolicy* policy);
++ IFunctionBlockType::getSingleton(Bool* singleton);
++ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
 ```

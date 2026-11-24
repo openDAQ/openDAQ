@@ -15,6 +15,7 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/function_block_type_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -27,6 +28,10 @@
 #include <opendaq/synchronization_private_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include "testutils/testutils.h"
+
+#include <atomic>
+#include <string>
+#include <vector>
 
 using DeviceTest = testing::Test;
 
@@ -923,4 +928,95 @@ TEST_F(DeviceTest, SynchronizationLoadSwitchesSourceBack)
     ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Input);
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Output);
+}
+
+class SingletonTestDevice final : public daq::Device
+{
+public:
+    SingletonTestDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId, bool singleton)
+        : daq::Device(ctx, parent, localId)
+        , singleton(singleton)
+    {
+    }
+
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
+    {
+        const daq::FunctionBlockTypePtr singleType =
+            daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(singleton).build();
+
+        return daq::Dict<daq::IString, daq::IFunctionBlockType>(
+            {{"Single", singleType}, {"Multi", daq::FunctionBlockType("Multi", "Multi", "")}});
+    }
+
+    daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& config) override
+    {
+        const daq::FunctionBlockTypePtr type = onGetAvailableFunctionBlockTypes().get(typeId);
+
+        daq::StringPtr localId = typeId.toStdString() + "_" + std::to_string(nextId++);
+        if (config.assigned() && config.hasProperty("LocalId"))
+            localId = config.getPropertyValue("LocalId");
+
+        auto lock = this->getRecursiveConfigLock2();
+        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(type, this->context, this->functionBlocks, localId);
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+
+    void onRemoveFunctionBlock(const daq::FunctionBlockPtr& functionBlock) override
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        removeNestedFunctionBlock(functionBlock);
+    }
+
+private:
+    bool singleton;
+    std::atomic<int> nextId = 0;
+};
+
+static daq::DevicePtr createSingletonTestDevice(bool singleton = true)
+{
+    return daq::createWithImplementation<daq::IDevice, SingletonTestDevice>(daq::NullContext(), nullptr, "dev", singleton);
+}
+
+static std::vector<std::string> functionBlockIds(const daq::DevicePtr& device)
+{
+    std::vector<std::string> ids;
+    for (const auto& fb : device.getFunctionBlocks())
+        ids.push_back(fb.getLocalId());
+    return ids;
+}
+
+TEST_F(DeviceTest, LoadConfigurationRestoresSingletonFunctionBlock)
+{
+    const auto device = createSingletonTestDevice();
+    device.addFunctionBlock("Single");
+    device.addFunctionBlock("Multi");
+    const auto configuration = device.saveConfiguration();
+
+    ASSERT_NO_THROW(device.loadConfiguration(configuration));
+    ASSERT_EQ(functionBlockIds(device), (std::vector<std::string>{"Single_0", "Multi_1"}));
+}
+
+TEST_F(DeviceTest, LoadConfigurationSkipsDuplicateSingleton)
+{
+    const auto source = createSingletonTestDevice(false);
+    source.addFunctionBlock("Single");
+    source.addFunctionBlock("Single");
+    source.addFunctionBlock("Multi");
+    const auto configuration = source.saveConfiguration();
+
+    const auto device = createSingletonTestDevice();
+    device.addFunctionBlock("Single");
+
+    ASSERT_NO_THROW(device.loadConfiguration(configuration));
+    ASSERT_EQ(functionBlockIds(device), (std::vector<std::string>{"Single_0", "Multi_2"}));
+}
+
+TEST_F(DeviceTest, AddSecondSingletonFunctionBlockToDeviceFails)
+{
+    const auto device = createSingletonTestDevice();
+    device.addFunctionBlock("Single");
+
+    ASSERT_THROW(device.addFunctionBlock("Single"), daq::AlreadyExistsException);
+    ASSERT_EQ(functionBlockIds(device), (std::vector<std::string>{"Single_0"}));
 }

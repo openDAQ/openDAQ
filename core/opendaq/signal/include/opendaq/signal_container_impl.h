@@ -126,6 +126,8 @@ protected:
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
 
+    bool hasSingletonInstance(const StringPtr& typeId);
+
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
@@ -672,13 +674,36 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-    
+
     FunctionBlockPtr functionBlockPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
+    const ErrCode errCode = daqTry([this, &typeId, &config, &functionBlockPtr]
+    {
+        const StringPtr typeIdPtr = typeId;
+        if (hasSingletonInstance(typeIdPtr))
+            DAQ_THROW_EXCEPTION(AlreadyExistsException,
+                                "Function block type \"{}\" is a singleton and an instance of it already exists under \"{}\"",
+                                typeIdPtr,
+                                this->globalId);
+
+        functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
+    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
+}
+
+template <class Intf, class... Intfs>
+bool GenericSignalContainerImpl<Intf, Intfs...>::hasSingletonInstance(const StringPtr& typeId)
+{
+    for (const FunctionBlockPtr& fb : this->functionBlocks.getItems(search::Any()))
+    {
+        const auto fbType = fb.getFunctionBlockType();
+        if (fbType.assigned() && fbType.getId() == typeId && fbType.getSingleton())
+            return true;
+    }
+
+    return false;
 }
 
 template <class Intf, class ... Intfs>
@@ -873,16 +898,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const BaseObjectPtr& context)
 {
     // we are now removing all existing functions block excluding the static ones
-    // so for the dynamic function blocks we dont need to check if the function block is already exist or not
+    // so for the dynamic function blocks we dont need to check if the function block already exists or not
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
     const auto typeId = serializedFunctionBlock.readString("typeId");
 
-    // handle the function block which are not availble to add
+    // handle the function block which are not available to add
     if (!availableTypes.hasKey(typeId))
     {
         if (this->functionBlocks.hasItem(fbId))
         {
-            // handaling static function block
+            // handling static function block
             const UpdatablePtr updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
             updatableFb.updateInternal(serializedFunctionBlock, context);
         }
@@ -892,6 +917,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
             auto loggerComponent = signalContainerLoggerComponent;
             LOG_W("Failed to add missing FB with ID {} while updating parent FB with ID {}", fbId, this->localId)
         }
+        return;
+    }
+
+    if (hasSingletonInstance(typeId))
+    {
+        auto loggerComponent = signalContainerLoggerComponent;
+        LOG_W("Skipped function block \"{}\" while loading \"{}\": type \"{}\" is a singleton and an instance of it already exists",
+              fbId,
+              this->globalId,
+              typeId)
         return;
     }
 

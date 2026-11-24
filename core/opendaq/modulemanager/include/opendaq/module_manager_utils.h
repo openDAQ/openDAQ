@@ -220,16 +220,21 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @param[out] config The add device config
      * @param info The device info, discovered or holding only a connection string
      * @param prefix The connection string prefix of the Device type to use
-     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Device type has the prefix, or a discovered info has no capability with the prefix.
+     * @param parent The device the config adds a device to
+     * @retval OPENDAQ_ERR_NOTFOUND when no Device type has the prefix, or a discovered info has no capability with the prefix.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or the prefix differs from that of an info without capabilities.
      *
-     * Without a prefix, a server capability with a loaded Device type that is not Root is chosen.
+     * The Device type is chosen either from the loaded Device types or, when set, from the parent device's available Device types.
+     * Without a prefix, a server capability with a Device type that is not Root is chosen.
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
      * The selected Streaming type is chosen from the listed ones by `selectStreamingType`.
      */
-    virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config,
+                                                         IDeviceInfo* info,
+                                                         IString* prefix = nullptr,
+                                                         IDevice* parent = nullptr) = 0;
 
     /*!
      * @brief Creates an add device config from its saved form, bound to the Device types of the parent device.

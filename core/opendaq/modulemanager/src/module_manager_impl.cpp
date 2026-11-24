@@ -946,19 +946,13 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
             return connectionStringPtr;
         }
 
-        const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
+        const auto address = resolveSmartConnectionString(connectionStringPtr, capabilities, typePrefix, config.getPrimaryAddressType());
+        if (address.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
         {
-            return getServerCapabilityPrefix(capability) == typePrefix;
-        };
-        const auto it = std::find_if(capabilities.begin(), capabilities.end(), hasTypePrefix);
-        if (it == capabilities.end())
-        {
-            DAQ_THROW_EXCEPTION(NotFoundException,
-                                R"(Device with connection string "{}" has no server capability with the prefix "{}")",
-                                connectionStringPtr,
-                                typePrefix);
+            LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",
+                  address.getConnectionString());
         }
-        return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+        return address.getConnectionString();
     };
 
     const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
@@ -1517,7 +1511,7 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     return OPENDAQ_NOTFOUND;
 }
 
-ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix)
+ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix, IDevice* parent)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
     OPENDAQ_PARAM_NOT_NULL(info);
@@ -1528,7 +1522,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const StringPtr prefixPtr = (prefix != nullptr) ? StringPtr(prefix) : StringPtr("");
 
         DictPtr<IString, IDeviceType> deviceTypes;
-        checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        checkErrorInfo((parent != nullptr) ? parent->getAvailableDeviceTypes(&deviceTypes) : getAvailableDeviceTypes(&deviceTypes));
         DictPtr<IString, IStreamingType> streamingTypes;
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
@@ -1571,10 +1565,7 @@ ErrCode ModuleManagerImpl::createBoundAddDeviceConfig(IAddDeviceConfig** config,
     return daqTry([&]()
     {
         DictPtr<IString, IDeviceType> deviceTypes;
-        if (parent != nullptr)
-            checkErrorInfo(parent->getAvailableDeviceTypes(&deviceTypes));
-        else
-            checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        checkErrorInfo((parent != nullptr) ? parent->getAvailableDeviceTypes(&deviceTypes) : getAvailableDeviceTypes(&deviceTypes));
         DictPtr<IString, IStreamingType> streamingTypes;
         checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
 
@@ -1695,23 +1686,6 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     }
 
     return localInfo;
-}
-
-StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability,
-                                                          AddressType primaryAddressType) const
-{
-    const auto addressInfos = sortAddressInfos(selectedCapability.getAddressInfo(), primaryAddressType);
-    if (addressInfos.empty())
-        return selectedCapability.getConnectionString();
-
-    const auto& selected = addressInfos.front();
-    const auto connectionString = selected.getConnectionString();
-    if (selected.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
-    {
-        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.", connectionString);
-    }
-
-    return connectionString;
 }
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,

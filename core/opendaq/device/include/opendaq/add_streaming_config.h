@@ -46,13 +46,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * The streaming connects at the first of these ports:
  * 1. the port set on the config;
  * 2. the port named by the connection string the streaming is added with (e.g. "daq.ns://127.0.0.1:7420");
- * 3. for a streaming that comes with an added device, the port the server announces for the selected option in the
- *    server capabilities of the connected device;
- * 4. the port of the selected option.
+ * 3. the port of the selected option.
  *
- * A streaming that comes with an added device connects by the connection string of a server capability, whose port is
- * not taken. A port set and another port named by the connection string contradict each other: adding the streaming
- * fails with OPENDAQ_ERR_INVALIDPARAMETER.
+ * A port set and another port named by the connection string contradict each other: adding the streaming fails with
+ * OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {

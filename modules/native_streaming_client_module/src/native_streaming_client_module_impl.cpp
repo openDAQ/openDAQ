@@ -643,7 +643,21 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         return false;
     }
 
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
     auto port = target.getPort();
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     if (port == -1)
     {
         port = 7420;

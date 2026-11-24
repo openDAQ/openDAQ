@@ -19,6 +19,7 @@
 #include <config_protocol/config_client_component_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/component_holder_ptr.h>
+#include <opendaq/add_device_config_private_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -97,6 +98,8 @@ private:
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     void operationModeChanged(const CoreEventArgsPtr& args);
+
+    PropertyObjectPtr trimAddDeviceConfig(const PropertyObjectPtr& config);
 };
 
 template <class TDeviceBase>
@@ -151,7 +154,8 @@ DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetA
 template <class TDeviceBase>
 DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    const ComponentHolderPtr devHolder = this->clientComm->addDevice(this->remoteGlobalId, connectionString, config, this->devices);
+    const ComponentHolderPtr devHolder =
+        this->clientComm->addDevice(this->remoteGlobalId, connectionString, trimAddDeviceConfig(config), this->devices);
 
     DevicePtr dev = devHolder.getComponent();
     if (!this->devices.hasItem(dev.getLocalId()))
@@ -170,8 +174,12 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
                                                                                    DictPtr<IString, IInteger> errCodes,
                                                                                    DictPtr<IString, IErrorInfo> errorInfos)
 {
+    auto trimmedArgs = Dict<IString, IPropertyObject>();
+    for (const auto& [connectionString, config] : connectionArgs)
+        trimmedArgs.set(connectionString, trimAddDeviceConfig(config));
+
     const DictPtr<IString, IBaseObject> reply =
-        this->clientComm->addDevices(this->remoteGlobalId, connectionArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
+        this->clientComm->addDevices(this->remoteGlobalId, trimmedArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
 
     if (!reply.hasKey("ErrorCode"))
         throw ConfigProtocolException("Invalid reply: \"ErrorCode\" is missing");
@@ -231,6 +239,16 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
 }
 
 template <class TDeviceBase>
+PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::trimAddDeviceConfig(const PropertyObjectPtr& config)
+{
+    const auto configPrivate = config.asPtrOrNull<IAddDeviceConfigPrivate>(true);
+    if (this->clientComm->getProtocolVersion() < 26 || !configPrivate.assigned())
+        return config;
+
+    return configPrivate.trim();
+}
+
+template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
     if (!device.assigned())
@@ -251,10 +269,12 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 }
 
 template <class TDeviceBase>
-AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& /*info*/,
-                                                                                       const StringPtr& /*prefix*/)
+AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix)
 {
-    DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config is not supported on a config client device.");
+    if (this->clientComm->getProtocolVersion() < 26)
+        DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config is not supported on a config client device.");
+
+    return this->clientComm->createAddDeviceConfig(this->remoteGlobalId, info, prefix);
 }
 
 template <class TDeviceBase>

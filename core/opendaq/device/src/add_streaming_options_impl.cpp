@@ -13,6 +13,8 @@ static const char* StreamingMode = "StreamingMode";
 static const char* NoStreamingType = "None";
 
 static const char* PropValuesKey = "propValues";
+static const char* TrimUnselectedConfigsKey = "trimUnselected";
+static const char* TrimExceptionsKey = "trimExceptions";
 
 StringPtr toString(daq::StreamingMode mode)
 {
@@ -148,9 +150,44 @@ ErrCode AddStreamingOptionsImpl::clone(IPropertyObject** cloned)
     {
         auto lock = getRecursiveConfigLock2();
         auto obj = createWithImplementation<IPropertyObject, AddStreamingOptionsImpl>(Partial());
-        dynamic_cast<AddStreamingOptionsImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
+        const auto impl = dynamic_cast<AddStreamingOptionsImpl*>(obj.getObject());
+        impl->configureClonedMembers(getCloneParameters());
+        impl->trimData = trimData;
         *cloned = obj.detach();
     });
+}
+
+void AddStreamingOptionsImpl::removeUnselected()
+{
+    const PropertyPtr selectionProperty = objPtr.getProperty(add_streaming_options::StreamingType);
+    const StringPtr defaultSelection = selectionProperty.getDefaultValue();
+    const StringPtr selection = objPtr.getPropertyValue(add_streaming_options::StreamingType);
+    const auto isKept = [&](const StringPtr& typeId)
+    {
+        if (typeId == defaultSelection || typeId == selection)
+            return true;
+
+        const bool isException = std::find(trimData.exceptions.begin(), trimData.exceptions.end(), typeId) != trimData.exceptions.end();
+        return trimData.trimUnselected == isException;
+    };
+
+    const ListPtr<IString> offered = selectionProperty.getSelectionValues();
+    auto selectionValues = List<IString>();
+    for (const auto& typeId : offered)
+    {
+        if (isKept(typeId))
+            selectionValues.pushBack(typeId);
+        else if (objPtr.hasProperty(typeId) && objPtr.getPropertyValue(typeId).supportsInterface<IAddStreamingConfig>())
+            checkErrorInfo(Super::removeProperty(typeId));
+    }
+
+    if (selectionValues.getCount() == offered.getCount())
+        return;
+
+    checkErrorInfo(Super::removeProperty(String(add_streaming_options::StreamingType)));
+    checkErrorInfo(Super::addProperty(
+        StringPropertyBuilder(add_streaming_options::StreamingType, defaultSelection).setSelectionValues(selectionValues).build()));
+    checkErrorInfo(Super::setPropertyValue(String(add_streaming_options::StreamingType), selection));
 }
 
 ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
@@ -182,6 +219,29 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
 
             const auto streamingConfig = objPtr.getPropertyValue(typeId).asPtr<IUpdatable>();
             checkErrorInfo(streamingConfig->updateInternal(values.readSerializedObject(typeId), context));
+        }
+    });
+}
+
+ErrCode AddStreamingOptionsImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
+    if (forUpdate)
+        return OPENDAQ_SUCCESS;
+
+    return daqTry([&]
+    {
+        const auto serializerPtr = SerializerPtr::Borrow(serializer);
+        if (!trimData.trimUnselected)
+        {
+            serializerPtr.key(add_streaming_options::TrimUnselectedConfigsKey);
+            serializerPtr.writeBool(trimData.trimUnselected);
+        }
+
+        if (trimData.exceptions.getCount() > 0)
+        {
+            serializerPtr.key(add_streaming_options::TrimExceptionsKey);
+            trimData.exceptions.serialize(serializerPtr);
         }
     });
 }
@@ -225,9 +285,15 @@ ErrCode AddStreamingOptionsImpl::Deserialize(ISerializedObject* serialized,
 
     return daqTry([&]
     {
-        const auto createOptions = [](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
+        const auto createOptions = [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr&)
         {
-            return createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(Partial());
+            auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(Partial());
+            const auto impl = dynamic_cast<AddStreamingOptionsImpl*>(options.getObject());
+            if (serialized.hasKey(add_streaming_options::TrimUnselectedConfigsKey))
+                impl->trimData.trimUnselected = serialized.readBool(add_streaming_options::TrimUnselectedConfigsKey);
+            if (serialized.hasKey(add_streaming_options::TrimExceptionsKey))
+                impl->trimData.exceptions = serialized.readObject(add_streaming_options::TrimExceptionsKey, context);
+            return options;
         };
 
         *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback, createOptions).detach();

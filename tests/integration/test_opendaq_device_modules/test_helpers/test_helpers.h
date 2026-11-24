@@ -459,6 +459,26 @@ namespace test_helpers
         return info.param ? "LegacyGeneralConfig" : "AddDeviceConfig";
     }
 
+    [[maybe_unused]]
+    inline PropertyObjectPtr createDefaultAddDeviceConfig(const InstancePtr& instance)
+    {
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+        return instance.createDefaultAddDeviceConfig();
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+    }
+
     // Creates the add-device config the credential helpers below fill
     [[maybe_unused]]
     inline PropertyObjectPtr createAddDeviceConfig(const InstancePtr& instance, const std::string& connectionString, bool useLegacyConfig)

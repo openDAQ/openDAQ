@@ -348,7 +348,7 @@ static StructTypePtr createTestComponentTypeStructType()
 TEST_F(ComponentTypeTest, ExtraFields)
 {
     const StructPtr type = createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
-        createTestComponentTypeStructType(), "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extra", "Value"}}));
+        createTestComponentTypeStructType(), "Id", "Name", "Desc", PropertyObjectPtr(), List<ITransportOption>(), Dict<IString, IBaseObject>({{"Extra", "Value"}}));
 
     ASSERT_EQ(type.getFieldNames(), createTestComponentTypeStructType().getFieldNames());
     ASSERT_EQ(type.get("Id"), "Id");
@@ -365,7 +365,7 @@ TEST_F(ComponentTypeTest, ReservedExtraFieldThrows)
     for (const auto& reserved : {"Id", "Name", "Description"})
     {
         ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
-                         structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{reserved, "Other"}}))),
+                         structType, "Id", "Name", "Desc", PropertyObjectPtr(), List<ITransportOption>(), Dict<IString, IBaseObject>({{reserved, "Other"}}))),
                      InvalidParameterException);
     }
 }
@@ -379,11 +379,11 @@ TEST_F(ComponentTypeTest, MismatchedExtraFieldsThrow)
                  InvalidTypeException);
 
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
-                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extar", "Value"}}))),
+                     structType, "Id", "Name", "Desc", PropertyObjectPtr(), List<ITransportOption>(), Dict<IString, IBaseObject>({{"Extar", "Value"}}))),
                  InvalidTypeException);
 
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
-                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extra", "Value"}, {"Other", "Value"}}))),
+                     structType, "Id", "Name", "Desc", PropertyObjectPtr(), List<ITransportOption>(), Dict<IString, IBaseObject>({{"Extra", "Value"}, {"Other", "Value"}}))),
                  InvalidTypeException);
 }
 
@@ -396,7 +396,7 @@ TEST_F(ComponentTypeTest, MisorderedExtraFieldsThrow)
                                                    SimpleType(ctString), SimpleType(ctString)));
 
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
-                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Second", "2"}, {"First", "1"}}))),
+                     structType, "Id", "Name", "Desc", PropertyObjectPtr(), List<ITransportOption>(), Dict<IString, IBaseObject>({{"Second", "2"}, {"First", "1"}}))),
                  InvalidTypeException);
 }
 #endif

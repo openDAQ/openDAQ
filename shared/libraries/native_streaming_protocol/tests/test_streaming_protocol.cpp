@@ -1168,10 +1168,10 @@ TEST_P(StreamingProtocolTest, AddNotPublicSignalInConstructor)
 TEST(StreamingProtocolClientTest, DestroyAfterUnansweredConnect)
 {
     auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
-        NullContext(), ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
+        NullContext(), ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createCredentials());
 
     // The address is not routed, so nothing answers the connection attempt.
-    ASSERT_FALSE(clientHandler->connect("10.255.255.1", "7420"));
+    ASSERT_ANY_THROW(clientHandler->connect("10.255.255.1", "7420"));
 
     const auto start = std::chrono::steady_clock::now();
     clientHandler.reset();

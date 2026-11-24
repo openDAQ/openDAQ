@@ -48,6 +48,7 @@
 - [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
 - [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix a deadlock in the native configuration server between sending core events and threads that change the device, and client calls that stalled until the request timeout when a server event arrived.
+- [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix a crash of the native streaming pseudo device when it is removed while its signals change.
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix the property type that a client reports for properties with `onSelectionValuesRead` listeners.
 
 ## Misc

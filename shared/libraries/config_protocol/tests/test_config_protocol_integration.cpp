@@ -117,6 +117,11 @@ public:
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
+    static AddDeviceConfigPtr createAddDeviceConfigForPrefix(const StringPtr& prefix)
+    {
+        return AddDeviceConfig(DeviceTypeBuilder().setId(prefix).setName(prefix).setConnectionStringPrefix(prefix).build(), nullptr, False);
+    }
+
     static StringPtr serializeComponent(const ComponentPtr& component)
     {
         const auto serializer = JsonSerializer(True);
@@ -944,7 +949,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     auto availableDevicesServer = serverDevice.getAvailableDevices();
     auto availableDevicesClient = clientDevice.getAvailableDevices();
 
-    ASSERT_EQ(availableDevicesClient.getCount(), 3u);
+    ASSERT_EQ(availableDevicesClient.getCount(), 4u);
 
     auto c = availableDevicesClient[2];
     auto s = availableDevicesServer[2];
@@ -1131,6 +1136,59 @@ TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigErrorsReachClient)
 {
     ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("unknown://device")), NotFoundException);
     ASSERT_THROW(clientDevice.getDevices()[0].createAddDeviceConfig(DeviceInfo("unknown://device")), NotSupportedException);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceResolvesDaqConnectionStringOnOldServer)
+{
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+    connectClient(25);
+
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart?Opt=1", createAddDeviceConfigForPrefix("daqmockx")), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "mock://test?Opt=1");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesResolvesDaqConnectionStringsOnOldServer)
+{
+    connectClient(25);
+
+    const auto config = createAddDeviceConfigForPrefix("daqmockx");
+    const auto connectionArgs =
+        Dict<IString, IPropertyObject>({{"mock://test", nullptr}, {"daq://Testing_smart", config}, {"daq://Testing_missing", config}});
+    auto errCodes = Dict<IString, IInteger>();
+    auto errorInfos = Dict<IString, IErrorInfo>();
+    DictPtr<IString, IDevice> devices;
+    ASSERT_EQ(clientDevice->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
+
+    ASSERT_TRUE(devices.get("mock://test").assigned());
+    ASSERT_EQ(errCodes.get("mock://test"), OPENDAQ_SUCCESS);
+    ASSERT_FALSE(errorInfos.get("mock://test").assigned());
+
+    ASSERT_FALSE(devices.get("daq://Testing_smart").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_smart"), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_TRUE(errorInfos.get("daq://Testing_smart").assigned());
+
+    ASSERT_FALSE(devices.get("daq://Testing_missing").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_missing"), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_TRUE(errorInfos.get("daq://Testing_missing").assigned());
+
+    const auto unresolvedArgs = Dict<IString, IPropertyObject>({{"daq://Testing_missing", config}});
+    ASSERT_EQ(clientDevice->addDevices(&devices, unresolvedArgs, errCodes, errorInfos), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo();
+    ASSERT_FALSE(devices.get("daq://Testing_missing").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_missing"), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceSendsDaqConnectionStringUnchanged)
+{
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart", createAddDeviceConfigForPrefix("daqmockx")), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "daq://Testing_smart");
+
+    connectClient(25);
+    mock->lastAddDeviceConnectionString = nullptr;
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart"), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "daq://Testing_smart");
 }
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)

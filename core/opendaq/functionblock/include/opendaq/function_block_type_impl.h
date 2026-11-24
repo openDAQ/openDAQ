@@ -90,7 +90,7 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     FunctionBlockInputPolicy inputPolicy,
                                                     Bool singleton,
                                                     const StringPtr& commonSettingsType)
-    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig,
+    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig, List<ITransportOption>(),
             Dict<IString, IBaseObject>({{"InputPolicy", static_cast<Int>(ValidateInputPolicy(inputPolicy))},
                                         {"Singleton", singleton},
                                         {"CommonSettingsTypeId", UnassignedIfEmpty(commonSettingsType)}}))

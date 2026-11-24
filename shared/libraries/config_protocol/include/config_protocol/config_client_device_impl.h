@@ -19,6 +19,7 @@
 #include <config_protocol/config_client_component_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/component_holder_ptr.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_device_config_private_ptr.h>
 
 namespace daq::config_protocol
@@ -99,6 +100,9 @@ private:
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     void operationModeChanged(const CoreEventArgsPtr& args);
 
+    StringPtr resolveAddConnectionString(const StringPtr& connectionString,
+                                         const PropertyObjectPtr& config,
+                                         ListPtr<IDeviceInfo>& availableDevices);
     PropertyObjectPtr trimAddDeviceConfig(const PropertyObjectPtr& config);
 };
 
@@ -154,8 +158,10 @@ DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetA
 template <class TDeviceBase>
 DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    const ComponentHolderPtr devHolder =
-        this->clientComm->addDevice(this->remoteGlobalId, connectionString, trimAddDeviceConfig(config), this->devices);
+    ListPtr<IDeviceInfo> availableDevices;
+    const StringPtr resolvedConnectionString = resolveAddConnectionString(connectionString, config, availableDevices);
+    const ComponentHolderPtr devHolder = this->clientComm->addDevice(
+        this->remoteGlobalId, resolvedConnectionString, trimAddDeviceConfig(config), this->devices);
 
     DevicePtr dev = devHolder.getComponent();
     if (!this->devices.hasItem(dev.getLocalId()))
@@ -174,12 +180,54 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
                                                                                    DictPtr<IString, IInteger> errCodes,
                                                                                    DictPtr<IString, IErrorInfo> errorInfos)
 {
-    auto trimmedArgs = Dict<IString, IPropertyObject>();
+    ListPtr<IDeviceInfo> availableDevices;
+    auto resolvedArgs = Dict<IString, IPropertyObject>();
+    std::unordered_map<std::string, std::string> resolvedConnectionStrings;
+    const auto resolveEntry = [&](const StringPtr& connectionString, const PropertyObjectPtr& config)
+    {
+        StringPtr resolved;
+        const auto resolve = [&]
+        {
+            resolved = resolveAddConnectionString(connectionString, config, availableDevices);
+            if (resolvedArgs.hasKey(resolved))
+            {
+                DAQ_THROW_EXCEPTION(AlreadyExistsException,
+                                    R"(Connection string "{}" resolves to "{}", which another entry already uses)",
+                                    connectionString,
+                                    resolved);
+            }
+        };
+        const ErrCode errCode = daqTry(resolve);
+
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            resolvedArgs.set(resolved, trimAddDeviceConfig(config));
+            resolvedConnectionStrings.emplace(connectionString, resolved);
+            return;
+        }
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        daqClearErrorInfo();
+        if (errCodes.assigned())
+            errCodes[connectionString] = errCode;
+        if (errorInfos.assigned())
+            errorInfos[connectionString] = errorInfo;
+    };
+
     for (const auto& [connectionString, config] : connectionArgs)
-        trimmedArgs.set(connectionString, trimAddDeviceConfig(config));
+        resolveEntry(connectionString, config);
+
+    DictPtr<IString, IDevice> devices = Dict<IString, IDevice>();
+    if (resolvedArgs.getCount() == 0)
+    {
+        for (const auto& [connectionString, _] : connectionArgs)
+            devices[connectionString] = nullptr;
+        return devices;
+    }
 
     const DictPtr<IString, IBaseObject> reply =
-        this->clientComm->addDevices(this->remoteGlobalId, trimmedArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
+        this->clientComm->addDevices(this->remoteGlobalId, resolvedArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
 
     if (!reply.hasKey("ErrorCode"))
         throw ConfigProtocolException("Invalid reply: \"ErrorCode\" is missing");
@@ -187,14 +235,14 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
     if (errCodes.assigned())
     {
         const DictPtr<IString, IInteger> remoteErrCodes = reply.getOrDefault("ErrorCodes", Dict<IString, IInteger>());
-        for (const auto& [connectionString, _] : connectionArgs)
-            errCodes[connectionString] = remoteErrCodes.getOrDefault(connectionString, OPENDAQ_SUCCESS);
+        for (const auto& [connectionString, resolved] : resolvedConnectionStrings)
+            errCodes[connectionString] = remoteErrCodes.getOrDefault(resolved, OPENDAQ_SUCCESS);
     }
     if (errorInfos.assigned())
     {
         const DictPtr<IString, IErrorInfo> remoteErrorInfos = reply.getOrDefault("ErrorInfos", Dict<IString, IErrorInfo>());
-        for (const auto& [connectionString, _] : connectionArgs)
-            errorInfos[connectionString] = remoteErrorInfos.getOrDefault(connectionString, nullptr);
+        for (const auto& [connectionString, resolved] : resolvedConnectionStrings)
+            errorInfos[connectionString] = remoteErrorInfos.getOrDefault(resolved, nullptr);
     }
 
     const ErrCode errCode = reply["ErrorCode"];
@@ -207,12 +255,15 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
     if (!reply.hasKey("AddedDevices"))
         throw ConfigProtocolException("Invalid reply: \"AddedDevices\" key is missing");
     const DictPtr<IString, IComponentHolder> devHolders = reply["AddedDevices"];
-    DictPtr<IString, IDevice> devices = Dict<IString, IDevice>();
 
     for (const auto& [connectionString, _] : connectionArgs)
     {
         devices[connectionString] = nullptr;
-        ComponentHolderPtr devHolder = devHolders.getOrDefault(connectionString, nullptr);
+        const auto resolved = resolvedConnectionStrings.find(connectionString);
+        if (resolved == resolvedConnectionStrings.end())
+            continue;
+
+        ComponentHolderPtr devHolder = devHolders.getOrDefault(resolved->second, nullptr);
         if (!devHolder.assigned())
         {
             DAQLOGF_E(this->loggerComponent,
@@ -236,6 +287,44 @@ DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevic
         }
     }
     return devices;
+}
+
+template <class TDeviceBase>
+StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::resolveAddConnectionString(const StringPtr& connectionString,
+                                                                                 const PropertyObjectPtr& config,
+                                                                                 ListPtr<IDeviceInfo>& availableDevices)
+{
+    const auto addDeviceConfig = config.asPtrOrNull<IAddDeviceConfig>(true);
+    const std::string connectionStringStr = connectionString;
+    if (this->clientComm->getProtocolVersion() >= 26 || !addDeviceConfig.assigned() || connectionStringStr.rfind("daq://", 0) != 0)
+        return connectionString;
+
+    const auto optionsPos = connectionStringStr.find('?');
+    const StringPtr pureConnectionString = connectionStringStr.substr(0, optionsPos);
+    const std::string options = (optionsPos == std::string::npos) ? "" : connectionStringStr.substr(optionsPos);
+
+    if (!availableDevices.assigned())
+        availableDevices = this->onGetAvailableDevices();
+
+    for (const auto& info : availableDevices)
+    {
+        if (info.getConnectionString() != pureConnectionString)
+            continue;
+
+        const auto address = resolveSmartConnectionString(pureConnectionString,
+                                                          info.getServerCapabilities(),
+                                                          addDeviceConfig.getDeviceType().getConnectionStringPrefix(),
+                                                          addDeviceConfig.getPrimaryAddressType());
+        if (address.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
+        {
+            DAQLOGF_W(this->loggerComponent,
+                      "Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",
+                      address.getConnectionString());
+        }
+        return address.getConnectionString().toStdString() + options;
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, R"(Device with connection string "{}" not found)", pureConnectionString);
 }
 
 template <class TDeviceBase>

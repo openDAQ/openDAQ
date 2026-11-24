@@ -246,12 +246,13 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
+        // Enabled before ComponentAdded is reported, so that a change a listener makes to the new component is reported as an event of its own
+        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::ComponentAdded,
             Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
-        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     // When a component is added to the subtree, the folder updates its operation mode to match the operation mode of the parent device.

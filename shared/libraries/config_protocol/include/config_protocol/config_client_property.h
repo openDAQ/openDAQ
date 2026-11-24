@@ -18,6 +18,7 @@
 #include <coreobjects/property_impl.h>
 #include <config_protocol/config_client_object_impl.h>
 #include <config_protocol/config_protocol_deserialize_context.h>
+#include <atomic>
 
 namespace daq::config_protocol
 {
@@ -27,6 +28,7 @@ struct ConfigPropertyBuildParams
     Bool hasOnReadListeners = false;
     Bool hasSelectionValuesListener = false;
     Bool hasSuggestedValuesListeners = false;
+    Int propertyType = static_cast<Int>(PropertyType::Undefined);
 };
 
 class ConfigClientPropertyImpl : public PropertyImpl, public ConfigClientObjectImpl
@@ -40,6 +42,7 @@ public:
     ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) override;
     ErrCode INTERFACE_FUNC getHasOnGetSuggestedValuesListeners(Bool* hasListeners) override;
     ErrCode INTERFACE_FUNC getHasOnGetSelectionValuesListeners(Bool* hasListeners) override;
+    ErrCode INTERFACE_FUNC getPropertyType(PropertyType* type) override;
 
     ErrCode getSuggestedValuesInternal(IList** values, bool lock) override;
     ErrCode getSelectionValuesInternal(IBaseObject** values, bool lock) override;
@@ -51,6 +54,10 @@ public:
     Bool hasOnReadListeners;
     Bool hasOnGetSuggestedValuesListeners;
     Bool hasOnGetSelectionValuesListeners;
+
+private:
+    // Set once selection values read from the server were a dictionary; read by any thread
+    std::atomic<bool> remoteSelectionValuesAreDict{false};
 };
 
 inline ConfigClientPropertyImpl::ConfigClientPropertyImpl(const PropertyBuilderPtr& propertyBuilder,
@@ -63,6 +70,12 @@ inline ConfigClientPropertyImpl::ConfigClientPropertyImpl(const PropertyBuilderP
     this->hasOnGetSuggestedValuesListeners = buildParams.hasSuggestedValuesListeners;
     this->hasOnGetSelectionValuesListeners = buildParams.hasSelectionValuesListener;
     this->hasOnReadListeners = buildParams.hasOnReadListeners;
+
+    // The server sends the type of a property whose selection values it computes; without it the type is deduced from the value type
+    if (buildParams.propertyType != static_cast<Int>(PropertyType::Undefined))
+        propertyType = static_cast<PropertyType>(buildParams.propertyType);
+    else if (hasOnGetSelectionValuesListeners && (valueType == ctInt || valueType == ctString || valueType == ctFloat))
+        propertyType = valueType == ctInt && !isIntegerValueSelection ? PropertyType::IndexSelection : PropertyType::Selection;
 }
 
 inline ErrCode INTERFACE_FUNC ConfigClientPropertyImpl::getHasOnReadListeners(Bool* hasListeners)
@@ -86,6 +99,16 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyImpl::getHasOnGetSelectionValu
     OPENDAQ_PARAM_NOT_NULL(hasListeners);
     
     *hasListeners = hasOnGetSelectionValuesListeners;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientPropertyImpl::getPropertyType(PropertyType* type)
+{
+    OPENDAQ_RETURN_IF_FAILED(PropertyImpl::getPropertyType(type));
+
+    // Without the type from the server, only its values, a dictionary, tell a sparse selection from an index selection
+    if (*type == PropertyType::IndexSelection && remoteSelectionValuesAreDict)
+        *type = PropertyType::SparseSelection;
     return OPENDAQ_SUCCESS;
 }
 
@@ -117,6 +140,14 @@ inline ErrCode ConfigClientPropertyImpl::getSelectionValuesInternal(IBaseObject*
         return PropertyImpl::getSelectionValuesInternal(values, lock);
 
     OPENDAQ_PARAM_NOT_NULL(values);
+
+    // Asked by the owner while it holds its lock: no call to the server is made there, and the server checks a written value itself
+    if (!lock)
+    {
+        *values = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
+
     return daqTry([this, values] 
     {
         auto ownerPtr = getOwner();
@@ -127,6 +158,8 @@ inline ErrCode ConfigClientPropertyImpl::getSelectionValuesInternal(IBaseObject*
         auto pathPtr = ownerInternal.getPath();
         std::string path = pathPtr.assigned() ? pathPtr : "";
         *values = this->clientComm->getSelectionValues(this->remoteGlobalId, path, this->name).detach();
+        if (BaseObjectPtr::Borrow(*values).supportsInterface<IDict>())
+            remoteSelectionValuesAreDict = true;
         return OPENDAQ_SUCCESS;
     });
 }
@@ -168,6 +201,9 @@ inline ErrCode ConfigClientPropertyImpl::Deserialize(ISerializedObject* serializ
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
 
         errCode = serialized->readBool(String("HasSuggestedValuesListeners"), &params.hasSuggestedValuesListeners);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+
+        errCode = serialized->readInt(String("propertyType"), &params.propertyType);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
 
         PropertyPtr prop = createWithImplementation<IProperty, ConfigClientPropertyImpl>(builder, ctx->getClientComm(), ctx->getRemoteGlobalId(), params);

@@ -7,8 +7,7 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const StringPtr& description,
                                             const StringPtr& prefix,
                                             const PropertyObjectPtr& defaultConfig)
-    : Super(StreamingTypeStructType(), id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Prefix", prefix}}))
-    , prefix(prefix)
+    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig)
 {
 }
 

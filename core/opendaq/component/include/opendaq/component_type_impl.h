@@ -40,13 +40,12 @@ public:
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
-    // Deleted so calls written for the old prefix overload fail to compile instead of converting implicitly.
-    GenericComponentTypeImpl(const StructTypePtr& type,
-                             const StringPtr& id,
-                             const StringPtr& name,
-                             const StringPtr& description,
-                             const StringPtr& prefix,
-                             const PropertyObjectPtr& defaultConfig) = delete;
+    explicit GenericComponentTypeImpl(const StructTypePtr& type,
+                                      const StringPtr& id,
+                                      const StringPtr& name,
+                                      const StringPtr& description,
+                                      const StringPtr& prefix,
+                                      const PropertyObjectPtr& defaultConfig);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -72,6 +71,7 @@ protected:
     StringPtr id;
     StringPtr name;
     StringPtr description;
+    StringPtr prefix;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
 };
@@ -116,6 +116,24 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , id(id)
     , name(name)
     , description(description)
+    , prefix("")
+    , defaultConfig(defaultConfig)
+{
+}
+
+template <typename Intf, typename... Interfaces>
+GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
+                                                                        const StringPtr& id,
+                                                                        const StringPtr& name,
+                                                                        const StringPtr& description,
+                                                                        const StringPtr& prefix,
+                                                                        const PropertyObjectPtr& defaultConfig)
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
+          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
+    , id(id)
+    , name(name)
+    , description(description)
+    , prefix(prefix)
     , defaultConfig(defaultConfig)
 {
 }

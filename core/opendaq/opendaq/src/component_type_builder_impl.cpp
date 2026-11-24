@@ -154,7 +154,6 @@ ErrCode ComponentTypeBuilderImpl::getInputPolicy(FunctionBlockInputPolicy* polic
     return OPENDAQ_SUCCESS;
 }
 
-
 ErrCode ComponentTypeBuilderImpl::setSingleton(Bool singleton)
 {
     this->isSingleton = singleton;
@@ -168,7 +167,6 @@ ErrCode ComponentTypeBuilderImpl::getSingleton(Bool* singleton)
     *singleton = this->isSingleton;
     return OPENDAQ_SUCCESS;
 }
-
 
 ErrCode ComponentTypeBuilderImpl::setCommonSettingsTypeId(IString* typeId)
 {
@@ -184,7 +182,6 @@ ErrCode ComponentTypeBuilderImpl::getCommonSettingsTypeId(IString** typeId)
     *typeId = this->commonSettingsTypeId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
-
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 

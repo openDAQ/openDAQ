@@ -1,7 +1,4 @@
 #include <array>
-#include <tuple>
-#include <type_traits>
-#include <utility>
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_impl.h>
 #include <coretypes/objectptr.h>
@@ -371,36 +368,6 @@ TEST_F(ComponentTypeTest, ReservedExtraFieldThrows)
                          structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{reserved, "Other"}}))),
                      InvalidParameterException);
     }
-}
-
-// std::is_constructible also requires a public destructor
-template <class T, class Args, class = void>
-struct IsNewConstructible : std::false_type
-{
-};
-
-template <class T, class... Args>
-struct IsNewConstructible<T, std::tuple<Args...>, std::void_t<decltype(new T(std::declval<Args>()...))>> : std::true_type
-{
-};
-
-template <class... Args>
-constexpr bool ComponentTypeConstructible =
-    IsNewConstructible<GenericComponentTypeImpl<>,
-                       std::tuple<const StructTypePtr&, const StringPtr&, const StringPtr&, const StringPtr&, Args...>>::value;
-
-TEST_F(ComponentTypeTest, RemovedPrefixOverloadDoesNotCompile)
-{
-    static_assert(!ComponentTypeConstructible<const StringPtr&, const PropertyObjectPtr&>);
-    static_assert(!ComponentTypeConstructible<const char*, const PropertyObjectPtr&>);
-    static_assert(!ComponentTypeConstructible<std::nullptr_t, const PropertyObjectPtr&>);
-    static_assert(!ComponentTypeConstructible<const StringPtr&, std::nullptr_t>);
-
-    static_assert(ComponentTypeConstructible<const PropertyObjectPtr&>);
-    static_assert(ComponentTypeConstructible<std::nullptr_t>);
-    static_assert(ComponentTypeConstructible<const PropertyObjectPtr&, const DictPtr<IString, IBaseObject>&>);
-    static_assert(ComponentTypeConstructible<std::nullptr_t, const DictPtr<IString, IBaseObject>&>);
-    static_assert(ComponentTypeConstructible<const PropertyObjectPtr&, std::nullptr_t>);
 }
 
 #ifndef NDEBUG

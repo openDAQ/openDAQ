@@ -14,8 +14,7 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix)
-    : Super(detail::deviceTypeStructType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Prefix", prefix}}))
-    , prefix(prefix)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig)
 {
 }
 

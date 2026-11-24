@@ -212,7 +212,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * a function block type. Is False by default.
      * @param singleton The flag value.
      *
-     * singleton flag means that only one function block of the type is allowed under a
+     * The singleton flag means that only one function block of the type is allowed under a
      * single parent.
      */
     virtual ErrCode INTERFACE_FUNC setSingleton(Bool singleton) = 0;
@@ -222,7 +222,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * a function block type. Is False by default.
      * @param[out] singleton The flag value.
      *
-     * singleton flag means that only one function block of the type is allowed under a
+     * The singleton flag means that only one function block of the type is allowed under a
      * single parent.
      */
     virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;

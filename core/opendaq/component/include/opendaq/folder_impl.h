@@ -91,7 +91,7 @@ protected:
     virtual void syncComponentOperationMode(const ComponentPtr& component);
     void notifyActiveChanged(bool onUpdate) override;
 
-    // Called under the folder lock together with the insert.
+    // Called under the folder lock together with the insert; a no-op unless the folder holds function blocks.
     virtual void validateSingletonFunctionBlock(const ComponentPtr& component);
 
 private:
@@ -431,6 +431,9 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const ComponentPtr& component)
 {
+    if (!(itemId == IFunctionBlock::Id))
+        return;
+
     const auto functionBlock = component.asPtrOrNull<IFunctionBlock>(true);
     if (!functionBlock.assigned())
         return;

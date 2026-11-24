@@ -14,7 +14,7 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
-- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device, server or a function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types: how their blocks create input ports, at most one instance per parent (enforced by the core), and common settings for nested blocks of another type.
 
 ## Python
 
@@ -145,16 +145,10 @@ defaults, and an older SDK reading a newer payload ignores the three new keys. N
 drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server. The input policy is
 serialized as an integer; a value this SDK version does not know is read as `Unspecified`.
 
-`GenericComponentTypeImpl` now has a single constructor, `(type, id, name, description, defaultConfig, extraFields = nullptr)`.
-The overload taking a connection string prefix was removed and is declared deleted, so calls written against it fail to
-compile instead of failing at runtime through the implicit smart pointer conversions. `prefix` is no longer a member of the
-base class; device and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
-pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in the order its struct type declares them:
-```diff
-- : Super(structType, id, name, description, prefix, defaultConfig)
-+ : Super(structType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Field1", value1}, {"Field2", value2}}))
-```
-Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
+Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an
+empty `CommonSettingsTypeId` is stored as unassigned. The options are also fields of the `FunctionBlockType` struct (the input
+policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their
+options do not compare equal.
 
 The `Singleton` flag is enforced by the function blocks folder of devices, servers and function blocks: adding a function block
 of a singleton type to a folder that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. The
@@ -163,7 +157,8 @@ that modules add themselves with `addNestedFunctionBlock` or `createAndAddNested
 checks the flag before calling `onAddFunctionBlock`, so module code does not create an instance that would be refused.
 Modules must create function block instances with the same type, including its flags, that they advertise through
 `onGetAvailableFunctionBlockTypes`: the check reads the types of the instances, so an instance created with a separately
-built type that lacks the flag is not counted.
+built type that lacks the flag is not counted. Loading a configuration that holds a second instance of a singleton type
+skips that instance with a warning, also on devices reached through the config protocol.
 
 ## Interface API changes
 

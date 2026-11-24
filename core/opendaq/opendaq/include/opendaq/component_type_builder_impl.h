@@ -55,7 +55,7 @@ public:
 
     ErrCode INTERFACE_FUNC setSingleton(Bool singleton) override;
     ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
-  
+
     ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) override;
     ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
 

@@ -16,8 +16,9 @@
 
 #pragma once
 
-// Writes a minidump when a test process hits an access violation, before gtest reports the exception.
-// Windows only; the dump goes to OPENDAQ_TEST_DUMP_DIR, else %LOCALAPPDATA%\CrashDumps, else the working directory.
+// Writes a minidump and prints the stack to stderr when a test process hits an access violation, before gtest reports the exception,
+// and prints the stack when the process aborts. Windows only; the dump goes to OPENDAQ_TEST_DUMP_DIR, else %LOCALAPPDATA%\CrashDumps,
+// else the working directory.
 // Header-only, since test binaries reach the listener through the header-only test utilities as well.
 
 #if defined(_MSC_VER)
@@ -31,6 +32,8 @@
 #include <windows.h>
 #include <dbghelp.h>
 #include <atomic>
+#include <csignal>
+#include <cstdio>
 #include <string>
 
 #pragma comment(lib, "dbghelp.lib")
@@ -50,6 +53,52 @@ inline std::wstring crashDumpDirectory()
     return L".";
 }
 
+// The stack of the calling thread; in a vectored handler it runs through the exception dispatcher into the faulting frames
+inline void printStackTrace(const char* reason)
+{
+    // DbgHelp is single-threaded
+    static std::atomic_flag busy = ATOMIC_FLAG_INIT;
+    while (busy.test_and_set())
+        Sleep(1);
+
+    const HANDLE process = GetCurrentProcess();
+    static const bool symbolsLoaded = [process]
+    {
+        SymSetOptions(SYMOPT_UNDNAME | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+        return SymInitialize(process, nullptr, TRUE) != FALSE;
+    }();
+
+    void* frames[62];
+    const USHORT count = RtlCaptureStackBackTrace(0, 62, frames, nullptr);
+    fprintf(stderr, "%s on thread %lu, stack:\n", reason, GetCurrentThreadId());
+
+    alignas(SYMBOL_INFO) char symbolBuffer[sizeof(SYMBOL_INFO) + 512];
+    auto* symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer);
+    for (USHORT i = 0; i < count; ++i)
+    {
+        const auto address = reinterpret_cast<DWORD64>(frames[i]);
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = 511;
+        DWORD64 symbolOffset = 0;
+        const char* name = symbolsLoaded && SymFromAddr(process, address, &symbolOffset, symbol) ? symbol->Name : "?";
+
+        IMAGEHLP_LINE64 line{};
+        line.SizeOfStruct = sizeof(line);
+        DWORD lineOffset = 0;
+        if (symbolsLoaded && SymGetLineFromAddr64(process, address, &lineOffset, &line))
+            fprintf(stderr, "  #%02u %s (%s:%lu)\n", i, name, line.FileName, line.LineNumber);
+        else
+            fprintf(stderr, "  #%02u %s +0x%llx\n", i, name, static_cast<unsigned long long>(symbolOffset));
+    }
+    fflush(stderr);
+    busy.clear();
+}
+
+inline void crashDumpAbortHandler(int)
+{
+    printStackTrace("Abort");
+}
+
 inline LONG CALLBACK crashDumpVectoredHandler(PEXCEPTION_POINTERS info)
 {
     static std::atomic<int> dumpsWritten{0};
@@ -63,6 +112,10 @@ inline LONG CALLBACK crashDumpVectoredHandler(PEXCEPTION_POINTERS info)
     const int index = dumpsWritten++;
     if (index >= 5)
         return EXCEPTION_CONTINUE_SEARCH;
+
+    char reason[96];
+    snprintf(reason, sizeof(reason), "Exception 0x%08lX at %p", code, info->ExceptionRecord->ExceptionAddress);
+    printStackTrace(reason);
 
     wchar_t exePath[MAX_PATH];
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
@@ -93,6 +146,9 @@ inline void installCrashDumpHandler()
     if (!installed)
     {
         AddVectoredExceptionHandler(1, crashDumpVectoredHandler);
+        // abort() runs the handler and then ends the process, without the Debug CRT message box that blocks an unattended run
+        _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+        signal(SIGABRT, crashDumpAbortHandler);
         installed = true;
     }
 }

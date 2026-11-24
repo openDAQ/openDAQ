@@ -32,6 +32,9 @@
 #include <opendaq/module_manager_utils_ptr.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
+#include <opendaq/container_utils.h>
+#include <opendaq/transport_option_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -68,6 +71,8 @@ private:
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
+    bool announcesSelectedOption(const ServerCapabilityPtr& capability) const;
+    std::optional<Int> getStreamingPort(const ServerCapabilityPtr& capability) const;
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
 
     ContextPtr context;
@@ -509,6 +514,18 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
 
+        if (!announcesSelectedOption(cap))
+        {
+            LOG_D("Device {}: capability {} does not announce the selected transport option", device.getGlobalId(), capabilityProtocolId);
+            continue;
+        }
+
+        const auto streamingPort = getStreamingPort(cap);
+        const auto withStreamingPort = [&streamingPort](const StringPtr& connectionString) -> StringPtr
+        {
+            return streamingPort.has_value() ? ReplaceConnectionStringPort(connectionString, streamingPort.value()) : connectionString;
+        };
+
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
             (discoveredAddrsByProtocol.count(capabilityProtocolId) > 0) ? discoveredAddrsByProtocol.at(capabilityProtocolId) : cap.getAddressInfo();
@@ -517,26 +534,9 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
 
         auto streamingConnectionStrings = List<IString>();
         for (const auto& addressInfo : suitableAddressesInfo)
-            streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
+            streamingConnectionStrings.pushBack(withStreamingPort(addressInfo.getConnectionString()));
         if (streamingConnectionStrings.empty())
-            streamingConnectionStrings.pushBack(cap.getConnectionString());
-
-        // The streaming connects at the port of the capability's connection strings, which is the port of the server's
-        // default transport option, and its module gets the type's first option (see
-        // ModuleManagerImpl::onCreateStreaming). With the new createDevice the streaming is expected to connect over the
-        // option the add-device config selects for it (for example through IDevice::getAddDeviceConfig), at the port the
-        // server announces for that option:
-        //
-        //   streamingConfig = the streaming config of the add-device config the device was added with
-        //   selected = streamingConfig.getSelectedTransportOption();
-        //              for a Streaming type linked to the Device type, the option the device is added over
-        //   options = cap.getAvailableTransportOptions()
-        //   if !options.hasKey(selected.getId()): skip the capability
-        //   option = options.get(selected.getId())
-        //   port = the Port property of streamingConfig is not -1 ? streamingConfig.getPort() : option.getPort()
-        //   for each connection string: connectionString = ReplaceConnectionStringPort(connectionString, port)
-        //   the streaming type config gets TransportOptionConfigProperty = selected.getId() and
-        //   PortConfigProperty = port
+            streamingConnectionStrings.pushBack(withStreamingPort(cap.getConnectionString()));
 
         // try all suitable addresses until the first successful streaming connection
         for (const auto& connectionString : streamingConnectionStrings)
@@ -583,6 +583,40 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     {
         LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingPrefix);
     }
+}
+
+inline bool StreamingSourceManager::announcesSelectedOption(const ServerCapabilityPtr& capability) const
+{
+    const TransportOptionPtr selected = streamingConfig.getSelectedTransportOption();
+    if (!selected.assigned())
+        return true;
+
+    const auto announced = capability.getAvailableTransportOptions();
+    return !announced.assigned() || announced.getCount() == 0 || announced.hasKey(selected.getId());
+}
+
+inline std::optional<Int> StreamingSourceManager::getStreamingPort(const ServerCapabilityPtr& capability) const
+{
+    const Int portSet = streamingConfig.asPtr<IPropertyObject>().getPropertyValue(PortConfigProperty);
+    if (portSet != -1)
+        return portSet;
+
+    const TransportOptionPtr selected = streamingConfig.getSelectedTransportOption();
+    if (!selected.assigned())
+        return std::nullopt;
+
+    const auto announced = capability.getAvailableTransportOptions();
+    if (announced.assigned() && announced.getCount() > 0)
+    {
+        const TransportOptionPtr option = announced.get(selected.getId());
+        return option.getPort();
+    }
+
+    const TransportOptionPtr firstOption = FirstValue(streamingConfig.getStreamingType().getAvailableTransportOptions());
+    if (selected.getId() == firstOption.getId())
+        return std::nullopt;
+
+    return selected.getPort();
 }
 
 inline std::unordered_map<std::string, ListPtr<IAddressInfo>>

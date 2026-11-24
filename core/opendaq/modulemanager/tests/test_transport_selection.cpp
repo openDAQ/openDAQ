@@ -9,6 +9,7 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/add_component_config_factory.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/component_private_ptr.h>
@@ -114,8 +115,9 @@ public:
     }
 
     // Records the config and fails: the tests only look at what the module is given
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** /*streaming*/, IString* /*connectionString*/, IPropertyObject* config) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** /*streaming*/, IString* connectionString, IPropertyObject* config) override
     {
+        streamingConnectionStrings.pushBack(connectionString);
         streamingTypeConfigs.pushBack(config);
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No streaming in the transport tests");
     }
@@ -125,6 +127,7 @@ public:
     ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
     ListPtr<IString> connectionStrings = List<IString>();
     ListPtr<IPropertyObject> typeConfigs = List<IPropertyObject>();
+    ListPtr<IString> streamingConnectionStrings = List<IString>();
     ListPtr<IPropertyObject> streamingTypeConfigs = List<IPropertyObject>();
 };
 
@@ -218,6 +221,27 @@ protected:
         ASSERT_EQ(lastConnectionString(), connectionString);
         ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), option);
         ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), port);
+    }
+
+    // The test module fails every streaming after it records what it is given
+    void addStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const
+    {
+        ASSERT_ANY_THROW(utils().createStreaming(connectionString, config));
+    }
+
+    void expectStreamingConnection(const StringPtr& connectionString, const StringPtr& option, Int port) const
+    {
+        const auto count = module->streamingTypeConfigs.getCount();
+        ASSERT_GT(count, 0u);
+        const PropertyObjectPtr typeConfig = module->streamingTypeConfigs[count - 1];
+        ASSERT_EQ(module->streamingConnectionStrings[count - 1], connectionString);
+        ASSERT_EQ(typeConfig.getPropertyValue(TransportOptionConfigProperty), option);
+        ASSERT_EQ(typeConfig.getPropertyValue(PortConfigProperty), port);
+    }
+
+    AddStreamingConfigPtr streamingConfig() const
+    {
+        return AddStreamingConfig(module->streamingTypes.get("str"));
     }
 
     // The config the device stores, read back from its saved form as loading a saved device does
@@ -580,6 +604,80 @@ TEST_F(TransportSelectionTest, SavedDeviceConnectsAtItsPort)
 
     ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
     expectConnection("dev://host", "tls", 7500);
+}
+
+// A streaming added with an add-streaming config connects with its option at the final port
+
+TEST_F(TransportSelectionTest, StreamingUsesPortOfOption)
+{
+    const auto config = streamingConfig();
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "plain", 7430);
+
+    config.setTransportOption("tls");
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "tls", 7431);
+}
+
+TEST_F(TransportSelectionTest, StreamingUsesPortSet)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, StreamingUsesPortOfString)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+
+    addStreaming("str://host:7500", config);
+    expectStreamingConnection("str://host:7500", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, StreamingWithDifferentPortSetAndInStringRejected)
+{
+    const auto config = streamingConfig();
+    config.setPort(7500);
+
+    ASSERT_THROW(utils().createStreaming("str://host:7600", config), InvalidParameterException);
+    ASSERT_EQ(module->streamingTypeConfigs.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, StreamingConfigOfUserStaysAsItIs)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+
+    addStreaming("str://host", config);
+
+    ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(config.getTypeConfig().hasProperty(PortConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, StreamingTypeWithoutOptionsGetsPortSetInString)
+{
+    const auto type = StreamingTypeBuilder().setId("plainstr").setName("plainstr").setConnectionStringPrefix("plainstr").build();
+    module->streamingTypes.set("plainstr", type);
+    const auto config = AddStreamingConfig(type);
+    config.setPort(9000);
+
+    addStreaming("plainstr://host", config);
+
+    ASSERT_EQ(module->streamingConnectionStrings[0], "plainstr://host:9000");
+}
+
+// A legacy config stays on its path: the first option, and the module chooses the port
+TEST_F(TransportSelectionTest, StreamingWithLegacyConfigStaysAsItWas)
+{
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7600));
+
+    addStreaming("str://host:7700", legacy);
+    expectStreamingConnection("str://host:7700", "plain", 7600);
 }
 
 // A device as discovery reports it now: its capability has a connection string, but announces no options

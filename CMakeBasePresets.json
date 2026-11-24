@@ -424,15 +424,14 @@
         },
         {
             "name": "diag_opcuatms_repeat",
-            "inherits": ["run_tests_nightly"],
-            "filter": { "include": { "name": "^test_opcuatms_integration$" } },
-            "execution": { "repetition": { "mode": "until-fail", "count": 12 } }
+            "inherits": ["run_tests_parallel"],
+            "filter": { "include": { "name": "^(test_opcuatms_integration|test_reader|test_opendaq|test_utility|test_bcrypt|test_scheduler|test_coreobjects|test_signal)$" } },
+            "execution": { "repeat": { "mode": "until-fail", "count": 10 } }
         },
         {
-            "name": "diag_opcuatms_fb_repeat",
-            "inherits": ["run_tests_nightly"],
-            "filter": { "include": { "name": "^test_opcuatms_integration$" } },
-            "environment": { "GTEST_FILTER": "TmsFunctionBlockTest.*:TmsChannelTest.*", "GTEST_REPEAT": "200" }
+            "name": "diag_all_repeat",
+            "inherits": ["run_tests_parallel"],
+            "execution": { "repeat": { "mode": "until-fail", "count": 3 } }
         }
     ]
 }

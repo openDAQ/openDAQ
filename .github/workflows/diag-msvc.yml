@@ -1,0 +1,42 @@
+name: Diag MSVC 14.52 opcuatms crash
+
+on:
+  push:
+    branches: [diag/msvc-14.52-opcuatms-crash]
+
+jobs:
+  diag:
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - name: Presets
+        shell: bash
+        run: |
+          cat > CMakeUserPresets.json <<'JSON'
+          {"version": 6, "configurePresets": [{"name": "diag", "inherits": ["ci"], "generator": "Visual Studio 18 2026", "toolset": "v145", "binaryDir": "${sourceDir}/build/output",
+            "cacheVariables": {"FETCHCONTENT_BASE_DIR": "${sourceDir}/build/.deps", "FETCHCONTENT_EXTERNALS_DIR": "${sourceDir}/build/.deps", "CMAKE_BUILD_TYPE": "Debug", "OPENDAQ_ENABLE_PYTHON": "OFF"}}]}
+          JSON
+      - name: Configure
+        run: cmake --preset diag
+      - name: Build
+        run: cmake --build build/output --config Debug --target test_opcuatms_integration --parallel
+      - name: Run function block tests
+        if: always()
+        shell: bash
+        working-directory: build/output/bin/Debug
+        run: |
+          ls test_opcuatms_integration*
+          ./test_opcuatms_integration_debug.exe --gtest_filter='TmsFunctionBlockTest.*' 2>&1 | grep -v -E "info/(client|channel)|warn/(server|userland)"; echo "exit ${PIPESTATUS[0]}"
+      - name: Run single test
+        if: always()
+        shell: bash
+        working-directory: build/output/bin/Debug
+        run: |
+          ./test_opcuatms_integration_debug.exe --gtest_filter='TmsFunctionBlockTest.AttrFunctionBlockType' 2>&1 | grep -v -E "info/(client|channel)|warn/(server|userland)"; echo "exit ${PIPESTATUS[0]}"
+      - name: Run all
+        if: always()
+        shell: bash
+        working-directory: build/output/bin/Debug
+        run: |
+          ./test_opcuatms_integration_debug.exe 2>&1 | grep -E "DIAG|FAILED|RUN|PASSED|xception" | tail -60; echo "exit ${PIPESTATUS[0]}"

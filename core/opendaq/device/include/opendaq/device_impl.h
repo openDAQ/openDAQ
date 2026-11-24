@@ -2368,16 +2368,12 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         DictPtr<IString, IAuthenticationMethod> authenticationMethods;
         if (addDeviceConfig.assigned())
             checkErrorInfo(addDeviceConfig.getDeviceType().template asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&authenticationMethods));
-        if (authenticationMethods.assigned() && authenticationMethods.getCount() > 0)
+        if (authenticationMethods.assigned() && authenticationMethods.getCount() > 0 && options.assigned())
         {
-            // Prefer the one already parsed onto the matching DeviceUpdateOptions node, if any - a caller may have changed the
-            // authentication method or/and called `setSuppliedCredential` on it directly, to bulk-supply credentials across
-            // a whole device tree without needing a registered ICredentialProvider.
-            AuthenticationConfigPtr authenticationConfig;
-            if (options.assigned())
-                authenticationConfig = options.getAuthenticationConfig();
-            if (!authenticationConfig.assigned() && serializedDevice.hasKey("AuthenticationConfig"))
-                authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
+            // The saved authentication method is already selected by binding the saved config. A caller may have changed it
+            // or/and called `setSuppliedCredential` on the one parsed onto the matching DeviceUpdateOptions node, to
+            // bulk-supply credentials across a whole device tree without needing a registered ICredentialProvider.
+            const AuthenticationConfigPtr authenticationConfig = options.getAuthenticationConfig();
             if (authenticationConfig.assigned())
             {
                 const auto addDeviceAuthenticationConfig = addDeviceConfig.getAuthenticationConfig();

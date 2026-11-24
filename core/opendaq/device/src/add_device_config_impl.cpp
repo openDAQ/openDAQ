@@ -9,6 +9,7 @@
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
+#include <opendaq/authentication_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,6 +35,17 @@ DictPtr<Int, IString> addressTypeNames()
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
         names.set(static_cast<Int>(type), getAddressTypeName(type));
     return names;
+}
+
+// Copies the supplied credential - which are never serialized - between the authentication configs of two add-device/add-streaming configs
+void copySuppliedCredential(const PropertyObjectPtr& from, const PropertyObjectPtr& to)
+{
+    if (!from.assigned() || !to.assigned() || !from.hasProperty(AuthenticationConfig) || !to.hasProperty(AuthenticationConfig))
+        return;
+
+    const AuthenticationConfigPtr source = from.getPropertyValue(AuthenticationConfig);
+    const AuthenticationConfigPtr target = to.getPropertyValue(AuthenticationConfig);
+    target.setSuppliedCredential(source.getSuppliedCredential());
 }
 }
 
@@ -193,6 +205,14 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
             config = Bind(saved, deviceTypes, streamingTypes, scanOnAddDefault);
         };
         JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
+
+        // The round trip drops the supplied credentials, so they are carried over directly
+        add_device_config::copySuppliedCredential(objPtr, config);
+        const auto options = objPtr.asPtr<IAddDeviceConfig>().getStreamingOptions();
+        const auto boundOptions = config.getStreamingOptions();
+        if (options.assigned() && boundOptions.assigned())
+            add_device_config::copySuppliedCredential(options.getStreamingConfig(), boundOptions.getStreamingConfig());
+
         *bound = config.detach();
     });
 }

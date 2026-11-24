@@ -10,7 +10,8 @@
 
 using namespace daq;
 
-class DeviceLockingTest : public testing::Test
+// The param - whether the legacy add-device config is used to supply the credentials (see test_helpers::configModeName)
+class DeviceLockingTest : public testing::TestWithParam<bool>
 {
 public:
     const UserPtr UserTomaz = User("tomaz", "tomaz");
@@ -60,13 +61,11 @@ public:
             mm.addModule(nativeClientModule);
         }
 
-        auto config = test_helpers::createDefaultAddDeviceConfig(instance);
-        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+        const auto connectionString = test_helpers::withPort("daq.nd://127.0.0.1");
+        auto config = test_helpers::createAddDeviceConfig(instance, connectionString, GetParam());
+        test_helpers::setCredentials(config, username, password, GetParam());
 
-        generalConfig.setPropertyValue("Username", username);
-        generalConfig.setPropertyValue("Password", password);
-
-        instance.addDevice(test_helpers::withPort("daq.nd://127.0.0.1"), config);
+        instance.addDevice(connectionString, config);
         instance.addDevice("daqmock://phys_device");
         instance.addDevice("daqmock://phys_device");
         return instance;
@@ -74,7 +73,7 @@ public:
 };
 
 
-TEST_F(DeviceLockingTest, LockSingleClientDevice)
+TEST_P(DeviceLockingTest, LockSingleClientDevice)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -91,7 +90,7 @@ TEST_F(DeviceLockingTest, LockSingleClientDevice)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockBottomUp)
+TEST_P(DeviceLockingTest, LockBottomUp)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -112,7 +111,7 @@ TEST_F(DeviceLockingTest, LockBottomUp)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockTopDown)
+TEST_P(DeviceLockingTest, LockTopDown)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -133,7 +132,7 @@ TEST_F(DeviceLockingTest, LockTopDown)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(DeviceLockingTest, UnlockTopDown)
+TEST_P(DeviceLockingTest, UnlockTopDown)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -156,7 +155,7 @@ TEST_F(DeviceLockingTest, UnlockTopDown)
     ASSERT_FALSE(devices[3].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockUnlockRoot)
+TEST_P(DeviceLockingTest, LockUnlockRoot)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -184,7 +183,7 @@ TEST_F(DeviceLockingTest, LockUnlockRoot)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockUnlockRootWithUser)
+TEST_P(DeviceLockingTest, LockUnlockRootWithUser)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -213,7 +212,7 @@ TEST_F(DeviceLockingTest, LockUnlockRootWithUser)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, AlreadyLockedSameUser)
+TEST_P(DeviceLockingTest, AlreadyLockedSameUser)
 {
     auto serverInstance = createServerInstance();
     serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserTomaz);
@@ -236,7 +235,7 @@ TEST_F(DeviceLockingTest, AlreadyLockedSameUser)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, AlreadyLockedDifferentUser)
+TEST_P(DeviceLockingTest, AlreadyLockedDifferentUser)
 {
     auto serverInstance = createServerInstance();
     serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
@@ -255,7 +254,7 @@ TEST_F(DeviceLockingTest, AlreadyLockedDifferentUser)
     ASSERT_THROW(clientInstance.unlock(), AccessDeniedException);
 }
 
-TEST_F(DeviceLockingTest, LockUnlockSpecific)
+TEST_P(DeviceLockingTest, LockUnlockSpecific)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -283,7 +282,7 @@ TEST_F(DeviceLockingTest, LockUnlockSpecific)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, UnlockUnlocked)
+TEST_P(DeviceLockingTest, UnlockUnlocked)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -307,7 +306,7 @@ TEST_F(DeviceLockingTest, UnlockUnlocked)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockRevert)
+TEST_P(DeviceLockingTest, LockRevert)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -331,7 +330,7 @@ TEST_F(DeviceLockingTest, LockRevert)
     ASSERT_TRUE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, UnlockRevert)
+TEST_P(DeviceLockingTest, UnlockRevert)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -355,7 +354,7 @@ TEST_F(DeviceLockingTest, UnlockRevert)
     ASSERT_TRUE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, LockedWithAnonymousUser)
+TEST_P(DeviceLockingTest, LockedWithAnonymousUser)
 {
     const auto anonymousUser = User("", "");
 
@@ -380,7 +379,7 @@ TEST_F(DeviceLockingTest, LockedWithAnonymousUser)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, UnlockChild)
+TEST_P(DeviceLockingTest, UnlockChild)
 {
     auto serverInstance = createServerInstance();
     auto clientInstance = connectClientInstance("tomaz", "tomaz");
@@ -410,7 +409,7 @@ TEST_F(DeviceLockingTest, UnlockChild)
     ASSERT_FALSE(devices[2].isLocked());
 }
 
-TEST_F(DeviceLockingTest, ForceUnlock)
+TEST_P(DeviceLockingTest, ForceUnlock)
 {
     auto serverInstance = createServerInstance();
     serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
@@ -427,3 +426,5 @@ TEST_F(DeviceLockingTest, ForceUnlock)
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_FALSE(devices[0].isLocked());
 }
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, DeviceLockingTest, testing::Bool(), test_helpers::configModeName);

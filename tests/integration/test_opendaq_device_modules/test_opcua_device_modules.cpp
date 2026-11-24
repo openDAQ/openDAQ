@@ -15,6 +15,11 @@
 
 using OpcuaDeviceModulesTest = testing::Test;
 
+// The param - whether the legacy config - the OPC UA device type config itself - is used to supply the credentials
+class OpcuaDeviceModulesCredentialsTest : public testing::TestWithParam<bool>
+{
+};
+
 using namespace daq;
 
 namespace test_opcua_device_modules
@@ -54,6 +59,36 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
 static InstancePtr CreateServerInstance()
 {
     return CreateServerInstance(AuthenticationProvider());
+}
+
+// The legacy config is the OPC UA device type config itself, with the credentials in its "Username"/"Password" properties
+static PropertyObjectPtr CreateAddDeviceConfig(const InstancePtr& instance, bool useLegacyConfig)
+{
+    if (useLegacyConfig)
+        return instance.getAvailableDeviceTypes().get("OpenDAQOPCUAConfiguration").createDefaultConfig();
+    return test_helpers::createAddDeviceConfig(instance, "daq.opcua://127.0.0.1", false);
+}
+
+// An empty user name - an anonymous connection
+static void SetCredentials(const PropertyObjectPtr& config, const std::string& username, const std::string& password, bool useLegacyConfig)
+{
+    if (useLegacyConfig)
+    {
+        config.setPropertyValue("Username", username);
+        config.setPropertyValue("Password", password);
+        return;
+    }
+
+    const auto authConfig = config.asPtr<IAddDeviceConfig>().getAuthenticationConfig();
+    if (username.empty())
+        authConfig.setAuthenticationMethod("Anonymous");
+    else
+        test_helpers::supplyUserNamePassword(authConfig, username, password);
+}
+
+static std::string ConfigModeName(const testing::TestParamInfo<bool>& info)
+{
+    return info.param ? "LegacyTypeConfig" : "AddDeviceConfig";
 }
 
 static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = test_helpers::instanceBuilder())
@@ -1190,7 +1225,7 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
     ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
 }
 
-TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
+TEST_P(OpcuaDeviceModulesCredentialsTest, AuthenticationDefault)
 {
     auto serverInstance = CreateServerInstance();
     auto clientInstance = test_helpers::instanceBuilder()
@@ -1198,15 +1233,14 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
         .build();
 
     addOpcuaClientModule(clientInstance);
-    auto config = clientInstance.getAvailableDeviceTypes().get("OpenDAQOPCUAConfiguration").createDefaultConfig();
-    config.setPropertyValue("Username", "");
-    config.setPropertyValue("Password", "");
+    auto config = CreateAddDeviceConfig(clientInstance, GetParam());
+    SetCredentials(config, "", "", GetParam());
 
     auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
+TEST_P(OpcuaDeviceModulesCredentialsTest, AuthenticationDefinedUsers)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -1221,35 +1255,28 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
 
     addOpcuaClientModule(clientInstance);
 
-    auto config = clientInstance
-        .getAvailableDeviceTypes()
-        .get("OpenDAQOPCUAConfiguration")
-        .createDefaultConfig();
+    auto config = CreateAddDeviceConfig(clientInstance, GetParam());
 
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
-    config.setPropertyValue("Username", "jure");
-    config.setPropertyValue("Password", "wrongPass");
+    SetCredentials(config, "jure", "wrongPass", GetParam());
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
-    config.setPropertyValue("Username", "andrej");
-    config.setPropertyValue("Password", "andrej123");
+    SetCredentials(config, "andrej", "andrej123", GetParam());
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
-    config.setPropertyValue("Username", "jure");
-    config.setPropertyValue("Password", "jure123");
+    SetCredentials(config, "jure", "jure123", GetParam());
     auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
     clientInstance.removeDevice(device);
 
-    config.setPropertyValue("Username", "tomaz");
-    config.setPropertyValue("Password", "tomaz123");
+    SetCredentials(config, "tomaz", "tomaz123", GetParam());
     device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
     clientInstance.removeDevice(device);
 }
 
-TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
+TEST_P(OpcuaDeviceModulesCredentialsTest, AuthenticationAllowNoOne)
 {
     auto authenticationProvider = AuthenticationProvider(false);
     auto serverInstance = CreateServerInstance(authenticationProvider);
@@ -1259,15 +1286,11 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
         .build();
     addOpcuaClientModule(clientInstance);
 
-    auto config = clientInstance
-        .getAvailableDeviceTypes()
-        .get("OpenDAQOPCUAConfiguration")
-        .createDefaultConfig();
+    auto config = CreateAddDeviceConfig(clientInstance, GetParam());
 
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 
-    config.setPropertyValue("Username", "jure");
-    config.setPropertyValue("Password", "jure123");
+    SetCredentials(config, "jure", "jure123", GetParam());
     ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
 }
 
@@ -1872,5 +1895,8 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, OpcuaDeviceModulesCredentialsTest, testing::Bool(), ConfigModeName);
+
 }
 // namespace test_opcua_device_modules

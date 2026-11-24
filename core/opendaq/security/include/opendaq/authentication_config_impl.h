@@ -53,14 +53,13 @@ public:
     // config directly from those two pieces via the real constructor, then restores the saved selection -
     // fully self-contained, no module/type registry re-consultation needed.
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    // The same form, so that the config saved as a part of an add-device config keeps the selected method's id
+    // rather than its selection index. `updateInternal` selects the saved method by that id.
+    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-protected:
-    // Skips "SuppliedCredential". The custom `serialize` above doesn't cover `serializeForUpdate`, which is the inherited generic
-    // one writing all property values - used e.g. when the config is saved or bound as a part of an add-device config.
-    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
 
 private:
     void initProperties(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);

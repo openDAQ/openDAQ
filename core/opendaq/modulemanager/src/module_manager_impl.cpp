@@ -1048,9 +1048,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         checkErrorInfo(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
     }
 
-    // Taken from the caller's provided config directly, as the supplied credentials are lost when making a copy
-    const AuthenticationConfigPtr authenticationConfig =
-        GetAuthenticationConfig(inputAddDeviceConfig.assigned() ? inputAddDeviceConfig : addDeviceConfig, deviceType);
+    const AuthenticationConfigPtr authenticationConfig = GetAuthenticationConfig(addDeviceConfig, deviceType);
 
     const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
     if (device.assigned())
@@ -1124,14 +1122,8 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
                     deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
             }
 
-            if (authenticationConfig.assigned())
-            {
-                if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setAuthenticationConfig(authenticationConfig);
-
-                // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
-                // mechanism (e.g. a vault) is ready.
-            }
+            // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+            // mechanism (e.g. a vault) is ready.
         }
 
         return device;

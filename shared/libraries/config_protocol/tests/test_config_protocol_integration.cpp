@@ -22,6 +22,7 @@
 #include <opendaq/recorder_ptr.h>
 #include <opendaq/module_impl.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/module_manager_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/streaming_type_factory.h>
 #include <opendaq/device_info_factory.h>
@@ -61,6 +62,22 @@ public:
         const auto streamingC =
             StreamingTypeBuilder().setId("mock_streaming_c").setName("Mock streaming C").setConnectionStringPrefix("daqmockc").build();
         return Dict<IString, IStreamingType>({{"mock_streaming_b", streamingB}, {"mock_streaming_c", streamingC}});
+    }
+};
+
+class ClientStreamingTypesModule : public Module
+{
+public:
+    explicit ClientStreamingTypesModule(const ContextPtr& ctx)
+        : Module("Client streaming types", VersionInfo(1, 0, 0), ctx, "ClientStreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        const auto streamingB =
+            StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
+        return Dict<IString, IStreamingType>({{"mock_streaming_b", streamingB}});
     }
 };
 
@@ -1093,6 +1110,21 @@ TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfig)
     ASSERT_EQ(clientOptions.getAvailableStreamingConfigs().getKeyList(), serverOptions.getAvailableStreamingConfigs().getKeyList());
     ASSERT_EQ(clientOptions.getStreamingType(), serverOptions.getStreamingType());
     ASSERT_FALSE(clientConfig.getTypeConfig().supportsInterface<IConfigClientObject>());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigOnOldServer)
+{
+    const ModuleManagerPtr serverManager = serverDevice.getContext().getModuleManager();
+    serverManager.addModule(createWithImplementation<IModule, StreamingTypesModule>(NullContext()));
+
+    clientContext = Context(nullptr, Logger(), TypeManager(), ModuleManager("[[none]]"));
+    const ModuleManagerPtr clientManager = clientContext.getModuleManager();
+    clientManager.addModule(createWithImplementation<IModule, ClientStreamingTypesModule>(NullContext()));
+    connectClient(25);
+
+    const auto config = clientDevice.createAddDeviceConfig(createMirroredDeviceInfo(), "daqmirrored");
+    ASSERT_EQ(config.getDeviceType().getId(), "mock_mirrored");
+    ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("mock_streaming_b"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigErrorsReachClient)

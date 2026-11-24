@@ -14,6 +14,7 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types: how their blocks create input ports, at most one instance per parent (enforced by the core), and common settings for nested blocks of another type.
 
 ## Python
@@ -23,6 +24,7 @@
 ## Bug fixes
 
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) `IList::equals` no longer dereferences a null element when only one of the two lists holds `nullptr` at a position. The comparison crashed or returned the right answer depending on operand order; it is now symmetric and reports the lists as not equal. Structs compare their field values as lists, so this also fixes crashes when comparing structs with unassigned fields, such as a device type without a connection string prefix.
+- [#1399](https://github.com/openDAQ/openDAQ/pull/1399) Harden the native server's connection accept path against slow, silent or malformed clients
 - [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
@@ -129,6 +131,10 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 - `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
 - Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
 - `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
+### [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default
+
+A device that does not override `onGetAvailableOperationModes` lists `Operation` as its only mode instead of `SafeOperation`. A device that lists `Operation` and does not override `onGetDefaultOperationMode` starts in `Operation` instead of `SafeOperation`; override `onGetDefaultOperationMode` to keep starting in `SafeOperation`. A device that does not list `Operation` still starts in `SafeOperation`.
 
 ### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
 

@@ -49,6 +49,20 @@ InstancePtr createServerInstance(bool mutualTls = false, bool plainPortEnabled =
     return instance;
 }
 
+/// @brief a server with only the TLS listener, on the given port
+InstancePtr createTlsOnlyServerInstance(uint16_t tlsPort)
+{
+    auto instance = Instance("[[none]]");
+    addRefDeviceModule(instance);
+    addNativeServerModule(instance);
+    instance.addDevice("daqref://device1");
+
+    auto config = secureServerConfig(instance, /*mutualTls*/ false, /*plainPortEnabled*/ false);
+    config.setPropertyValue("NativeStreamingTlsPort", tlsPort);
+    instance.addServer(ServerTypeId, config);
+    return instance;
+}
+
 InstancePtr createClientInstance()
 {
     auto instance = Instance("[[none]]");
@@ -86,6 +100,38 @@ void expectOptions(const ServerCapabilityPtr& capability, const std::vector<std:
         actual.emplace_back(id.toStdString(), TransportOptionPtr(option).getPort());
 
     ASSERT_EQ(actual, expected) << capability.getProtocolId();
+}
+
+/// @brief checks that the device is connected over the given option at the given port
+void expectConnectedOver(const DevicePtr& device, const std::string& optionId, Int port)
+{
+    expectOptions(device.getInfo().getConfigurationConnectionInfo(), {{optionId, port}});
+}
+
+/// @brief the connection strings of the streaming sources of a device
+std::vector<std::string> streamingSourceConnectionStrings(const DevicePtr& device)
+{
+    std::vector<std::string> connectionStrings;
+    for (const auto& source : device.asPtr<IMirroredDevice>().getStreamingSources())
+        connectionStrings.push_back(source.getConnectionString().toStdString());
+    return connectionStrings;
+}
+
+/// @brief waits until a connection status of the device has the given value
+bool waitForConnectionStatus(const DevicePtr& device,
+                             const std::string& statusName,
+                             const std::string& value,
+                             std::chrono::seconds timeout = std::chrono::seconds(15))
+{
+    const auto statuses = device.getConnectionStatusContainer();
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        if (statuses.getStatus(statusName).getValue().toStdString() == value)
+            return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return false;
 }
 
 /// @brief the native capabilities discovered under the given path, by protocol id
@@ -144,7 +190,7 @@ TEST_F(NativeTlsTest, ServerPublishesOptionPerListener)
     {
         ids.insert(capability.getProtocolId().toStdString());
         expectOptions(capability, {{WsOption, PlainPort}, {WssOption, TlsPort}});
-        ASSERT_EQ(capability.getPort(), PlainPort) << capability.getProtocolId();
+        ASSERT_EQ(test_helpers::capabilityPort(capability), PlainPort) << capability.getProtocolId();
     }
 
     ASSERT_EQ(ids, (std::set<std::string>{PlainStreamingId, PlainConfigId}));
@@ -155,8 +201,8 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   secureClientConfig(client, PlainConfigId));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -164,12 +210,10 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getProtocolId(), PlainConfigId);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
-    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), TlsPort);
 
     // only the option the connection uses
-    const DictPtr<IString, ITransportOption> options = connectionInfo.getAvailableTransportOptions();
-    ASSERT_EQ(options.getKeyList(), List<IString>(WssOption));
-    ASSERT_EQ(TransportOptionPtr(options.get(WssOption)).getPort(), TlsPort);
+    expectConnectedOver(device, WssOption, TlsPort);
 }
 
 // The capabilities of the server keep the port of their default option, even though the connection
@@ -179,16 +223,29 @@ TEST_F(NativeTlsTest, CompletedCapabilitiesNameTheirOwnPort)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   secureClientConfig(client, PlainConfigId));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     for (const auto& id : {PlainConfigId, PlainStreamingId})
     {
         const auto capability = device.getInfo().getServerCapability(id);
         const std::string capabilityConnectionString = capability.getConnectionString().toStdString();
-        ASSERT_EQ(capability.getPort(), PlainPort) << id;
+        ASSERT_EQ(test_helpers::capabilityPort(capability), PlainPort) << id;
         ASSERT_NE(capabilityConnectionString.find(":" + std::to_string(PlainPort)), std::string::npos) << id << " " << capabilityConnectionString;
     }
+}
+
+// Without a selection the config connects over the first option of the type, at its port
+TEST_F(NativeTlsTest, ConnectDeviceOverWsByDefault)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    const std::string deviceConnectionString = "daq.nd://127.0.0.1/";
+    auto device = client.addDevice(deviceConnectionString, addDeviceConfig(client, deviceConnectionString));
+
+    ASSERT_TRUE(device.assigned());
+    expectConnectedOver(device, WsOption, PlainPort);
 }
 
 // no port in the connection string: the TLS option has to fall back to its own port, not to the
@@ -198,12 +255,11 @@ TEST_F(NativeTlsTest, ConnectDeviceWithoutExplicitPort)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice("daq.nd://127.0.0.1/", secureClientConfig(client, PlainConfigId));
+    const std::string deviceConnectionString = "daq.nd://127.0.0.1/";
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
-    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(connectionInfo.getAvailableTransportOptions().getKeyList(), List<IString>(WssOption));
+    expectConnectedOver(device, WssOption, TlsPort);
 }
 
 TEST_F(NativeTlsTest, ConnectPseudoDeviceWithoutExplicitPort)
@@ -211,12 +267,11 @@ TEST_F(NativeTlsTest, ConnectPseudoDeviceWithoutExplicitPort)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice("daq.ns://127.0.0.1/", secureClientConfig(client, PlainStreamingId));
+    const std::string deviceConnectionString = "daq.ns://127.0.0.1/";
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
-    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(connectionInfo.getAvailableTransportOptions().getKeyList(), List<IString>(WssOption));
+    expectConnectedOver(device, WssOption, TlsPort);
 }
 
 TEST_F(NativeTlsTest, ConnectPseudoDevice)
@@ -224,8 +279,8 @@ TEST_F(NativeTlsTest, ConnectPseudoDevice)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.ns", TlsPort),
-                                   secureClientConfig(client, PlainStreamingId));
+    const auto deviceConnectionString = connectionString("daq.ns", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignals(search::Recursive(search::Any())).getCount(), 0u);
@@ -248,23 +303,8 @@ TEST_F(NativeTlsTest, AcceptsServerOfAnyAuthority)
     server.addServer(ServerTypeId, serverConfig);
 
     auto client = createClientInstance();
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   secureClientConfig(client, PlainConfigId));
-
-    ASSERT_TRUE(device.assigned());
-    ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
-}
-
-// the option is all a secure connection needs, also when it comes in a general add-device configuration
-TEST_F(NativeTlsTest, ConnectsWithOptionInAddDeviceConfig)
-{
-    auto server = createServerInstance();
-    auto client = createClientInstance();
-
-    auto config = client.createDefaultAddDeviceConfig();
-    config.setPropertyValue(std::string("Device.") + PlainConfigId + ".TransportOption", WssOption);
-
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort), config);
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -277,8 +317,9 @@ TEST_F(NativeTlsTest, ConnectMutualTls)
     auto server = createServerInstance(/*mutualTls*/ true);
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   secureClientConfig(client, PlainConfigId, /*mutualTls*/ true));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString,
+                                   secureAddDeviceConfig(client, deviceConnectionString, /*mutualTls*/ true));
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -289,8 +330,10 @@ TEST_F(NativeTlsTest, ConnectWithoutVerification)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   unverifiedClientConfig(client, PlainConfigId));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto config = addDeviceConfig(client, deviceConnectionString);
+    selectUnverifiedTls(config);
+    auto device = client.addDevice(deviceConnectionString, config);
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -301,8 +344,9 @@ TEST_F(NativeTlsTest, RejectedByWrongCertificateAuthority)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nd", TlsPort),
-                                      secureClientConfig(client, PlainConfigId, /*mutualTls*/ false, OtherCaCert)));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    ASSERT_ANY_THROW(client.addDevice(deviceConnectionString,
+                                      secureAddDeviceConfig(client, deviceConnectionString, /*mutualTls*/ false, OtherCaCert)));
 }
 
 TEST_F(NativeTlsTest, RejectedWithoutCertificateAuthority)
@@ -311,9 +355,10 @@ TEST_F(NativeTlsTest, RejectedWithoutCertificateAuthority)
     auto client = createClientInstance();
 
     // verification is on by default and has nothing to verify against
-    auto config = client.getAvailableDeviceTypes().get(PlainConfigId).createDefaultConfig();
-    config.setPropertyValue("TransportOption", WssOption);
-    ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nd", TlsPort), config));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto config = addDeviceConfig(client, deviceConnectionString);
+    config.setTransportOption(WssOption);
+    ASSERT_ANY_THROW(client.addDevice(deviceConnectionString, config));
 }
 
 TEST_F(NativeTlsTest, RejectedByMutualTlsWithoutClientCertificate)
@@ -321,8 +366,9 @@ TEST_F(NativeTlsTest, RejectedByMutualTlsWithoutClientCertificate)
     auto server = createServerInstance(/*mutualTls*/ true);
     auto client = createClientInstance();
 
-    ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nd", TlsPort),
-                                      secureClientConfig(client, PlainConfigId, /*mutualTls*/ false)));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    ASSERT_ANY_THROW(client.addDevice(deviceConnectionString,
+                                      secureAddDeviceConfig(client, deviceConnectionString, /*mutualTls*/ false)));
 }
 
 #endif
@@ -335,12 +381,25 @@ TEST_F(NativeTlsTest, PlaintextChannelStillWorksAlongside)
     auto secureClient = createClientInstance();
     auto plainClient = createClientInstance();
 
-    auto secureDevice = secureClient.addDevice(connectionString("daq.nd", TlsPort),
-                                               secureClientConfig(secureClient, PlainConfigId));
+    const auto secureConnectionString = connectionString("daq.nd", TlsPort);
+    auto secureDevice = secureClient.addDevice(secureConnectionString, secureAddDeviceConfig(secureClient, secureConnectionString));
     auto plainDevice = plainClient.addDevice(connectionString("daq.nd", PlainPort));
 
     ASSERT_TRUE(secureDevice.assigned());
     ASSERT_TRUE(plainDevice.assigned());
+    expectConnectedOver(plainDevice, WsOption, PlainPort);
+}
+
+// A legacy config never selected a transport option: it connects over ws, as before
+TEST_F(NativeTlsTest, LegacyConfigConnectsOverWs)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto device = client.addDevice("daq.nd://127.0.0.1/", client.createDefaultAddDeviceConfig());
+
+    ASSERT_TRUE(device.assigned());
+    expectConnectedOver(device, WsOption, PlainPort);
 }
 
 TEST_F(NativeTlsTest, PlaintextOptionRefusedOnTlsPort)
@@ -356,8 +415,9 @@ TEST_F(NativeTlsTest, TlsOptionRefusedOnPlaintextPort)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nd", PlainPort),
-                                      secureClientConfig(client, PlainConfigId)));
+    const auto deviceConnectionString = connectionString("daq.nd", PlainPort);
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    ASSERT_ANY_THROW(client.addDevice(deviceConnectionString, config));
 }
 
 TEST_F(NativeTlsTest, TlsOnlyServer)
@@ -369,13 +429,13 @@ TEST_F(NativeTlsTest, TlsOnlyServer)
     {
         ids.insert(capability.getProtocolId().toStdString());
         expectOptions(capability, {{WssOption, TlsPort}});
-        ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
+        ASSERT_EQ(test_helpers::capabilityPort(capability), TlsPort) << capability.getProtocolId();
     }
     ASSERT_EQ(ids, (std::set<std::string>{PlainStreamingId, PlainConfigId}));
 
     auto client = createClientInstance();
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort),
-                                   secureClientConfig(client, PlainConfigId));
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
     ASSERT_TRUE(device.assigned());
 
     ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nd", PlainPort)));
@@ -421,55 +481,50 @@ TEST_F(NativeTlsTest, ServerRefusesConfigurationWithoutAnyListener)
     ASSERT_THROW(instance.addServer(ServerTypeId, config), InvalidParameterException);
 }
 
-TEST_F(NativeTlsTest, PortFromConnectionStringUsedWhenConfigurationIsDefault)
+TEST_F(NativeTlsTest, PortFromConnectionString)
 {
     constexpr uint16_t listeningPort = 7500;
-
-    auto serverInstance = Instance("[[none]]");
-    addRefDeviceModule(serverInstance);
-    addNativeServerModule(serverInstance);
-    serverInstance.addDevice("daqref://device1");
-
-    auto serverConfig = secureServerConfig(serverInstance, /*mutualTls*/ false, /*plainPortEnabled*/ false);
-    serverConfig.setPropertyValue("NativeStreamingTlsPort", listeningPort);
-    serverInstance.addServer(ServerTypeId, serverConfig);
-
+    auto server = createTlsOnlyServerInstance(listeningPort);
     auto client = createClientInstance();
 
-    // the configuration carries its default, which must not be mistaken for a port the caller
-    // chose and must not displace the one in the connection string
-    auto clientConfig = secureClientConfig(client, PlainConfigId);
-    ASSERT_EQ(clientConfig.getPropertyValue("Port"), PlainPort);
-
-    auto device = client.addDevice(connectionString("daq.nd", listeningPort), clientConfig);
+    const auto deviceConnectionString = connectionString("daq.nd", listeningPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     ASSERT_TRUE(device.assigned());
-    ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getPort(), listeningPort);
+    expectConnectedOver(device, WssOption, listeningPort);
 }
 
-TEST_F(NativeTlsTest, PortFromConfigurationOverridesConnectionString)
+TEST_F(NativeTlsTest, PortSetWithoutPortInConnectionString)
 {
     constexpr uint16_t listeningPort = 7500;
-
-    auto serverInstance = Instance("[[none]]");
-    addRefDeviceModule(serverInstance);
-    addNativeServerModule(serverInstance);
-    serverInstance.addDevice("daqref://device1");
-
-    auto serverConfig = secureServerConfig(serverInstance, /*mutualTls*/ false, /*plainPortEnabled*/ false);
-    serverConfig.setPropertyValue("NativeStreamingTlsPort", listeningPort);
-    serverInstance.addServer(ServerTypeId, serverConfig);
-
+    auto server = createTlsOnlyServerInstance(listeningPort);
     auto client = createClientInstance();
 
-    auto clientConfig = secureClientConfig(client, PlainConfigId);
-    clientConfig.setPropertyValue("Port", listeningPort);
+    const std::string deviceConnectionString = "daq.nd://127.0.0.1/";
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    config.setPort(listeningPort);
+    auto device = client.addDevice(deviceConnectionString, config);
 
-    // nothing listens on the port named here, so the connection can only be made from the configuration
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort), clientConfig);
+    ASSERT_TRUE(device.assigned());
+    expectConnectedOver(device, WssOption, listeningPort);
+}
+
+// The port set wins over another port the connection string names; the module manager logs a warning
+TEST_F(NativeTlsTest, PortSetOverridesConnectionString)
+{
+    constexpr uint16_t listeningPort = 7500;
+    auto server = createTlsOnlyServerInstance(listeningPort);
+    auto client = createClientInstance();
+
+    // nothing listens on the port named here, so the connection can only be made at the port set
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    config.setPort(listeningPort);
+    auto device = client.addDevice(deviceConnectionString, config);
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+    expectConnectedOver(device, WssOption, listeningPort);
 }
 
 TEST_F(NativeTlsTest, CapabilitiesRemovedForBothListeners)
@@ -499,7 +554,7 @@ TEST_F(NativeTlsTest, CapabilitiesRemovedForTlsOnlyServer)
     for (const auto& capability : capabilities)
     {
         expectOptions(capability, {{WssOption, TlsPort}});
-        ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
+        ASSERT_EQ(test_helpers::capabilityPort(capability), TlsPort) << capability.getProtocolId();
     }
 
     instance.removeServer(server);
@@ -514,8 +569,8 @@ TEST_F(NativeTlsTest, SubscribeReadUnsubscribeOverTls)
     auto server = createServerInstance();
     auto client = createClientInstance();
 
-    auto device = client.addDevice(connectionString("daq.ns", TlsPort),
-                                   secureClientConfig(client, PlainStreamingId));
+    const auto deviceConnectionString = connectionString("daq.ns", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
 
     auto signal = device.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
     auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
@@ -560,6 +615,98 @@ TEST_F(NativeTlsTest, SubscribeReadUnsubscribeOverTls)
     ASSERT_EQ(domainAcks.unsubscribeAckStreaming(), streamingSource);
 }
 
+// The streaming the device gets connects over the option its own streaming config selects
+TEST_F(NativeTlsTest, StreamingOverTlsWhenItsConfigSelectsTls)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    selectTls(nativeStreamingConfig(config));
+    auto device = client.addDevice(deviceConnectionString, config);
+
+    ASSERT_EQ(streamingSourceConnectionStrings(device), std::vector<std::string>{"daq.ns://127.0.0.1:" + std::to_string(TlsPort)});
+}
+
+// The streaming config does not follow the option of the device: without its own selection it connects over ws
+TEST_F(NativeTlsTest, StreamingOverWsUnlessItsConfigSelectsTls)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
+
+    ASSERT_EQ(streamingSourceConnectionStrings(device), std::vector<std::string>{"daq.ns://127.0.0.1:" + std::to_string(PlainPort)});
+}
+
+// The streaming config selects ws, which a TLS-only server does not announce: the device gets no streaming,
+// and no plaintext connection is tried instead
+TEST_F(NativeTlsTest, NoStreamingOverOptionTheServerDoesNotAnnounce)
+{
+    auto server = createServerInstance(/*mutualTls*/ false, /*plainPortEnabled*/ false);
+    auto client = createClientInstance();
+
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
+
+    ASSERT_TRUE(device.assigned());
+    ASSERT_TRUE(streamingSourceConnectionStrings(device).empty());
+}
+
+TEST_F(NativeTlsTest, AddStreamingOverTls)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    const auto deviceConnectionString = connectionString("daq.nd", TlsPort);
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    config.getStreamingOptions().setStreamingType("");
+    auto device = client.addDevice(deviceConnectionString, config);
+    ASSERT_TRUE(streamingSourceConnectionStrings(device).empty());
+
+    auto streamingConfig = nativeStreamingConfig(addDeviceConfig(client, deviceConnectionString));
+    selectTls(streamingConfig);
+    const auto streaming = device.addStreaming(connectionString("daq.ns", TlsPort), streamingConfig);
+
+    ASSERT_TRUE(streaming.assigned());
+    ASSERT_EQ(streamingSourceConnectionStrings(device), std::vector<std::string>{connectionString("daq.ns", TlsPort)});
+}
+
+TEST_F(NativeTlsTest, LoadedDeviceConnectsOverItsOption)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    const std::string deviceConnectionString = "daq.nd://127.0.0.1/";
+    client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
+
+    auto loaded = createClientInstance();
+    loaded.loadConfiguration(client.saveConfiguration());
+
+    const auto devices = loaded.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    expectConnectedOver(devices[0], WssOption, TlsPort);
+}
+
+// A server with only the TLS listener: the device can get back only over TLS
+TEST_F(NativeTlsTest, ReconnectsOverTls)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = createServerInstance(/*mutualTls*/ false, /*plainPortEnabled*/ false);
+    auto client = createClientInstance();
+
+    const std::string deviceConnectionString = "daq.nd://127.0.0.1/";
+    auto device = client.addDevice(deviceConnectionString, secureAddDeviceConfig(client, deviceConnectionString));
+
+    server.release();
+    ASSERT_TRUE(waitForConnectionStatus(device, "ConfigurationStatus", "Reconnecting"));
+
+    server = createServerInstance(/*mutualTls*/ false, /*plainPortEnabled*/ false);
+    ASSERT_TRUE(waitForConnectionStatus(device, "ConfigurationStatus", "Connected"));
+}
+
 // The discovery tests below are disabled: the client reads only the plaintext mDNS service, and the
 // server does not announce its options there yet.
 TEST_F(NativeTlsTest, DISABLED_DiscoveringServerWithBothListeners)
@@ -576,7 +723,7 @@ TEST_F(NativeTlsTest, DISABLED_DiscoveringServerWithBothListeners)
     {
         // one service, with an option for each listener; its port and connection strings are those of the first one
         expectOptions(capability, {{WsOption, PlainPort}, {WssOption, TlsPort}});
-        ASSERT_EQ(capability.getPort(), PlainPort) << id;
+        ASSERT_EQ(test_helpers::capabilityPort(capability), PlainPort) << id;
 
         const std::string connectionString = capability.getConnectionString().toStdString();
         ASSERT_NE(connectionString.find(":" + std::to_string(PlainPort)), std::string::npos) << id << " " << connectionString;
@@ -600,10 +747,11 @@ TEST_F(NativeTlsTest, DISABLED_ConnectToDiscoveredServerOverTls)
     const auto capability = found.at(PlainConfigId);
     const TransportOptionPtr wss = capability.getAvailableTransportOptions().get(WssOption);
 
-    auto config = secureClientConfig(client, PlainConfigId);
-    config.setPropertyValue("Port", wss.getPort());
+    const std::string deviceConnectionString = capability.getConnectionString().toStdString();
+    auto config = secureAddDeviceConfig(client, deviceConnectionString);
+    config.setPort(wss.getPort());
 
-    auto device = client.addDevice(capability.getConnectionString(), config);
+    auto device = client.addDevice(deviceConnectionString, config);
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
@@ -623,26 +771,8 @@ TEST_F(NativeTlsTest, DISABLED_DiscoveringTlsOnlyServer)
     for (const auto& [id, capability] : found)
     {
         expectOptions(capability, {{WssOption, TlsPort}});
-        ASSERT_EQ(capability.getPort(), TlsPort) << id;
+        ASSERT_EQ(test_helpers::capabilityPort(capability), TlsPort) << id;
     }
-}
-
-// The mirrored device is meant to get its streaming source over the option it is connected over.
-// The streaming connects at the port of the capability's connection string, which is the plaintext one.
-TEST_F(NativeTlsTest, DISABLED_PrefersSecureStreamingSource)
-{
-    auto server = createServerInstance();
-    auto client = createClientInstance();
-
-    auto addDeviceConfig = client.createDefaultAddDeviceConfig();
-    applySecureClientConfig(addDeviceConfig);
-
-    auto device = client.addDevice(connectionString("daq.nd", TlsPort), addDeviceConfig);
-    const auto sources = device.asPtr<IMirroredDevice>().getStreamingSources();
-
-    ASSERT_EQ(sources.getCount(), 1u);
-    const std::string sourceConnectionString = sources[0].getConnectionString().toStdString();
-    ASSERT_NE(sourceConnectionString.find(":" + std::to_string(TlsPort)), std::string::npos) << sourceConnectionString;
 }
 
 #endif

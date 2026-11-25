@@ -12,6 +12,51 @@ using ObjCountTest = testing::Test;
 
 #ifndef NDEBUG
 
+class CreatesObjectInToStringImpl : public ImplementationOf<>
+{
+public:
+    ErrCode INTERFACE_FUNC toString(CharPtr* str) override
+    {
+        const auto temporary = BaseObject();
+        return daqDuplicateCharPtr("CreatesObjectInToString", str);
+    }
+};
+
+class DestroysObjectInToStringImpl : public ImplementationOf<>
+{
+public:
+    ErrCode INTERFACE_FUNC toString(CharPtr* str) override
+    {
+        held.release();
+        return daqDuplicateCharPtr("DestroysObjectInToString", str);
+    }
+
+private:
+    BaseObjectPtr held = BaseObject();
+};
+
+TEST_F(ObjCountTest, PrintTrackedObjectWhoseToStringCreatesAnObject)
+{
+    const auto obj = createWithImplementation<IBaseObject, CreatesObjectInToStringImpl>();
+    const size_t count = daqGetTrackedObjectCount();
+
+    daqPrintTrackedObjects();
+
+    ASSERT_EQ(daqGetTrackedObjectCount(), count);
+    const auto afterPrinting = BaseObject();
+    ASSERT_EQ(daqGetTrackedObjectCount(), count + 1);
+}
+
+TEST_F(ObjCountTest, PrintTrackedObjectWhoseToStringDestroysAnObject)
+{
+    const auto obj = createWithImplementation<IBaseObject, DestroysObjectInToStringImpl>();
+    const size_t count = daqGetTrackedObjectCount();
+
+    daqPrintTrackedObjects();
+
+    ASSERT_EQ(daqGetTrackedObjectCount(), count - 1);
+}
+
 TEST_F(ObjCountTest, CountObjects)
 {
     size_t val1 = daqGetTrackedObjectCount();

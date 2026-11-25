@@ -19,6 +19,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct ITransportOptionBuilder;
+
 /*!
  * @ingroup opendaq_component_type
  * @addtogroup opendaq_transport_option Transport option
@@ -41,8 +43,9 @@ enum class SecurityMode : EnumType
 /*!
  * @brief Describes one way to connect to a component: a transport, its port and its security mode.
  *
- * Created by the module and immutable. A component type lists the options its module supports, with their
- * default ports; a server capability lists the ones the server serves, with the ports it serves them on.
+ * Built by the module with ITransportOptionBuilder and immutable. A component type lists the options its module
+ * supports, with their default ports; a server capability lists the ones the server serves, with the ports it serves
+ * them on.
  *
  * A server capability keeps each option as a plain Property object with the `"Id"`, `"Port"`, `"SecurityMode"` and
  * `"CertificateRequired"` properties, so that a peer that does not know this interface still reads the capability.
@@ -84,18 +87,13 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
  */
 
 /*!
- * @brief Creates a frozen transport option.
- * @param id The id of the option, unique within a component type. Must not be empty.
- * @param port The port of the option, 0 for a carrier without ports.
- * @param securityMode What the option protects the data it carries against.
- * @param certificateRequired True when the connection over this option needs a client certificate.
+ * @brief Creates a transport option from the values set on a builder.
+ * @param builder The transport option builder.
+ * @throws InvalidParameterException when the id is null or empty, or the security mode is not valid.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, TransportOption, ITransportOption,
-    IString*, id,
-    Int, port,
-    SecurityMode, securityMode,
-    Bool, certificateRequired
+    LIBRARY_FACTORY, TransportOptionFromBuilder, ITransportOption,
+    ITransportOptionBuilder*, builder
 )
 
 /*!@}*/

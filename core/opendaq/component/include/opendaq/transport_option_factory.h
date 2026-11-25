@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <opendaq/transport_option_ptr.h>
+#include <opendaq/transport_option_builder_ptr.h>
 #include <coretypes/integer_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -51,18 +52,34 @@ inline constexpr const char* PortConfigProperty = "Port";
  */
 
 /*!
- * @brief Creates a frozen transport option.
- * @param id The id of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
- * @param port The port of the option, 0 for a carrier without ports.
- * @param securityMode What the option protects the data it carries against.
- * @param certificateRequired True when the connection over this option needs a client certificate.
+ * @brief Creates a transport option from the values set on a builder.
+ * @param builder The transport option builder.
+ * @throws InvalidParameterException when the id is null or empty, or the security mode is not valid.
  */
-inline TransportOptionPtr TransportOption(const StringPtr& id,
-                                          Int port,
-                                          SecurityMode securityMode = SecurityMode::None,
-                                          Bool certificateRequired = False)
+inline TransportOptionPtr TransportOptionFromBuilder(const TransportOptionBuilderPtr& builder)
 {
-    TransportOptionPtr obj(TransportOption_Create(id, port, securityMode, certificateRequired));
+    TransportOptionPtr obj(TransportOptionFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
+ * @brief Creates a transport option builder with the default values of the fields other than the id.
+ * @param id The id of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
+ */
+inline TransportOptionBuilderPtr TransportOptionBuilder(const StringPtr& id)
+{
+    TransportOptionBuilderPtr obj(TransportOptionBuilder_Create(id));
+    return obj;
+}
+
+/*!
+ * @brief Creates a transport option builder with the values of an existing option, e.g. to build the same option
+ * with another port.
+ * @param transportOption The option whose values the builder takes.
+ */
+inline TransportOptionBuilderPtr TransportOptionBuilderCopy(const TransportOptionPtr& transportOption)
+{
+    TransportOptionBuilderPtr obj(TransportOptionBuilderFromExisting_Create(transportOption));
     return obj;
 }
 

@@ -41,7 +41,7 @@ DictPtr<IString, ITransportOption> knownTransportOptions(const DictPtr<IString, 
             continue;
 
         const TransportOptionPtr typeOption = typeOptions.get(id);
-        known.set(id, daq::TransportOption(id, option.getPort(), typeOption.getSecurityMode(), typeOption.getCertificateRequired()));
+        known.set(id, TransportOptionBuilderCopy(typeOption).setPort(option.getPort()).build());
     }
 
     return known;

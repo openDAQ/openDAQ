@@ -55,7 +55,7 @@ public:
                                     .setConnectionStringPrefix("dev")
                                     .setDeviceKind(DeviceKind::Mirrored)
                                     .setAvailableTransportOptions(TransportOptionsById(
-                                        {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
+                                        {TestTransportOption("plain", 7420), TestTransportOption("tls", 7421, SecurityMode::Encrypted)}))
                                     .build();
         deviceTypes.set("dev", deviceType);
 
@@ -64,7 +64,7 @@ public:
                                        .setName("str")
                                        .setConnectionStringPrefix("str")
                                        .setAvailableTransportOptions(TransportOptionsById(
-                                           {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
+                                           {TestTransportOption("plain", 7430), TestTransportOption("tls", 7431, SecurityMode::Encrypted)}))
                                        .build();
         streamingTypes.set("str", streamingType);
 
@@ -82,7 +82,7 @@ public:
                             .setDeviceKind(DeviceKind::Mirrored)
                             .setDefaultConfig(portConfig)
                             .setAvailableTransportOptions(TransportOptionsById(
-                                {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
+                                {TestTransportOption("plain", 7420), TestTransportOption("tls", 7421, SecurityMode::Encrypted)}))
                             .build());
     }
 
@@ -155,12 +155,12 @@ DeviceInfoConfigPtr DiscoveredDeviceInfo()
         Capability("devproto",
                    ProtocolType::Configuration,
                    "dev",
-                   TransportOptionsById({TransportOption("plain", 17420), TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+                   TransportOptionsById({TestTransportOption("plain", 17420), TestTransportOption("tls", 17422, SecurityMode::Encrypted)})));
     internal.addServerCapability(
         Capability("strproto",
                    ProtocolType::Streaming,
                    "str",
-                   TransportOptionsById({TransportOption("plain", 17430), TransportOption("tls", 17432, SecurityMode::Encrypted)})));
+                   TransportOptionsById({TestTransportOption("plain", 17430), TestTransportOption("tls", 17432, SecurityMode::Encrypted)})));
     return info;
 }
 }
@@ -331,7 +331,7 @@ static DeviceInfoConfigPtr DeviceInfoAnnouncing(const DictPtr<IString, ITranspor
 TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById(
-        {TransportOption("quic", 17425), TransportOption("tls", 17422), TransportOption("plain", 17420, SecurityMode::Signed, True)})));
+        {TestTransportOption("quic", 17425), TestTransportOption("tls", 17422), TestTransportOption("plain", 17420, SecurityMode::Signed, True)})));
 
     const auto options = config.getAvailableTransportOptions();
     ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
@@ -348,7 +348,7 @@ TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
 // A server that announces only options the type does not know leaves the config without options, also once serialized
 TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
 {
-    const auto unknownOptions = TransportOptionsById({TransportOption("quic", 17425), TransportOption("wss", 17443)});
+    const auto unknownOptions = TransportOptionsById({TestTransportOption("quic", 17425), TestTransportOption("wss", 17443)});
     const auto info = DeviceInfoAnnouncing(unknownOptions);
     info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("strproto", ProtocolType::Streaming, "str", unknownOptions));
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(info);
@@ -562,7 +562,7 @@ TEST_F(TransportSelectionTest, TypeWithoutOptionsKeepsString)
 
 TEST_F(TransportSelectionTest, ServerWithoutOptionsTheTypeKnowsRejected)
 {
-    const auto config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("quic", 17425)})));
+    const auto config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById({TestTransportOption("quic", 17425)})));
 
     ASSERT_EQ(create("dev://host", config), OPENDAQ_ERR_NOTFOUND);
     ASSERT_EQ(module->connectionStrings.getCount(), 0u);
@@ -711,7 +711,7 @@ TEST_F(TransportSelectionTest, StreamingWithLegacyConfigOfTypeWithOwnPort)
                           .setConnectionStringPrefix("portedstr")
                           .setDefaultConfig(portConfig)
                           .setAvailableTransportOptions(TransportOptionsById(
-                              {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
+                              {TestTransportOption("plain", 7430), TestTransportOption("tls", 7431, SecurityMode::Encrypted)}))
                           .build();
     module->streamingTypes.set("portedstr", type);
 
@@ -803,7 +803,7 @@ TEST_F(TransportSelectionTest, SmartConnectionWithLegacyConfig)
 TEST_F(TransportSelectionTest, SmartConnectionToServerWithoutSelectedOptionRejected)
 {
     module->availableDevices.clear();
-    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TestTransportOption("tls", 17422, SecurityMode::Encrypted)})));
     utils().getAvailableDevices();
 
     ASSERT_EQ(create("daq://m_s", PropertyObject()), OPENDAQ_ERR_NOTFOUND);
@@ -814,7 +814,7 @@ TEST_F(TransportSelectionTest, SmartConnectionToServerWithoutSelectedOptionRejec
 TEST_F(TransportSelectionTest, SmartConnectionWithPortSetToServerWithoutSelectedOption)
 {
     module->availableDevices.clear();
-    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TestTransportOption("tls", 17422, SecurityMode::Encrypted)})));
     utils().getAvailableDevices();
 
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());

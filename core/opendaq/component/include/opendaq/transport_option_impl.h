@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
 {
 public:
-    TransportOptionImpl(const StringPtr& id, Int port, SecurityMode securityMode, Bool certificateRequired);
+    explicit TransportOptionImpl(ITransportOptionBuilder* builder);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getPort(Int* port) override;

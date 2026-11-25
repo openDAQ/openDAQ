@@ -123,9 +123,9 @@ TEST_F(ServerCapabilityTest, SetGetTransportOptions)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 7443, SecurityMode::Encrypted, True),
-                                                                TransportOption("tls", 7421, SecurityMode::Encrypted),
-                                                                TransportOption("plain", 7420)}));
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("wss", 7443, SecurityMode::Encrypted, True),
+                                                                TestTransportOption("tls", 7421, SecurityMode::Encrypted),
+                                                                TestTransportOption("plain", 7420)}));
 
     const auto options = capability.getAvailableTransportOptions();
     ASSERT_EQ(options.getKeyList(), List<IString>("wss", "tls", "plain"));
@@ -139,8 +139,8 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsReplaces)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
 
-    capability.setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421)}));
-    capability.setAvailableTransportOptions(TransportOptionsById({TransportOption("https", 443)}));
+    capability.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420), TestTransportOption("tls", 7421)}));
+    capability.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("https", 443)}));
 
     ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("https"));
 }
@@ -151,10 +151,10 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsInvalid)
 
     ASSERT_THROW(capability.setAvailableTransportOptions(nullptr), ArgumentNullException);
     ASSERT_THROW(capability.setAvailableTransportOptions(Dict<IString, IBaseObject>({{"plain", String("plain")}})), InvalidTypeException);
-    ASSERT_THROW(capability.setAvailableTransportOptions(Dict<IBaseObject, IBaseObject>({{Integer(1), TransportOption("plain", 7420)}})),
+    ASSERT_THROW(capability.setAvailableTransportOptions(Dict<IBaseObject, IBaseObject>({{Integer(1), TestTransportOption("plain", 7420)}})),
                  InvalidTypeException);
     // the key must be the id of its option
-    ASSERT_THROW(capability.setAvailableTransportOptions(Dict<IString, ITransportOption>({{"tls", TransportOption("plain", 7420)}})),
+    ASSERT_THROW(capability.setAvailableTransportOptions(Dict<IString, ITransportOption>({{"tls", TestTransportOption("plain", 7420)}})),
                  InvalidValueException);
     ASSERT_EQ(capability.getAvailableTransportOptions().getCount(), 0u);
 }
@@ -162,15 +162,15 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsInvalid)
 TEST_F(ServerCapabilityTest, AddTransportOption)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-                                               .addAvailableTransportOption(TransportOption("plain", 7420))
-                                               .addAvailableTransportOption(TransportOption("tls", 7422, SecurityMode::Encrypted));
+                                               .addAvailableTransportOption(TestTransportOption("plain", 7420))
+                                               .addAvailableTransportOption(TestTransportOption("tls", 7422, SecurityMode::Encrypted));
 
     ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     // the first option added is the default one
     ASSERT_EQ(capability.getPort(), 7420);
     ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
 
-    ASSERT_THROW(capability.addAvailableTransportOption(TransportOption("tls", 9000)), AlreadyExistsException);
+    ASSERT_THROW(capability.addAvailableTransportOption(TestTransportOption("tls", 9000)), AlreadyExistsException);
     ASSERT_THROW(capability.addAvailableTransportOption(nullptr), ArgumentNullException);
     ASSERT_EQ(capability.getAvailableTransportOptions().getValueList()[1].getPort(), 7422);
 }
@@ -180,18 +180,18 @@ TEST_F(ServerCapabilityTest, TransportOptionsFrozen)
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
     capability.freeze();
 
-    ASSERT_THROW(capability.setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420)})), FrozenException);
-    ASSERT_THROW(capability.addAvailableTransportOption(TransportOption("plain", 7420)), FrozenException);
+    ASSERT_THROW(capability.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420)})), FrozenException);
+    ASSERT_THROW(capability.addAvailableTransportOption(TestTransportOption("plain", 7420)), FrozenException);
 }
 
 TEST_F(ServerCapabilityTest, TransportOptionsAreCopied)
 {
-    auto options = TransportOptionsById({TransportOption("plain", 7420)});
+    auto options = TransportOptionsById({TestTransportOption("plain", 7420)});
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setAvailableTransportOptions(options);
 
-    options.set("tls", TransportOption("tls", 7421));
-    capability.getAvailableTransportOptions().set("wss", TransportOption("wss", 7443));
+    options.set("tls", TestTransportOption("tls", 7421));
+    capability.getAvailableTransportOptions().set("wss", TestTransportOption("wss", 7443));
 
     ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
 }
@@ -202,7 +202,7 @@ TEST_F(ServerCapabilityTest, TransportOptionsKeptAsPlainPropertyObjects)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted, True)}));
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted, True)}));
 
     const PropertyObjectPtr container = capability.getPropertyValue("AvailableTransportOptions");
     const PropertyObjectPtr tls = container.getPropertyValue("tls");
@@ -218,9 +218,9 @@ TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 7443, SecurityMode::Encrypted, True),
-                                                                TransportOption("tls", 7421, SecurityMode::Encrypted),
-                                                                TransportOption("plain", 7420)}));
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("wss", 7443, SecurityMode::Encrypted, True),
+                                                                TestTransportOption("tls", 7421, SecurityMode::Encrypted),
+                                                                TestTransportOption("plain", 7420)}));
 
     const auto serializer = JsonSerializer();
     capability.serialize(serializer);
@@ -293,7 +293,7 @@ TEST_F(ServerCapabilityTest, CloneTransportOptions)
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
             .setAvailableTransportOptions(
-                TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}));
+                TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}));
 
     const ServerCapabilityPtr cloned = capability.asPtr<IPropertyObjectInternal>().clone();
 
@@ -314,7 +314,7 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsMirrorsPort)
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
             .setPort(1234)
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("tls", 7421), TransportOption("plain", 7420)}));
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421), TestTransportOption("plain", 7420)}));
 
     ASSERT_EQ(capability.getPort(), 7421);
     ASSERT_EQ(capability.getPropertyValue("Port"), 7421);
@@ -334,7 +334,7 @@ TEST_F(ServerCapabilityTest, SetPortUpdatesDefaultOption)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
                                                .setAvailableTransportOptions(TransportOptionsById(
-                                                   {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
+                                                   {TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}))
                                                .setPort(8000);
 
     const auto options = capability.getAvailableTransportOptions();
@@ -351,8 +351,8 @@ TEST_F(ServerCapabilityTest, ReorderingChangesTheDefaultOption)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("tls", 7421), TransportOption("plain", 7420)}))
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421)}));
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421), TestTransportOption("plain", 7420)}))
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420), TestTransportOption("tls", 7421)}));
 
     ASSERT_EQ(capability.getAvailableTransportOptions().getValueList()[0].getId(), "plain");
     ASSERT_EQ(capability.getPort(), 7420);

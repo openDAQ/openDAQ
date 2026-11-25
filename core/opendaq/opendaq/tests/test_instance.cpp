@@ -448,7 +448,7 @@ public:
                          .setConnectionStringPrefix("daqtransport")
                          .setDeviceKind(DeviceKind::Mirrored)
                          .setAvailableTransportOptions(TransportOptionsById(
-                             {TransportOption("ws", 7420), TransportOption("wss", 7422, SecurityMode::Encrypted)}))
+                             {TestTransportOption("ws", 7420), TestTransportOption("wss", 7422, SecurityMode::Encrypted)}))
                          .build())
     {
     }
@@ -465,7 +465,7 @@ public:
                                        .setName("transport_streaming")
                                        .setConnectionStringPrefix("daqstr")
                                        .setAvailableTransportOptions(TransportOptionsById(
-                                           {TransportOption("ws", 7500), TransportOption("wss", 7502, SecurityMode::Encrypted)}))
+                                           {TestTransportOption("ws", 7500), TestTransportOption("wss", 7502, SecurityMode::Encrypted)}))
                                        .build();
         return Dict<IString, IStreamingType>({{"transport_streaming", streamingType}});
     }
@@ -522,7 +522,7 @@ protected:
 
     static DictPtr<IString, ITransportOption> ServerOptions(Int wsPort, Int wssPort)
     {
-        return TransportOptionsById({TransportOption("ws", wsPort), TransportOption("wss", wssPort, SecurityMode::Encrypted)});
+        return TransportOptionsById({TestTransportOption("ws", wsPort), TestTransportOption("wss", wssPort, SecurityMode::Encrypted)});
     }
 
     AddDeviceConfigPtr createConfig() const
@@ -593,7 +593,7 @@ TEST_F(StreamingTransportTest, StreamingUsesPortSet)
 // The streaming does not move to the open channel when the server does not announce the selected option
 TEST_F(StreamingTransportTest, CapabilityWithoutSelectedOptionIsSkipped)
 {
-    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TransportOption("ws", 7510)})));
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TestTransportOption("ws", 7510)})));
     const auto config = createConfig();
     config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
 
@@ -604,7 +604,7 @@ TEST_F(StreamingTransportTest, CapabilityWithoutSelectedOptionIsSkipped)
 
 TEST_F(StreamingTransportTest, CapabilityWithoutSelectedOptionIsSkippedWithPortSet)
 {
-    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TransportOption("ws", 7510)})));
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TestTransportOption("ws", 7510)})));
     const auto config = createConfig();
     const auto streaming = config.getStreamingOptions().getStreamingConfig();
     streaming.setTransportOption("wss");
@@ -655,7 +655,7 @@ TEST_F(StreamingTransportTest, NestedDeviceWithoutSelectedOptionIsSkipped)
 {
     module->capabilities.pushBack(Capability("daqstr", "host", 7510, ServerOptions(7510, 7512)));
     module->nestedCapabilities =
-        List<IServerCapability>(Capability("daqstr", "nested", 7530, TransportOptionsById({TransportOption("ws", 7530)})));
+        List<IServerCapability>(Capability("daqstr", "nested", 7530, TransportOptionsById({TestTransportOption("ws", 7530)})));
     const auto config = createConfig();
     config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
     config.getStreamingOptions().setStreamingMode(StreamingMode::MinHops);

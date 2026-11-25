@@ -14,4 +14,5 @@
 *** xref:modules.adoc[Modules]
 ** xref:protocol_features_characteristics.adoc[*Protocol features and characteristics*]
 ** xref:interfaces_objects_wrappers.adoc[*Interfaces, Objects and Wrappers*]
+** xref:language_binding_internals.adoc[*Language Binding Internals*]
 ** xref:glossary.adoc[**Glossary**]

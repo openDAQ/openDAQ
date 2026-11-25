@@ -19,6 +19,8 @@
 #include <opendaq/add_device_config_ptr.h>
 #include <opendaq/address_info_utils.h>
 #include <opendaq/add_streaming_config_ptr.h>
+#include <opendaq/device_private_ptr.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_type_utils.h>
 #include <atomic>
@@ -68,6 +70,7 @@ private:
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
+    static AddStreamingConfigPtr StreamingConfigWithCredentials(const AddDeviceConfigPtr& deviceConfig, const DevicePtr& ownerDevice);
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
 
     ContextPtr context;
@@ -81,12 +84,28 @@ private:
     std::atomic<bool> stopped{false};
 };
 
+// The attached add-device config does not contain the credentials supplied for the streaming - the owner device keeps
+// them, so they are restored on a copy of the streaming config.
+inline AddStreamingConfigPtr StreamingSourceManager::StreamingConfigWithCredentials(const AddDeviceConfigPtr& deviceConfig,
+                                                                                    const DevicePtr& ownerDevice)
+{
+    const AddStreamingConfigPtr streamingConfig = deviceConfig.getStreamingOptions().getStreamingConfig();
+    const auto devicePrivate = ownerDevice.asPtr<IDevicePrivate>(true);
+    const DictPtr<IString, IString> credentials = devicePrivate.getStreamingCredentials();
+    if (!credentials.assigned())
+        return streamingConfig;
+
+    const AddStreamingConfigPtr config = streamingConfig.asPtr<IPropertyObjectInternal>().clone();
+    config.getAuthenticationConfig().setSuppliedCredential(credentials);
+    return config;
+}
+
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
                                                       const DevicePtr& ownerDevice,
                                                       const AddDeviceConfigPtr& deviceConfig)
     : context(context)
     , ownerDeviceRef(ownerDevice)
-    , streamingConfig(deviceConfig.getStreamingOptions().getStreamingConfig())
+    , streamingConfig(StreamingConfigWithCredentials(deviceConfig, ownerDevice))
     , loggerComponent(context.getLogger().getOrAddComponent(fmt::format("StreamingSourceManager({})", ownerDevice.getGlobalId())))
     , streamingMode(deviceConfig.getStreamingOptions().getStreamingMode())
     , requiredStreamingPrefix(streamingConfig.getStreamingType().getConnectionStringPrefix())

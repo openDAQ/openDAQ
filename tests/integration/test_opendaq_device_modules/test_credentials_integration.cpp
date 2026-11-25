@@ -315,3 +315,72 @@ TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptio
     ASSERT_NO_THROW(instance.loadConfiguration(str, params));
     ASSERT_EQ(instance.getDevices().getCount(), 0u);
 }
+
+// The credentials the created device keeps in its IDevicePrivate, out of the add-device config attached to it
+
+static DictPtr<IString, IString> userCredentials()
+{
+    return Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}});
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, DeviceKeepsNoCredentialsWhenAnonymous)
+{
+    auto instance = createClientInstance();
+
+    const auto device = instance.addDevice(DeviceConnectionString);
+
+    const auto devicePrivate = device.asPtr<IDevicePrivate>();
+    ASSERT_FALSE(devicePrivate.getDeviceCredentials().assigned());
+    ASSERT_FALSE(devicePrivate.getStreamingCredentials().assigned());
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, DeviceKeepsProviderObtainedCredentials)
+{
+    auto instance = createClientInstance(TestCredentialProvider(userCredentials()));
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    config.getAuthenticationConfig().setAuthenticationMethod("UserNamePassword");
+    const auto device = instance.addDevice(DeviceConnectionString, config);
+
+    // Only the supplied streaming credentials are kept
+    const auto devicePrivate = device.asPtr<IDevicePrivate>();
+    ASSERT_EQ(devicePrivate.getDeviceCredentials(), userCredentials());
+    ASSERT_FALSE(devicePrivate.getStreamingCredentials().assigned());
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, DeviceKeepsSuppliedCredentialsOutOfAttachedConfig)
+{
+    auto instance = createClientInstance();
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    const auto authConfig = config.getAuthenticationConfig();
+    authConfig.setAuthenticationMethod("UserNamePassword");
+    authConfig.setSuppliedCredential(userCredentials());
+    const auto device = instance.addDevice(DeviceConnectionString, config);
+
+    ASSERT_EQ(device.asPtr<IDevicePrivate>().getDeviceCredentials(), userCredentials());
+
+    const auto attachedAuthConfig = device.getAddDeviceConfig().getAuthenticationConfig();
+    ASSERT_EQ(attachedAuthConfig.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
+    ASSERT_EQ(attachedAuthConfig.getSuppliedCredential().getCount(), 0u);
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, DeviceKeepsSuppliedStreamingCredentialsOutOfAttachedConfig)
+{
+    auto instance = createClientInstance();
+
+    const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+    const auto streamingAuthConfig = config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig();
+    streamingAuthConfig.setAuthenticationMethod("UserNamePassword");
+    streamingAuthConfig.setSuppliedCredential(userCredentials());
+    const auto device = instance.addDevice(DeviceConnectionString, config);
+
+    const auto devicePrivate = device.asPtr<IDevicePrivate>();
+    ASSERT_FALSE(devicePrivate.getDeviceCredentials().assigned());
+    ASSERT_EQ(devicePrivate.getStreamingCredentials(), userCredentials());
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
+
+    const auto attachedAuthConfig = device.getAddDeviceConfig().getStreamingOptions().getStreamingConfig().getAuthenticationConfig();
+    ASSERT_EQ(attachedAuthConfig.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
+    ASSERT_EQ(attachedAuthConfig.getSuppliedCredential().getCount(), 0u);
+}

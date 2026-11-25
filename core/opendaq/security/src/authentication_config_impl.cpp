@@ -100,6 +100,19 @@ ErrCode AuthenticationConfigImpl::getSuppliedCredential(IDict** credential)
     });
 }
 
+ErrCode AuthenticationConfigImpl::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+
+    return daqTry([&]
+    {
+        auto lock = getRecursiveConfigLock2();
+        auto obj = createWithImplementation<IPropertyObject, AuthenticationConfigImpl>(supportedAuthenticationMethods);
+        dynamic_cast<AuthenticationConfigImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
+        *cloned = obj.detach();
+    });
+}
+
 ErrCode AuthenticationConfigImpl::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
 {
     const ErrCode errCode = Super::setPropertySelectionValue(propertyName, value);

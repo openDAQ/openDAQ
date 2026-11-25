@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqDevicePrivate daqDevicePrivate;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqUser daqUser;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_DEVICE_PRIVATE_INTF_ID;
     void EXPORTED daqDevicePrivate_getInterfaceId(daqIntfID* intfId);
@@ -48,6 +49,10 @@ extern "C"
     daqErrCode EXPORTED daqDevicePrivate_unlock(daqDevicePrivate* self, daqUser* user);
     daqErrCode EXPORTED daqDevicePrivate_isLockedInternal(daqDevicePrivate* self, daqBool* locked);
     daqErrCode EXPORTED daqDevicePrivate_forceUnlock(daqDevicePrivate* self);
+    daqErrCode EXPORTED daqDevicePrivate_setDeviceCredentials(daqDevicePrivate* self, daqDict* credentials);
+    daqErrCode EXPORTED daqDevicePrivate_getDeviceCredentials(daqDevicePrivate* self, daqDict** credentials);
+    daqErrCode EXPORTED daqDevicePrivate_setStreamingCredentials(daqDevicePrivate* self, daqDict* credentials);
+    daqErrCode EXPORTED daqDevicePrivate_getStreamingCredentials(daqDevicePrivate* self, daqDict** credentials);
 
 #ifdef __cplusplus
 }

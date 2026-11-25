@@ -81,7 +81,8 @@ private:
                             const ComponentPtr& parent,
                             const DeviceTypePtr& deviceType,
                             const PropertyObjectPtr& deviceTypeConfig,
-                            const AuthenticationConfigPtr& authenticationConfig);
+                            const AuthenticationConfigPtr& authenticationConfig,
+                            const DictPtr<IString, IString>& cachedCredential);
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
@@ -125,10 +126,12 @@ private:
                                    const DevicePtr& owner) const;
 
     // Resolves the credentials for `credentialRequest` - for auth method with at least one field. Consumes
-    // whichever single credential provider this manager was constructed with. If
-    // `authenticationConfig.getSuppliedCredential()` returns one, it is used directly instead of asking the
-    // provider to obtain one.
-    DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
+    // whichever single credential provider this manager was constructed with. If `cachedCredential` (the one
+    // cached from a user-provided config before binding) or else `authenticationConfig.getSuppliedCredential()`
+    // returns one, it is used directly instead of asking the provider to obtain one.
+    DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig,
+                                                 const CredentialRequestPtr& credentialRequest,
+                                                 const DictPtr<IString, IString>& cachedCredential = nullptr) const;
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);

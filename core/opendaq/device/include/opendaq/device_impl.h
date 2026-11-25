@@ -146,6 +146,10 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC isLockedInternal(Bool* locked) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
+    ErrCode INTERFACE_FUNC setDeviceCredentials(IDict* credentials) override;
+    ErrCode INTERFACE_FUNC getDeviceCredentials(IDict** credentials) override;
+    ErrCode INTERFACE_FUNC setStreamingCredentials(IDict* credentials) override;
+    ErrCode INTERFACE_FUNC getStreamingCredentials(IDict** credentials) override;
 
     // IDeviceNetworkConfig
     ErrCode INTERFACE_FUNC submitNetworkConfiguration(IString* ifaceName, IPropertyObject* config) override;
@@ -324,6 +328,8 @@ private:
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
+    DictPtr<IString, IString> deviceCredentials;
+    DictPtr<IString, IString> streamingCredentials;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -457,6 +463,42 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
 {
     return this->setComponentConfig(config);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceCredentials(IDict* credentials)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    deviceCredentials = credentials;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceCredentials(IDict** credentials)
+{
+    OPENDAQ_PARAM_NOT_NULL(credentials);
+
+    auto lock = this->getRecursiveConfigLock2();
+    *credentials = deviceCredentials.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setStreamingCredentials(IDict* credentials)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    streamingCredentials = credentials;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getStreamingCredentials(IDict** credentials)
+{
+    OPENDAQ_PARAM_NOT_NULL(credentials);
+
+    auto lock = this->getRecursiveConfigLock2();
+    *credentials = streamingCredentials.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

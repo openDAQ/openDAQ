@@ -46,13 +46,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the ID of protocol group. Empty protocol group ID means that the protocol is not part of any group.
-     * @param protocolGroupId The ID of protocol group
-     */
-    virtual ErrCode INTERFACE_FUNC setProtocolGroupId(IString* protocolGroupId) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Sets the ID of protocol
      * @param protocolId The ID of protocol
      */
@@ -105,7 +98,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the port of the default transport.
      * @param port The port of the device
      *
-     * @deprecated Use setTransportOptions instead.
+     * @deprecated Use setAvailableTransportOptions instead.
      * When options are set, the first (default) one is replaced by a copy at the new port, keeping the order.
      * Without options, only the port is stored.
      */
@@ -123,44 +116,35 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the security level of the protocol.
-     * @param securityLevel The security level of the protocol.
-     *
-     * Could be '-1' if the protocol does not define any security level or if the security level is not known,
-     * '0' if the protocol is not secure, and positive integer values for different security levels defined by the protocol.
-     * The higher the value, the more secure the protocol is considered to be.
-     */
-    virtual ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Adds a method id to the list of supported authentication methods. No-op when `methodId` is
      * already present.
      * @param methodId The authentication method id to add.
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
 
-    // [templateType(transportOptions, ITransportOption), returnSelf]
+    // [templateType(transportOptions, IString, ITransportOption), returnSelf]
     /*!
      * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
-     * @param transportOptions The served options, the server's preferred first.
-     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
+     * @param transportOptions The served options, keyed by their own ids, the default one first in dict iteration
+     * order: the one a client connects over when it selects none.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the id of its option.
      *
      * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
-     * getPort; that port is also stored as the port read by older clients. An empty list leaves that port unchanged.
+     * getPort; that port is also stored as the port read by older clients. An empty dictionary leaves that port
+     * unchanged.
      */
-    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) = 0;
 
     // [returnSelf]
     /*!
      * @brief Adds a transport option the server accepts connections over, after the ones already set.
      * @param transportOption The served option, with the port it is served on.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if an option of the same name is already set.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if an option with the same id is already set.
      *
      * The first option added becomes the default, and sets the port read by older clients.
      */
-    virtual ErrCode INTERFACE_FUNC addTransportOption(ITransportOption* transportOption) = 0;
+    virtual ErrCode INTERFACE_FUNC addAvailableTransportOption(ITransportOption* transportOption) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

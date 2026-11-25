@@ -16,7 +16,6 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <coretypes/integer.h>
-#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,50 +27,46 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief What a transport protects the data it carries against.
+ *
+ * It covers the data in transit only, not authentication: an option with SecurityMode::None can still require a
+ * user name and password.
  */
-enum class TransportProtection : EnumType
+enum class SecurityMode : EnumType
 {
     None = 0,  ///< Nothing is protected.
     Signed,    ///< The data cannot be altered on the way, but can be read.
     Encrypted  ///< The data cannot be altered and cannot be read. Encrypted or fails, never a fallback to plain.
 };
 
-/*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
- */
-
 /*!
- * @brief Describes one way to connect to a component: a transport, its port and the protection it provides.
+ * @brief Describes one way to connect to a component: a transport, its port and its security mode.
  *
  * Created by the module and immutable. A component type lists the options its module supports, with their
  * default ports; a server capability lists the ones the server serves, with the ports it serves them on.
  *
- * Is itself a frozen Property object with the `"Name"`, `"Port"`, `"Protection"` and `"CertificateRequired"`
- * properties. It is serialized as a plain Property object, so a peer that does not know this interface still
- * reads it; such a peer gets a Property object with the same properties back.
+ * A server capability keeps each option as a plain Property object with the `"Id"`, `"Port"`, `"SecurityMode"` and
+ * `"CertificateRequired"` properties, so that a peer that does not know this interface still reads the capability.
  */
-DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
+DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
 {
     /*!
-     * @brief Gets the name of the option, unique within a component type (e.g. "plain", "tls").
-     * @param[out] name The name of the option.
+     * @brief Gets the id of the option, unique within a component type (e.g. "plain", "tls").
+     * @param[out] id The id of the option.
      */
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
 
     /*!
      * @brief Gets the port of the option.
      * @param[out] port The default port on a component type, the served port on a server capability;
      * 0 for a carrier without ports.
      */
-    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
+    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 
     /*!
      * @brief Gets what the option protects the data it carries against.
-     * @param[out] protection The protection of the option.
+     * @param[out] securityMode The security mode of the option.
      */
-    virtual ErrCode INTERFACE_FUNC getProtection(TransportProtection* protection) = 0;
+    virtual ErrCode INTERFACE_FUNC getSecurityMode(SecurityMode* securityMode) = 0;
 
     /*!
      * @brief Tells whether the connection over this option needs a client certificate.
@@ -90,16 +85,16 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
 
 /*!
  * @brief Creates a frozen transport option.
- * @param name The name of the option, unique within a component type. Must not be empty.
- * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
- * @param protection What the option protects the data it carries against.
+ * @param id The id of the option, unique within a component type. Must not be empty.
+ * @param port The port of the option, 0 for a carrier without ports.
+ * @param securityMode What the option protects the data it carries against.
  * @param certificateRequired True when the connection over this option needs a client certificate.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
-    IString*, name,
-    IInteger*, port,
-    TransportProtection, protection,
+    IString*, id,
+    Int, port,
+    SecurityMode, securityMode,
     Bool, certificateRequired
 )
 

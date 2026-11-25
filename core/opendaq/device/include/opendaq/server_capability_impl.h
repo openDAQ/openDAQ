@@ -26,10 +26,10 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/address_info_ptr.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/container_utils.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <fmt/format.h>
 #include <algorithm>
-#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -48,9 +48,6 @@ public:
         
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC setProtocolName(IString* protocolName) override;
-
-    ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) override;
-    ErrCode INTERFACE_FUNC setProtocolGroupId(IString* protocolGroupId) override;
 
     ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) override;
     ErrCode INTERFACE_FUNC setProtocolId(IString* protocolId) override;
@@ -79,14 +76,11 @@ public:
     ErrCode INTERFACE_FUNC getAddressInfo(IList** addressesInfo) override;
     ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) override;
 
-    ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) override;
-    ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) override;
-
     ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) override;
     ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
-    ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
-    ErrCode INTERFACE_FUNC addTransportOption(ITransportOption* transportOption) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
+    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) override;
+    ErrCode INTERFACE_FUNC addAvailableTransportOption(ITransportOption* transportOption) override;
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
@@ -104,26 +98,22 @@ private:
     const char* ProtocolVersonName = "ProtocolVersion";
     const char* ConnectionType = "ConnectionType";
     const char* CoreEventsEnabled = "CoreEventsEnabled"; 
-    const char* ProtocolGroupId = "ProtocolGroupId";
     const char* ProtocolId = "protocolId";
     const char* Prefix = "Prefix";
     const char* Addresses = "Addresses";
     const char* AddressInfo = "AddressInfo";
     const char* Port = "Port";
-    const char* SecurityLevel = "SecurityLevel";
     const char* AuthenticationMethods = "AuthenticationMethods";
-    // A Property object holding one object property per transport option, in order. The options are kept this way
-    // rather than as a list so that older peers, which do not know transport options, still read the capability.
-    const char* TransportOptions = "TransportOptions";
+    const char* AvailableTransportOptions = "AvailableTransportOptions";
 
 
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 
-    ListPtr<ITransportOption> readTransportOptions();
-    ErrCode writeTransportOptions(const ListPtr<ITransportOption>& options);
-    static ListPtr<ITransportOption> ValidatedTransportOptions(IList* transportOptions);
+    DictPtr<IString, ITransportOption> readTransportOptions();
+    ErrCode writeTransportOptions(const DictPtr<IString, ITransportOption>& options);
     static TransportOptionPtr TransportOptionFromObject(const PropertyObjectPtr& obj);
+    static PropertyObjectPtr TransportOptionObject(const TransportOptionPtr& option);
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
@@ -162,7 +152,6 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(StringProperty(PrimaryConnectionString, ""));
     Super::addProperty(ListProperty(ConnectionStrings, List<IString>()));
     Super::addProperty(StringProperty(ProtocolName, ""));
-    Super::addProperty(StringProperty(ProtocolGroupId, ""));
     Super::addProperty(StringProperty(ProtocolId, ""));
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(ProtocolVersonName, ""));
@@ -172,9 +161,8 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(ListProperty(Addresses, List<IString>()));
     Super::addProperty(IntProperty(Port, -1));
     Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
-    Super::addProperty(IntProperty(SecurityLevel, -1));
     Super::addProperty(ListProperty(AuthenticationMethods, List<IString>()));
-    Super::addProperty(ObjectProperty(TransportOptions, PropertyObject()));
+    Super::addProperty(ObjectProperty(AvailableTransportOptions, PropertyObject()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -251,21 +239,6 @@ inline ErrCode ServerCapabilityConfigImpl::setProtocolName(IString* protocolName
 {
     OPENDAQ_PARAM_NOT_NULL(protocolName);
     return Super::setPropertyValue(String(ProtocolName), protocolName);
-}
-
-inline ErrCode ServerCapabilityConfigImpl::getProtocolGroupId(IString** protocolGroupId)
-{
-    return daqTry([&]
-                  {
-                      *protocolGroupId = getTypedProperty<IString>(ProtocolGroupId).detach();
-                      return OPENDAQ_SUCCESS;
-                  });
-}
-
-inline ErrCode ServerCapabilityConfigImpl::setProtocolGroupId(IString* protocolGroupId)
-{
-    OPENDAQ_PARAM_NOT_NULL(protocolGroupId);
-    return Super::setPropertyValue(String(ProtocolGroupId), protocolGroupId);
 }
 
 inline ErrCode ServerCapabilityConfigImpl::getProtocolId(IString** protocolId)
@@ -448,11 +421,11 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
     {
         // Keeps the default option in step with the port
         auto options = readTransportOptions();
-        if (options.getCount() > 0)
+        if (const auto first = FirstValue(options); first.assigned())
         {
-            const auto first = options[0];
+            // replacing the value of a key keeps its place
             const Int newPort = IntegerPtr::Borrow(port);
-            options.setItemAt(0, TransportOption(first.getName(), newPort, first.getProtection(), first.getCertificateRequired()));
+            options.set(first.getId(), TransportOption(first.getId(), newPort, first.getSecurityMode(), first.getCertificateRequired()));
             OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
         }
 
@@ -536,23 +509,6 @@ inline ErrCode ServerCapabilityConfigImpl::clone(IPropertyObject** cloned)
     });
 }
 
-inline ErrCode ServerCapabilityConfigImpl::getProtocolSecurityLevel(IInteger** securityLevel)
-{
-    OPENDAQ_PARAM_NOT_NULL(securityLevel);
-
-    return daqTry([&]
-                  {
-                      *securityLevel = getTypedProperty<IInteger>(SecurityLevel).detach();
-                      return OPENDAQ_SUCCESS;
-                  });
-}
-
-inline ErrCode ServerCapabilityConfigImpl::setProtocolSecurityLevel(IInteger* securityLevel)
-{
-    OPENDAQ_PARAM_NOT_NULL(securityLevel);
-    return Super::setPropertyValue(String(SecurityLevel), securityLevel);
-}
-
 inline ErrCode ServerCapabilityConfigImpl::getAuthenticationMethods(IList** methods)
 {
     return daqTry([&]
@@ -580,87 +536,91 @@ inline ErrCode ServerCapabilityConfigImpl::addAuthenticationMethod(IString* meth
     });
 }
 
-inline ListPtr<ITransportOption> ServerCapabilityConfigImpl::readTransportOptions()
+inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransportOptions()
 {
     // The options come back as plain Property objects from a serialized or remote capability
-    const PropertyObjectPtr container = objPtr.getPropertyValue(TransportOptions);
-    auto options = List<ITransportOption>();
+    const PropertyObjectPtr container = objPtr.getPropertyValue(AvailableTransportOptions);
+    auto options = Dict<IString, ITransportOption>();
     for (const auto& prop : container.getAllProperties())
     {
         if (prop.getValueType() == ctObject)
-            options.pushBack(TransportOptionFromObject(container.getPropertyValue(prop.getName())));
+        {
+            // An entry that cannot be read, as another peer may send, is left out
+            try
+            {
+                const auto option = TransportOptionFromObject(container.getPropertyValue(prop.getName()));
+                options.set(option.getId(), option);
+            }
+            catch (...)
+            {
+                daqClearErrorInfo();
+            }
+        }
     }
 
     return options;
 }
 
-// Restores an option from the properties ITransportOption documents, as a serialized or remote capability carries it
+// Restores an option from the plain Property object the capability keeps it as, also on a serialized or remote one
 inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(const PropertyObjectPtr& obj)
 {
-    if (const auto option = obj.asPtrOrNull<ITransportOption, TransportOptionPtr>(true); option.assigned())
-        return option;
-
     const auto hasProperty = [&obj](const char* name, CoreType type)
     {
         return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
     };
 
-    if (!hasProperty("Name", ctString) || !hasProperty("Port", ctInt) || !hasProperty("Protection", ctInt) ||
+    if (!hasProperty("Id", ctString) || !hasProperty("Port", ctInt) || !hasProperty("SecurityMode", ctInt) ||
         !hasProperty("CertificateRequired", ctBool))
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The server capability holds an object that is not a transport option");
     }
 
-    const StringPtr name = obj.getPropertyValue("Name");
+    const StringPtr id = obj.getPropertyValue("Id");
     const Int port = obj.getPropertyValue("Port");
-    const Int protection = obj.getPropertyValue("Protection");
+    const Int securityMode = obj.getPropertyValue("SecurityMode");
     const Bool certificateRequired = obj.getPropertyValue("CertificateRequired");
-    return TransportOption(name, port, static_cast<TransportProtection>(protection), certificateRequired);
+    return TransportOption(id, port, static_cast<SecurityMode>(securityMode), certificateRequired);
 }
 
-inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const ListPtr<ITransportOption>& options)
+// The plain Property object an option is kept as
+inline PropertyObjectPtr ServerCapabilityConfigImpl::TransportOptionObject(const TransportOptionPtr& option)
+{
+    const auto securityModeNames = Dict<IInteger, IString>({{static_cast<Int>(SecurityMode::None), "None"},
+                                                            {static_cast<Int>(SecurityMode::Signed), "Signed"},
+                                                            {static_cast<Int>(SecurityMode::Encrypted), "Encrypted"}});
+
+    auto obj = PropertyObject();
+    obj.addProperty(StringProperty("Id", option.getId()));
+    obj.addProperty(IntProperty("Port", option.getPort()));
+    obj.addProperty(SparseSelectionProperty("SecurityMode", securityModeNames, static_cast<Int>(option.getSecurityMode())));
+    obj.addProperty(BoolProperty("CertificateRequired", option.getCertificateRequired()));
+    return obj;
+}
+
+inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<IString, ITransportOption>& options)
 {
     return daqTry([&]
     {
         auto container = PropertyObject();
-        for (const auto& option : options)
+        for (const auto& [id, option] : options)
         {
-            // the property name is only a key, the option keeps its own name
-            std::string key = option.getName();
+            // the property name is only a key, the option keeps its own id
+            std::string key = id;
             key.erase(std::remove_if(key.begin(), key.end(), [](char c) { return c == '/' || c == '.' || c == '[' || c == ']'; }),
                       key.end());
             if (key.empty() || container.hasProperty(key))
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
-                                           fmt::format(R"(Transport option "{}" cannot be told apart from another one)", option.getName()));
+                                           fmt::format(R"(Transport option "{}" cannot be told apart from another one)", option.getId()));
 
-            container.addProperty(ObjectProperty(key, option));
+            container.addProperty(ObjectProperty(key, TransportOptionObject(option)));
         }
 
-        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(TransportOptions), container);
+        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(AvailableTransportOptions), container);
         return OPENDAQ_SUCCESS;
     });
 }
 
-inline ListPtr<ITransportOption> ServerCapabilityConfigImpl::ValidatedTransportOptions(IList* transportOptions)
-{
-    auto options = List<ITransportOption>();
-    std::unordered_set<std::string> names;
-    for (const auto& item : ListPtr<IBaseObject>::Borrow(transportOptions))
-    {
-        const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-        if (!option.assigned())
-            DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects");
-
-        if (!names.insert(option.getName().toStdString()).second)
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is listed more than once", option.getName());
-
-        options.pushBack(option);
-    }
-
-    return options;
-}
-
-inline ErrCode ServerCapabilityConfigImpl::getTransportOptions(IList** transportOptions)
+inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -671,24 +631,25 @@ inline ErrCode ServerCapabilityConfigImpl::getTransportOptions(IList** transport
     });
 }
 
-inline ErrCode ServerCapabilityConfigImpl::setTransportOptions(IList* transportOptions)
+inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IDict* transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
     return daqTry([&]
     {
-        const auto options = ValidatedTransportOptions(transportOptions);
+        CheckKeyedByIds<ITransportOption>(transportOptions);
+        const DictPtr<IString, ITransportOption> options = transportOptions;
         OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
 
         // Older clients read the Port property
-        if (options.getCount() > 0)
-            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), options[0].getPort()));
+        if (const auto first = FirstValue(options); first.assigned())
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(first.getPort())));
 
         return OPENDAQ_SUCCESS;
     });
 }
 
-inline ErrCode ServerCapabilityConfigImpl::addTransportOption(ITransportOption* transportOption)
+inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITransportOption* transportOption)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOption);
 
@@ -696,19 +657,15 @@ inline ErrCode ServerCapabilityConfigImpl::addTransportOption(ITransportOption* 
     {
         const auto option = TransportOptionPtr::Borrow(transportOption);
         auto options = readTransportOptions();
-        for (const auto& existing : options)
-        {
-            if (existing.getName() == option.getName())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
-                                           fmt::format(R"(Transport option "{}" is already set)", option.getName()));
-        }
+        if (options.hasKey(option.getId()))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Transport option "{}" is already set)", option.getId()));
 
-        options.pushBack(option);
+        options.set(option.getId(), option);
         OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
 
         // the first option is the default one, whose port older clients read
         if (options.getCount() == 1)
-            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), option.getPort()));
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(option.getPort())));
 
         return OPENDAQ_SUCCESS;
     });

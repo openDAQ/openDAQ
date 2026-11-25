@@ -1,4 +1,5 @@
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/context_factory.h>
@@ -8,8 +9,11 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/add_component_config_factory.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
+#include <opendaq/component_private_ptr.h>
+#include <coretypes/updatable_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -50,8 +54,8 @@ public:
                                     .setName("dev")
                                     .setConnectionStringPrefix("dev")
                                     .setDeviceKind(DeviceKind::Mirrored)
-                                    .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420),
-                                                                                TransportOption("tls", 7421, TransportProtection::Encrypted)))
+                                    .setAvailableTransportOptions(TransportOptionsById(
+                                        {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
                                     .build();
         deviceTypes.set("dev", deviceType);
 
@@ -59,10 +63,27 @@ public:
                                        .setId("str")
                                        .setName("str")
                                        .setConnectionStringPrefix("str")
-                                       .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7430),
-                                                                                   TransportOption("tls", 7431, TransportProtection::Encrypted)))
+                                       .setAvailableTransportOptions(TransportOptionsById(
+                                           {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
                                        .build();
         streamingTypes.set("str", streamingType);
+
+        // A type of a module that does not use transport options
+        deviceTypes.set("legacy", DeviceTypeBuilder().setId("legacy").setName("legacy").setConnectionStringPrefix("legacy").build());
+
+        // A type whose module has a Port of its own in the type config
+        auto portConfig = PropertyObject();
+        portConfig.addProperty(IntProperty(PortConfigProperty, 7000));
+        deviceTypes.set("ported",
+                        DeviceTypeBuilder()
+                            .setId("ported")
+                            .setName("ported")
+                            .setConnectionStringPrefix("ported")
+                            .setDeviceKind(DeviceKind::Mirrored)
+                            .setDefaultConfig(portConfig)
+                            .setAvailableTransportOptions(TransportOptionsById(
+                                {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
+                            .build());
     }
 
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** types) override
@@ -94,8 +115,9 @@ public:
     }
 
     // Records the config and fails: the tests only look at what the module is given
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** /*streaming*/, IString* /*connectionString*/, IPropertyObject* config) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** /*streaming*/, IString* connectionString, IPropertyObject* config) override
     {
+        streamingConnectionStrings.pushBack(connectionString);
         streamingTypeConfigs.pushBack(config);
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No streaming in the transport tests");
     }
@@ -105,15 +127,19 @@ public:
     ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
     ListPtr<IString> connectionStrings = List<IString>();
     ListPtr<IPropertyObject> typeConfigs = List<IPropertyObject>();
+    ListPtr<IString> streamingConnectionStrings = List<IString>();
     ListPtr<IPropertyObject> streamingTypeConfigs = List<IPropertyObject>();
 };
 
-ServerCapabilityConfigPtr Capability(const StringPtr& id, ProtocolType type, const StringPtr& prefix, const ListPtr<ITransportOption>& options)
+ServerCapabilityConfigPtr Capability(const StringPtr& id,
+                                     ProtocolType type,
+                                     const StringPtr& prefix,
+                                     const DictPtr<IString, ITransportOption>& options)
 {
-    const Int port = options[0].getPort();
+    const Int port = options.getValueList()[0].getPort();
     auto capability =
         ServerCapability(id, id, type).setPrefix(prefix).setConnectionString(prefix.toStdString() + "://host:" + std::to_string(port));
-    capability.setTransportOptions(options);
+    capability.setAvailableTransportOptions(options);
     return capability;
 }
 
@@ -125,16 +151,16 @@ DeviceInfoConfigPtr DiscoveredDeviceInfo()
     info.setSerialNumber("s");
 
     const auto internal = info.asPtr<IDeviceInfoInternal>();
-    internal.addServerCapability(Capability("devproto",
-                                            ProtocolType::Configuration,
-                                            "dev",
-                                            List<ITransportOption>(TransportOption("plain", 17420),
-                                                                   TransportOption("tls", 17422, TransportProtection::Encrypted))));
-    internal.addServerCapability(Capability("strproto",
-                                            ProtocolType::Streaming,
-                                            "str",
-                                            List<ITransportOption>(TransportOption("plain", 17430),
-                                                                   TransportOption("tls", 17432, TransportProtection::Encrypted))));
+    internal.addServerCapability(
+        Capability("devproto",
+                   ProtocolType::Configuration,
+                   "dev",
+                   TransportOptionsById({TransportOption("plain", 17420), TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    internal.addServerCapability(
+        Capability("strproto",
+                   ProtocolType::Streaming,
+                   "str",
+                   TransportOptionsById({TransportOption("plain", 17430), TransportOption("tls", 17432, SecurityMode::Encrypted)})));
     return info;
 }
 }
@@ -163,6 +189,13 @@ protected:
         return errCode;
     }
 
+    DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
+    {
+        DevicePtr device;
+        checkErrorInfo(utils()->createDevice(&device, connectionString, parent, config));
+        return device;
+    }
+
     ModuleManagerUtilsPtr utils() const
     {
         return manager.asPtr<IModuleManagerUtils>();
@@ -171,6 +204,56 @@ protected:
     PropertyObjectPtr lastTypeConfig() const
     {
         return module->typeConfigs[module->typeConfigs.getCount() - 1];
+    }
+
+    StringPtr lastConnectionString() const
+    {
+        return module->connectionStrings[module->connectionStrings.getCount() - 1];
+    }
+
+    AddDeviceConfigPtr configFor(const StringPtr& connectionString) const
+    {
+        return utils().createAddDeviceConfig(DeviceInfo(connectionString));
+    }
+
+    void expectConnection(const StringPtr& connectionString, const StringPtr& option, Int port) const
+    {
+        ASSERT_EQ(lastConnectionString(), connectionString);
+        ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), option);
+        ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), port);
+    }
+
+    // The test module fails every streaming after it records what it is given
+    void addStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const
+    {
+        ASSERT_ANY_THROW(utils().createStreaming(connectionString, config));
+    }
+
+    void expectStreamingConnection(const StringPtr& connectionString, const StringPtr& option, Int port) const
+    {
+        const auto count = module->streamingTypeConfigs.getCount();
+        ASSERT_GT(count, 0u);
+        const PropertyObjectPtr typeConfig = module->streamingTypeConfigs[count - 1];
+        ASSERT_EQ(module->streamingConnectionStrings[count - 1], connectionString);
+        ASSERT_EQ(typeConfig.getPropertyValue(TransportOptionConfigProperty), option);
+        ASSERT_EQ(typeConfig.getPropertyValue(PortConfigProperty), port);
+    }
+
+    AddStreamingConfigPtr streamingConfig() const
+    {
+        return AddStreamingConfig(module->streamingTypes.get("str"));
+    }
+
+    // The config the device stores, read back from its saved form as loading a saved device does
+    AddDeviceConfigPtr savedAndLoaded(const DevicePtr& device) const
+    {
+        const auto serializer = JsonSerializer();
+        device.asPtr<IComponentPrivate>(true).getComponentConfig().asPtr<IUpdatable>().serializeForUpdate(serializer);
+
+        AddDeviceConfigPtr loaded;
+        JsonDeserializer().callCustomProc([&](const SerializedObjectPtr& saved) { loaded = utils().createBoundAddDeviceConfig(saved); },
+                                          serializer.getOutput());
+        return loaded;
     }
 
     ModuleManagerPtr manager;
@@ -207,8 +290,8 @@ TEST_F(TransportSelectionTest, StreamingGetsSelectionOfDefaultOption)
     }
 }
 
-// A type config that names an option the type does not list is rejected. The streaming shows it: the type config of a
-// device is built from the type's default config, which drops a TransportOption the type does not declare.
+// A type config that holds the id of an option the type does not list is rejected. The streaming shows it: the type
+// config of a device is built from the type's default config, which drops a TransportOption the type does not declare.
 TEST_F(TransportSelectionTest, UnknownTransportOptionRejected)
 {
     const StreamingTypePtr type = module->streamingTypes.get("str");
@@ -225,13 +308,66 @@ TEST_F(TransportSelectionTest, ConfigListsServedOptions)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
 
-    ASSERT_EQ(TransportOptionNames(config.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(config.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     ASSERT_EQ(config.getPort(), 17420);
 
     const auto streamingConfig = config.getStreamingOptions().getStreamingConfig();
     ASSERT_EQ(streamingConfig.getStreamingType().getId(), "str");
-    ASSERT_EQ(TransportOptionNames(streamingConfig.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(streamingConfig.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     ASSERT_EQ(streamingConfig.getPort(), 17430);
+}
+
+// A device as discovery reports it, with only a configuration capability announcing the given options
+static DeviceInfoConfigPtr DeviceInfoAnnouncing(const DictPtr<IString, ITransportOption>& options)
+{
+    auto info = DeviceInfo("daq://m_s");
+    info.setManufacturer("m");
+    info.setSerialNumber("s");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("devproto", ProtocolType::Configuration, "dev", options));
+    return info;
+}
+
+// The config lists the announced options the type knows, in the server's order with its ports and the type's attributes
+TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
+{
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById(
+        {TransportOption("quic", 17425), TransportOption("tls", 17422), TransportOption("plain", 17420, SecurityMode::Signed, True)})));
+
+    const auto options = config.getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(options.get("tls").getPort(), 17422);
+    ASSERT_EQ(options.get("tls").getSecurityMode(), SecurityMode::Encrypted);
+    ASSERT_EQ(options.get("plain").getPort(), 17420);
+    ASSERT_EQ(options.get("plain").getSecurityMode(), SecurityMode::None);
+    ASSERT_FALSE(options.get("plain").getCertificateRequired());
+
+    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getPort(), 17422);
+}
+
+// A server that announces only options the type does not know leaves the config without options, also once serialized
+TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
+{
+    const auto unknownOptions = TransportOptionsById({TransportOption("quic", 17425), TransportOption("wss", 17443)});
+    const auto info = DeviceInfoAnnouncing(unknownOptions);
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("strproto", ProtocolType::Streaming, "str", unknownOptions));
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(info);
+
+    ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_EQ(config.getPort(), -1);
+
+    const auto serializer = JsonSerializer();
+    config.serialize(serializer);
+    const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
+
+    ASSERT_EQ(deserialized.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(deserialized.getSelectedTransportOption().assigned());
+    ASSERT_EQ(deserialized.getPort(), -1);
+
+    const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
+    ASSERT_EQ(streamingConfig.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(streamingConfig.getSelectedTransportOption().assigned());
 }
 
 // The config keeps the options the server announces; only a saved config selects among the type's again
@@ -244,12 +380,12 @@ TEST_F(TransportSelectionTest, ServedOptionsSerialized)
     config.serialize(serializer);
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
-    ASSERT_EQ(TransportOptionNames(deserialized.getTransportOptions()), List<IString>("plain", "tls"));
-    ASSERT_EQ(deserialized.getSelectedTransportOption().getName(), "tls");
+    ASSERT_EQ(deserialized.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
+    ASSERT_EQ(deserialized.getSelectedTransportOption().getId(), "tls");
     ASSERT_EQ(deserialized.getPort(), 17422);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
-    ASSERT_EQ(TransportOptionNames(streamingConfig.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(streamingConfig.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     ASSERT_EQ(streamingConfig.getPort(), 17430);
 }
 
@@ -259,7 +395,7 @@ TEST_F(TransportSelectionTest, ServedOptionsCloned)
     config.setTransportOption("tls");
 
     const auto cloned = config.asPtr<IPropertyObjectInternal>().clone().asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
-    ASSERT_EQ(TransportOptionNames(cloned.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(cloned.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     ASSERT_EQ(cloned.getPort(), 17422);
     ASSERT_EQ(cloned.getStreamingOptions().getAvailableStreamingConfigs().get("str").getPort(), 17430);
 }
@@ -267,44 +403,374 @@ TEST_F(TransportSelectionTest, ServedOptionsCloned)
 TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfo("dev://host"));
-    ASSERT_EQ(TransportOptionNames(config.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(config.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
     ASSERT_EQ(config.getPort(), 7420);
     ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getPort(), 7430);
 
-    // The connection string names the port to connect to
+    // The port the connection string of the device info names is not taken: the port follows the selected option
     const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:9000"));
-    ASSERT_EQ(withPort.getSelectedTransportOption().getName(), "plain");
-    ASSERT_EQ(withPort.getPort(), 9000);
+    ASSERT_EQ(withPort.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(withPort.getPort(), 7420);
+    withPort.setTransportOption("tls");
+    ASSERT_EQ(withPort.getPort(), 7421);
 }
 
-// Adding a device with an add-device config comes with the new createDevice
-TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsSelection)
+// A Device type without options has no port until one is set, whatever the connection string of the device info names
+TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
 {
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfo("legacy://host:9000"));
+    ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_EQ(config.getPort(), -1);
+}
+
+// The module connects with the selected option at the final port
+
+TEST_F(TransportSelectionTest, AddressWithoutPortUsesPortOfOption)
+{
+    const auto config = configFor("dev://host");
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "plain", 7420);
+
+    config.setTransportOption("tls");
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+}
+
+TEST_F(TransportSelectionTest, PortSetIsUsedAndStringStaysAsItIs)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, PortOfStringIsUsed)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    ASSERT_EQ(create("dev://host:7500", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, SamePortSetAndInString)
+{
+    const auto config = configFor("dev://host");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host:7500", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, DifferentPortSetAndInStringRejected)
+{
+    const auto config = configFor("dev://host");
+    config.setPort(7500);
+
+    ASSERT_EQ(create("dev://host:7600", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringSelectsOptionAndPort)
+{
+    ASSERT_EQ(create("dev://host?TransportOption='tls'", configFor("dev://host")), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+
+    ASSERT_EQ(create("dev://host?TransportOption='tls'&Port=7500", nullptr), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringWithUnknownOptionRejected)
+{
+    ASSERT_EQ(create("dev://host?TransportOption='wss'", configFor("dev://host")), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringPortAndOtherPortInStringRejected)
+{
+    ASSERT_EQ(create("dev://host:7600?Port=7500", configFor("dev://host")), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, ConnectionStringOptionsDoNotChangeConfigOfUser)
+{
+    const auto config = configFor("dev://host");
+
+    ASSERT_EQ(create("dev://host?TransportOption='tls'&Port=7500", config), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getPort(), 7420);
+}
+
+// The port of a legacy config wins over the port of the connection string, as it always did
+TEST_F(TransportSelectionTest, LegacyPortWinsOverPortInString)
+{
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7500));
+
+    ASSERT_EQ(create("dev://host:7600", legacy), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, LegacyConfigUsesFirstOption)
+{
+    ASSERT_EQ(create("dev://host:7600", PropertyObject()), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7600);
+}
+
+TEST_F(TransportSelectionTest, ModulePortGetsFinalPort)
+{
+    const auto config = configFor("ported://host");
+    config.setTransportOption("tls");
+
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_SUCCESS);
+    expectConnection("ported://host", "tls", 7421);
+    ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
+}
+
+TEST_F(TransportSelectionTest, ModulePortInsteadOfSetPortRejected)
+{
+    const auto config = configFor("ported://host");
+    config.getTypeConfig().setPropertyValue(PortConfigProperty, 7500);
+
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+
+    config.setPort(7500);
+    ASSERT_EQ(create("ported://host", config), OPENDAQ_SUCCESS);
+    expectConnection("ported://host", "plain", 7500);
+}
+
+TEST_F(TransportSelectionTest, TypeWithoutOptionsGetsPortSetInString)
+{
+    const auto config = configFor("legacy://host");
+    config.setPort(9000);
+
+    ASSERT_EQ(create("legacy://host", config), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lastConnectionString(), "legacy://host:9000");
+    ASSERT_FALSE(lastTypeConfig().assigned() && lastTypeConfig().hasProperty(TransportOptionConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, TypeWithoutOptionsKeepsString)
+{
+    ASSERT_EQ(create("legacy://host:9000", configFor("legacy://host")), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lastConnectionString(), "legacy://host:9000");
+}
+
+TEST_F(TransportSelectionTest, ServerWithoutOptionsTheTypeKnowsRejected)
+{
+    const auto config = utils().createAddDeviceConfig(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("quic", 17425)})));
+
+    ASSERT_EQ(create("dev://host", config), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+// The selection goes to the module in a copy of the type config
+TEST_F(TransportSelectionTest, StoredConfigHoldsSelectionOutsideTypeConfig)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    const PropertyObjectPtr storedConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    const auto stored = storedConfig.asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
+    ASSERT_EQ(stored.getSelectedTransportOption().getId(), "tls");
+    ASSERT_FALSE(stored.getTypeConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_TRUE(lastTypeConfig().hasProperty(TransportOptionConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, SavedDeviceConnectsWithItsSelection)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7421);
+}
+
+TEST_F(TransportSelectionTest, SavedDeviceConnectsAtItsPort)
+{
+    const auto config = configFor("dev://host");
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    const DevicePtr device = createDevice("dev://host", config);
+
+    ASSERT_EQ(create("dev://host", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host", "tls", 7500);
+}
+
+// A streaming added with an add-streaming config connects with its option at the final port
+
+TEST_F(TransportSelectionTest, StreamingUsesPortOfOption)
+{
+    const auto config = streamingConfig();
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "plain", 7430);
+
+    config.setTransportOption("tls");
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "tls", 7431);
+}
+
+TEST_F(TransportSelectionTest, StreamingUsesPortSet)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+    config.setPort(7500);
+
+    addStreaming("str://host", config);
+    expectStreamingConnection("str://host", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, StreamingUsesPortOfString)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+
+    addStreaming("str://host:7500", config);
+    expectStreamingConnection("str://host:7500", "tls", 7500);
+}
+
+TEST_F(TransportSelectionTest, StreamingWithDifferentPortSetAndInStringRejected)
+{
+    const auto config = streamingConfig();
+    config.setPort(7500);
+
+    ASSERT_THROW(utils().createStreaming("str://host:7600", config), InvalidParameterException);
+    ASSERT_EQ(module->streamingTypeConfigs.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, StreamingConfigOfUserStaysAsItIs)
+{
+    const auto config = streamingConfig();
+    config.setTransportOption("tls");
+
+    addStreaming("str://host", config);
+
+    ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(config.getTypeConfig().hasProperty(PortConfigProperty));
+}
+
+TEST_F(TransportSelectionTest, StreamingTypeWithoutOptionsGetsPortSetInString)
+{
+    const auto type = StreamingTypeBuilder().setId("plainstr").setName("plainstr").setConnectionStringPrefix("plainstr").build();
+    module->streamingTypes.set("plainstr", type);
+    const auto config = AddStreamingConfig(type);
+    config.setPort(9000);
+
+    addStreaming("plainstr://host", config);
+
+    ASSERT_EQ(module->streamingConnectionStrings[0], "plainstr://host:9000");
+}
+
+// A legacy config stays on its path: the first option, and the module chooses the port
+TEST_F(TransportSelectionTest, StreamingWithLegacyConfigStaysAsItWas)
+{
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7600));
+
+    addStreaming("str://host:7700", legacy);
+    expectStreamingConnection("str://host:7700", "plain", 7600);
+}
+
+// A device as discovery reports it now: its capability has a connection string, but announces no options
+static DeviceInfoConfigPtr DeviceInfoWithoutOptions()
+{
+    auto info = DeviceInfo("daq://m_s");
+    info.setManufacturer("m");
+    info.setSerialNumber("s");
+
+    auto capability = ServerCapability("devproto", "devproto", ProtocolType::Configuration).setPrefix("dev");
+    capability.setConnectionString("dev://host:7500");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+    return info;
+}
+
+// A daq:// connection string connects at the port of the selected option on the server
+
+TEST_F(TransportSelectionTest, SmartConnectionWithoutConfig)
+{
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", nullptr), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17420", "plain", 17420);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionUsesPortOfSelectedOption)
+{
+    utils().getAvailableDevices();
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
     config.setTransportOption("tls");
 
-    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_SUCCESS);
-    ASSERT_EQ(module->connectionStrings[0], "dev://host:17422");
-    ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), "tls");
-    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 17422);
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17422", "tls", 17422);
 }
 
-TEST_F(TransportSelectionTest, AddDeviceConfigKeepsConnectionStringPortOfNoOption)
+TEST_F(TransportSelectionTest, SmartConnectionUsesPortSet)
 {
+    utils().getAvailableDevices();
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
-
-    ASSERT_EQ(create("dev://host:9100", config), OPENDAQ_SUCCESS);
-    ASSERT_EQ(module->connectionStrings[0], "dev://host:9100");
-    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 9100);
-}
-
-TEST_F(TransportSelectionTest, AddDeviceConfigHandsOverItsPort)
-{
-    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
     config.setPort(9000);
 
-    ASSERT_EQ(create("dev://host:17420", config), OPENDAQ_SUCCESS);
-    ASSERT_EQ(module->connectionStrings[0], "dev://host:9000");
-    ASSERT_EQ(lastTypeConfig().getPropertyValue(TransportOptionConfigProperty), "plain");
-    ASSERT_EQ(lastTypeConfig().getPropertyValue(PortConfigProperty), 9000);
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:9000", "tls", 9000);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionToCapabilityWithoutOptions)
+{
+    module->availableDevices.clear();
+    module->availableDevices.pushBack(DeviceInfoWithoutOptions());
+    utils().getAvailableDevices();
+
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfoWithoutOptions());
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7500", "plain", 7500);
+
+    config.setTransportOption("tls");
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7421", "tls", 7421);
+}
+
+// The legacy config lists the ports of the type, but connects at the port of the server
+TEST_F(TransportSelectionTest, SmartConnectionWithLegacyConfig)
+{
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", PropertyObject()), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17420", "plain", 17420);
+
+    auto legacy = PropertyObject();
+    legacy.addProperty(IntProperty(PortConfigProperty, 7600));
+    ASSERT_EQ(create("daq://m_s", legacy), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7600);
+}
+
+TEST_F(TransportSelectionTest, SmartConnectionToServerWithoutSelectedOptionRejected)
+{
+    module->availableDevices.clear();
+    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    utils().getAvailableDevices();
+
+    ASSERT_EQ(create("daq://m_s", PropertyObject()), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+}
+
+TEST_F(TransportSelectionTest, SavedSmartConnectionKeepsOptionAndPort)
+{
+    utils().getAvailableDevices();
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setTransportOption("tls");
+
+    const DevicePtr device = createDevice("daq://m_s", config);
+
+    ASSERT_EQ(create("daq://m_s", savedAndLoaded(device)), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:17422", "tls", 17422);
 }

@@ -52,7 +52,7 @@ daqErrCode daqComponentType_createAuthenticationConfig(daqComponentType* self, d
     return reinterpret_cast<daq::IComponentType*>(self)->createAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
 }
 
-daqErrCode daqComponentType_getTransportOptions(daqComponentType* self, daqList** transportOptions)
+daqErrCode daqComponentType_getAvailableTransportOptions(daqComponentType* self, daqDict** transportOptions)
 {
-    return reinterpret_cast<daq::IComponentType*>(self)->getTransportOptions(reinterpret_cast<daq::IList**>(transportOptions));
+    return reinterpret_cast<daq::IComponentType*>(self)->getAvailableTransportOptions(reinterpret_cast<daq::IDict**>(transportOptions));
 }

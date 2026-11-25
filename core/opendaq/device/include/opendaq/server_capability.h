@@ -85,13 +85,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 
     /*!
-     * @brief Gets the id of the protocol group supported by the device. Should not contain spaces or special characters except for '_' and '-'.
-     * Could be empty if the protocol is not part of any group.
-     * @param[out] protocolGropuId The id of the protocol group.
-     */
-    virtual ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) = 0;
-
-    /*!
      * @brief Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.
      * @param[out] protocolId The id of the protocol.
      */
@@ -132,8 +125,8 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the port of the default transport.
      * @param[out] port The port of the device.
      *
-     * @deprecated Use getTransportOptions instead.
-     * Returns the port of the first (default) transport option, or the stored port when no options are set.
+     * @deprecated Use getAvailableTransportOptions instead.
+     * Returns the `Port` property.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
     
@@ -153,16 +146,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getProtocolVersion(IString** version) = 0;
 
-    /*!
-     * @brief Gets the security level of the protocol.
-     * @param[out] securityLevel The security level of the protocol.
-     *
-     * Could be '-1' if the protocol does not define any security level or if the security level is not known,
-     * '0' if the protocol is not secure, and positive integer values for different security levels defined by the protocol.
-     * The higher the value, the more secure the protocol is considered to be.
-     */
-    virtual ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) = 0;
-
     // [templateType(methods, IString)]
     /*!
      * @brief Gets the list of supported authentication methods ids.
@@ -170,16 +153,18 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) = 0;
 
-    // [templateType(transportOptions, ITransportOption)]
+    // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the server accepts connections over, with the port it serves each on.
-     * @param[out] transportOptions The served options, the server's preferred first. On the connection info of a
-     * connected device, only the option the connection uses.
+     * @param[out] transportOptions The served options, keyed by their own ids. The first in dict iteration order is the
+     * default one, which a client connects over when it selects none; the connection string of the capability names its
+     * port.
      *
-     * On a client, the capability of a discovered or connected server lists only the options the client module
-     * supports as well. The first option is the default one, and its port is the one returned by getPort.
+     * The capability lists all the options the server serves; an add-device config lists those the client module
+     * supports as well. A client module sets the capability of the connection info of a connected device to the option
+     * the connection uses. The port of the default option is the one returned by getPort.
      */
-    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 
 };
 /*!@}*/

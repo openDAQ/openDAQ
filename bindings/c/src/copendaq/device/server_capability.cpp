@@ -37,11 +37,6 @@ daqErrCode daqServerCapability_getProtocolName(daqServerCapability* self, daqStr
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolName(reinterpret_cast<daq::IString**>(protocolName));
 }
 
-daqErrCode daqServerCapability_getProtocolGroupId(daqServerCapability* self, daqString** protocolGroupId)
-{
-    return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolGroupId(reinterpret_cast<daq::IString**>(protocolGroupId));
-}
-
 daqErrCode daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolId(reinterpret_cast<daq::IString**>(protocolId));
@@ -87,17 +82,12 @@ daqErrCode daqServerCapability_getProtocolVersion(daqServerCapability* self, daq
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolVersion(reinterpret_cast<daq::IString**>(version));
 }
 
-daqErrCode daqServerCapability_getProtocolSecurityLevel(daqServerCapability* self, daqInteger** securityLevel)
-{
-    return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolSecurityLevel(reinterpret_cast<daq::IInteger**>(securityLevel));
-}
-
 daqErrCode daqServerCapability_getAuthenticationMethods(daqServerCapability* self, daqList** methods)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getAuthenticationMethods(reinterpret_cast<daq::IList**>(methods));
 }
 
-daqErrCode daqServerCapability_getTransportOptions(daqServerCapability* self, daqList** transportOptions)
+daqErrCode daqServerCapability_getAvailableTransportOptions(daqServerCapability* self, daqDict** transportOptions)
 {
-    return reinterpret_cast<daq::IServerCapability*>(self)->getTransportOptions(reinterpret_cast<daq::IList**>(transportOptions));
+    return reinterpret_cast<daq::IServerCapability*>(self)->getAvailableTransportOptions(reinterpret_cast<daq::IDict**>(transportOptions));
 }

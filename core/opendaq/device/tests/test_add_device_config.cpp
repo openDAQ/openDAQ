@@ -51,7 +51,7 @@ protected:
         streamingTypes.set("other", createStreamingType("other", "otherDev"));
         streamingTypes.set("linked", createStreamingType("linked", "dev"));
         streamingTypes.set("linked2", createStreamingType("linked2", "dev"));
-        return AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true);
+        return AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, nullptr, true);
     }
 
     static AddDeviceConfigPtr createMirroredConfig()
@@ -59,7 +59,7 @@ protected:
         auto streamingTypes = Dict<IString, IStreamingType>();
         streamingTypes.set("b", createStreamingType("b"));
         streamingTypes.set("a", createStreamingType("a"));
-        return AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true);
+        return AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, nullptr, true);
     }
 
     static std::string serialize(const PropertyObjectPtr& obj)
@@ -113,7 +113,7 @@ TEST_F(AddDeviceConfigTest, Defaults)
 {
     const auto deviceType = createDeviceType(DeviceKind::Adapter);
     const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
-    const auto config = AddDeviceConfig(deviceType, streamingTypes, false);
+    const auto config = AddDeviceConfig(deviceType, streamingTypes, nullptr, false);
 
     ASSERT_EQ(config.getDeviceType(), deviceType);
     ASSERT_EQ(config.asPtr<IPropertyObject>().getPropertyValue("DeviceType"), "dev");
@@ -151,7 +151,7 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
     const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
     for (const auto& deviceType : {createDeviceType(DeviceKind::Unspecified), unknownType})
     {
-        const auto config = AddDeviceConfig(deviceType, streamingTypes, true);
+        const auto config = AddDeviceConfig(deviceType, streamingTypes, nullptr, true);
         ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("a"));
     }
 }
@@ -160,7 +160,7 @@ TEST_F(AddDeviceConfigTest, MirroredWithoutStreamingTypesHasNoStreamingOptions)
 {
     for (const auto& streamingTypes : {DictPtr<IString, IStreamingType>(), Dict<IString, IStreamingType>()})
     {
-        const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true);
+        const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, nullptr, true);
         ASSERT_FALSE(config.asPtr<IPropertyObject>().hasProperty("Streaming"));
         ASSERT_FALSE(config.getStreamingOptions().assigned());
     }
@@ -217,7 +217,8 @@ TEST_F(AddDeviceConfigTest, ReservedStreamingTypeIdRejected)
     for (const auto& id : {"", "a.b", "a'b", "StreamingType", "StreamingMode", "None"})
     {
         const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}, {id, createStreamingType("a")}});
-        ASSERT_THROW(AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true), InvalidParameterException) << id;
+        ASSERT_THROW(AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, nullptr, true), InvalidParameterException)
+            << id;
     }
 }
 
@@ -408,7 +409,7 @@ TEST_F(AddDeviceConfigTest, WireFormWithoutDeviceType)
 
 TEST_F(AddDeviceConfigTest, WireFormRoundTripNotMirrored)
 {
-    const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, false);
+    const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, nullptr, false);
 
     const AddDeviceConfigPtr deserialized = roundTrip(config).asPtr<IAddDeviceConfig>();
     ASSERT_FALSE(deserialized.getStreamingOptions().assigned());
@@ -559,7 +560,7 @@ TEST_F(AddDeviceConfigTest, BindDeviceKindChange)
         return Dict<IString, IDeviceType>({{"dev", createDeviceType(kind)}});
     };
     const auto mirroredSave = serializeForUpdate(createMirroredConfig());
-    const auto adapterSave = serializeForUpdate(AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, true));
+    const auto adapterSave = serializeForUpdate(AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, nullptr, true));
 
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Adapter), nullptr).getStreamingOptions().assigned());
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Root), nullptr).getStreamingOptions().assigned());

@@ -21,12 +21,12 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_transport_option
- * @brief The device or streaming type config property that names the transport option to connect over.
+ * @brief The device or streaming type config property that holds the id of the transport option to connect over.
  *
- * A String property. The module manager adds it to the type config a device or streaming of a type that lists
- * transport options is created with, right before the module creates it: set to the option the add-device or
- * add-streaming config selects, else to the first option. The add fails with OPENDAQ_ERR_NOTFOUND when it names an
- * option the type does not list.
+ * A String property. The module manager adds it to the type config a device or streaming of a type that lists transport
+ * options is created with, right before the module creates it: set to the option the add-device or add-streaming config
+ * selects, else to the first option. The add fails with OPENDAQ_ERR_NOTFOUND when it holds the id of an option the type
+ * does not list.
  */
 inline constexpr const char* TransportOptionConfigProperty = "TransportOption";
 
@@ -36,6 +36,11 @@ inline constexpr const char* TransportOptionConfigProperty = "TransportOption";
  *
  * An Int property next to TransportOptionConfigProperty, added the same way. A module that already declares a "Port"
  * property in its type config keeps it; otherwise the default is the port of the type's first transport option.
+ *
+ * When the device or streaming is added with an add-device or add-streaming config, the property holds the port to
+ * connect at, and the connection string names the same port (see IAddDeviceConfig and IAddStreamingConfig). Otherwise
+ * the module chooses the port: a value that differs from the property's default comes first, then the port the
+ * connection string names, then the default.
  */
 inline constexpr const char* PortConfigProperty = "Port";
 
@@ -47,17 +52,17 @@ inline constexpr const char* PortConfigProperty = "Port";
 
 /*!
  * @brief Creates a frozen transport option.
- * @param name The name of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
- * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
- * @param protection What the option protects the data it carries against.
+ * @param id The id of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
+ * @param port The port of the option, 0 for a carrier without ports.
+ * @param securityMode What the option protects the data it carries against.
  * @param certificateRequired True when the connection over this option needs a client certificate.
  */
-inline TransportOptionPtr TransportOption(const StringPtr& name,
+inline TransportOptionPtr TransportOption(const StringPtr& id,
                                           Int port,
-                                          TransportProtection protection = TransportProtection::None,
+                                          SecurityMode securityMode = SecurityMode::None,
                                           Bool certificateRequired = False)
 {
-    TransportOptionPtr obj(TransportOption_Create(name, Integer(port), protection, certificateRequired));
+    TransportOptionPtr obj(TransportOption_Create(id, port, securityMode, certificateRequired));
     return obj;
 }
 

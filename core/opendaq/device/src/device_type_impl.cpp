@@ -18,7 +18,7 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& prefix,
                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                DeviceKind deviceKind,
-                               const ListPtr<ITransportOption>& transportOptions)
+                               const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , deviceKind(deviceKind)
 {
@@ -32,7 +32,7 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getConnectionStringPrefix(),
                      builder.getSupportedAuthenticationMethods(),
                      builder.getDeviceKind(),
-                     builder.getTransportOptions())
+                     builder.getAvailableTransportOptions())
 {
 }
 
@@ -89,7 +89,7 @@ void DeviceTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool with
 
         if (transportOptions.getCount() > 0)
         {
-            serializerPtr.key("transportOptions");
+            serializerPtr.key("availableTransportOptions");
             transportOptions.serialize(serializerPtr);
         }
 
@@ -168,10 +168,9 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("deviceKind"))
             deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
 
-        // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
-        if (serializedObj.hasKey("transportOptions"))
-            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+        DictPtr<IString, ITransportOption> transportOptions;
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions = serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
             id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, deviceKind, transportOptions);

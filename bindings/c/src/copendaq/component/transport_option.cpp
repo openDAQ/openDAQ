@@ -22,19 +22,19 @@ void daqTransportOption_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_TRANSPORT_OPTION_INTF_ID;
 }
 
-daqErrCode daqTransportOption_getName(daqTransportOption* self, daqString** name)
+daqErrCode daqTransportOption_getId(daqTransportOption* self, daqString** id)
 {
-    return reinterpret_cast<daq::ITransportOption*>(self)->getName(reinterpret_cast<daq::IString**>(name));
+    return reinterpret_cast<daq::ITransportOption*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-daqErrCode daqTransportOption_getPort(daqTransportOption* self, daqInteger** port)
+daqErrCode daqTransportOption_getPort(daqTransportOption* self, daqInt* port)
 {
-    return reinterpret_cast<daq::ITransportOption*>(self)->getPort(reinterpret_cast<daq::IInteger**>(port));
+    return reinterpret_cast<daq::ITransportOption*>(self)->getPort(port);
 }
 
-daqErrCode daqTransportOption_getProtection(daqTransportOption* self, daqTransportProtection* protection)
+daqErrCode daqTransportOption_getSecurityMode(daqTransportOption* self, daqSecurityMode* securityMode)
 {
-    return reinterpret_cast<daq::ITransportOption*>(self)->getProtection(reinterpret_cast<daq::TransportProtection*>(protection));
+    return reinterpret_cast<daq::ITransportOption*>(self)->getSecurityMode(reinterpret_cast<daq::SecurityMode*>(securityMode));
 }
 
 daqErrCode daqTransportOption_getCertificateRequired(daqTransportOption* self, daqBool* required)
@@ -42,10 +42,10 @@ daqErrCode daqTransportOption_getCertificateRequired(daqTransportOption* self, d
     return reinterpret_cast<daq::ITransportOption*>(self)->getCertificateRequired(required);
 }
 
-daqErrCode daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* name, daqInteger* port, daqTransportProtection protection, daqBool certificateRequired)
+daqErrCode daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* id, daqInt port, daqSecurityMode securityMode, daqBool certificateRequired)
 {
     daq::ITransportOption* ptr = nullptr;
-    daqErrCode err = daq::createTransportOption(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IInteger*>(port), static_cast<daq::TransportProtection>(protection), certificateRequired);
+    daqErrCode err = daq::createTransportOption(&ptr, reinterpret_cast<daq::IString*>(id), port, static_cast<daq::SecurityMode>(securityMode), certificateRequired);
     *obj = reinterpret_cast<daqTransportOption*>(ptr);
     return err;
 }

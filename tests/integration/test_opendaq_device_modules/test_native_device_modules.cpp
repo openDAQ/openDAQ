@@ -2956,7 +2956,7 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
 }
@@ -2980,7 +2980,7 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://[::1]");
 }

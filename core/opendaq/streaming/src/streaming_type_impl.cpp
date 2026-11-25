@@ -11,7 +11,7 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                             const DeviceTypePtr& linkedDeviceType,
-                                            const ListPtr<ITransportOption>& transportOptions)
+                                            const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , linkedDeviceType(linkedDeviceType)
 {
@@ -25,7 +25,7 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
                         builder.getLinkedDeviceType(),
-                        builder.getTransportOptions())
+                        builder.getAvailableTransportOptions())
 {
 }
 
@@ -108,7 +108,7 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
 
             if (transportOptions.getCount() > 0)
             {
-                serializerPtr.key("transportOptions");
+                serializerPtr.key("availableTransportOptions");
                 transportOptions.serialize(serializerPtr);
             }
 
@@ -181,10 +181,9 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("prefix"))
             prefix = serializedObj.readString("prefix");
 
-        // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
-        if (serializedObj.hasKey("transportOptions"))
-            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+        DictPtr<IString, ITransportOption> transportOptions;
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions = serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))

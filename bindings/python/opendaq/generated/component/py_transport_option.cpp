@@ -31,59 +31,47 @@
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-PyDaqIntf<daq::ITransportOption, daq::IPropertyObject> declareITransportOption(pybind11::module_ m)
+PyDaqIntf<daq::ITransportOption, daq::IBaseObject> declareITransportOption(pybind11::module_ m)
 {
-    py::enum_<daq::TransportProtection>(m, "TransportProtection")
-        .value("None", daq::TransportProtection::None)
-        .value("Signed", daq::TransportProtection::Signed)
-        .value("Encrypted", daq::TransportProtection::Encrypted);
+    py::enum_<daq::SecurityMode>(m, "SecurityMode")
+        .value("None", daq::SecurityMode::None)
+        .value("Signed", daq::SecurityMode::Signed)
+        .value("Encrypted", daq::SecurityMode::Encrypted);
 
-    return wrapInterface<daq::ITransportOption, daq::IPropertyObject>(m, "ITransportOption");
+    return wrapInterface<daq::ITransportOption, daq::IBaseObject>(m, "ITransportOption");
 }
 
-void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption, daq::IPropertyObject> cls)
+void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption, daq::IBaseObject> cls)
 {
-    m.def("TransportOption",
-        [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name,
-           std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& port,
-           daq::TransportProtection protection,
-           const bool certificateRequired)
-        {
-            return daq::TransportOption_Create(getVariantValue<daq::IString*>(name),
-                                               getVariantValue<daq::IInteger*>(port),
-                                               protection,
-                                               certificateRequired);
-        },
-        py::arg("name"),
-        py::arg("port"),
-        py::arg("protection") = daq::TransportProtection::None,
-        py::arg("certificate_required") = false);
+    cls.doc() = "Describes one way to connect to a component: a transport, its port and its security mode.";
 
-    cls.doc() = "Describes one way to connect to a component: a transport, its port and the protection it provides.";
+    m.def("TransportOption", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::Int port, daq::SecurityMode securityMode, const bool certificateRequired){
+        return daq::TransportOption_Create(getVariantValue<daq::IString*>(id), port, securityMode, certificateRequired);
+    }, py::arg("id"), py::arg("port"), py::arg("security_mode"), py::arg("certificate_required"));
 
-    cls.def_property_readonly("name",
+
+    cls.def_property_readonly("id",
         [](daq::ITransportOption *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::TransportOptionPtr::Borrow(object);
-            return objectPtr.getName().toStdString();
+            return objectPtr.getId().toStdString();
         },
-        "Gets the name of the option, unique within a component type (e.g. \"plain\", \"tls\").");
+        "Gets the id of the option, unique within a component type (e.g. \"plain\", \"tls\").");
     cls.def_property_readonly("port",
         [](daq::ITransportOption *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::TransportOptionPtr::Borrow(object);
-            return objectPtr.getPort().detach();
+            return objectPtr.getPort();
         },
-        py::return_value_policy::take_ownership,
         "Gets the port of the option.");
-    cls.def_property_readonly("protection",
+    cls.def_property_readonly("security_mode",
         [](daq::ITransportOption *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::TransportOptionPtr::Borrow(object);
-            return objectPtr.getProtection();
+            return objectPtr.getSecurityMode();
         },
         "Gets what the option protects the data it carries against.");
     cls.def_property_readonly("certificate_required",

@@ -36,3 +36,28 @@ daqErrCode daqAddStreamingConfig_getAuthenticationConfig(daqAddStreamingConfig* 
 {
     return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
 }
+
+daqErrCode daqAddStreamingConfig_getAvailableTransportOptions(daqAddStreamingConfig* self, daqDict** transportOptions)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getAvailableTransportOptions(reinterpret_cast<daq::IDict**>(transportOptions));
+}
+
+daqErrCode daqAddStreamingConfig_setTransportOption(daqAddStreamingConfig* self, daqString* id)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->setTransportOption(reinterpret_cast<daq::IString*>(id));
+}
+
+daqErrCode daqAddStreamingConfig_getSelectedTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getSelectedTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
+}
+
+daqErrCode daqAddStreamingConfig_setPort(daqAddStreamingConfig* self, daqInt port)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->setPort(port);
+}
+
+daqErrCode daqAddStreamingConfig_getPort(daqAddStreamingConfig* self, daqInt* port)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getPort(port);
+}

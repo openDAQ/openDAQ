@@ -492,7 +492,7 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
     const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
     const auto setAddDeviceConfig = [&deviceType](const ComponentPtr& component)
     {
-        component.asPtr<IComponentPrivate>().setComponentConfig(AddDeviceConfig(deviceType, nullptr, False));
+        component.asPtr<IComponentPrivate>().setComponentConfig(AddDeviceConfig(deviceType, nullptr, nullptr, False));
     };
     const auto isLegacy = [](const PropertyObjectPtr& config)
     {

@@ -23,14 +23,14 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                ServerKind serverKind,
-                               const ListPtr<ITransportOption>& transportOptions)
+                               const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(detail::serverTypeStructType,
             id,
             name,
             description,
             defaultConfig,
-            transportOptions,
-            Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}))
+            Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}),
+            transportOptions)
     , serverKind(serverKind)
 {
 }
@@ -41,7 +41,7 @@ ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getServerKind(),
-                     builder.getTransportOptions())
+                     builder.getAvailableTransportOptions())
 {
 }
 
@@ -94,7 +94,7 @@ void ServerTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool with
 
         if (transportOptions.getCount() > 0)
         {
-            serializerPtr.key("transportOptions");
+            serializerPtr.key("availableTransportOptions");
             transportOptions.serialize(serializerPtr);
         }
 
@@ -151,10 +151,9 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("description"))
             description = serializedObj.readString("description");
 
-        // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
-        if (serializedObj.hasKey("transportOptions"))
-            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+        DictPtr<IString, ITransportOption> transportOptions;
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions = serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
@@ -163,7 +162,8 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         const auto serverKind =
             serializedObj.hasKey("serverKind") ? detail::toServerKind(serializedObj.readInt("serverKind")) : ServerKind::Unspecified;
 
-        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, serverKind, transportOptions);
+        auto serverType =
+            createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, serverKind, transportOptions);
 
         if (serializedObj.hasKey("moduleInfo"))
         {

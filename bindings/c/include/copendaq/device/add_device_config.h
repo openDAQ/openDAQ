@@ -39,6 +39,9 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqAddStreamingOptions daqAddStreamingOptions;
     typedef struct daqAuthenticationConfig daqAuthenticationConfig;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqTransportOption daqTransportOption;
 
     EXPORTED extern const daqIntfID DAQ_ADD_DEVICE_CONFIG_INTF_ID;
     void EXPORTED daqAddDeviceConfig_getInterfaceId(daqIntfID* intfId);
@@ -51,6 +54,11 @@ extern "C"
     daqErrCode EXPORTED daqAddDeviceConfig_setScanOnAdd(daqAddDeviceConfig* self, daqBool scanOnAdd);
     daqErrCode EXPORTED daqAddDeviceConfig_getStreamingOptions(daqAddDeviceConfig* self, daqAddStreamingOptions** options);
     daqErrCode EXPORTED daqAddDeviceConfig_getAuthenticationConfig(daqAddDeviceConfig* self, daqAuthenticationConfig** config);
+    daqErrCode EXPORTED daqAddDeviceConfig_getAvailableTransportOptions(daqAddDeviceConfig* self, daqDict** transportOptions);
+    daqErrCode EXPORTED daqAddDeviceConfig_setTransportOption(daqAddDeviceConfig* self, daqString* id);
+    daqErrCode EXPORTED daqAddDeviceConfig_getSelectedTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption);
+    daqErrCode EXPORTED daqAddDeviceConfig_setPort(daqAddDeviceConfig* self, daqInt port);
+    daqErrCode EXPORTED daqAddDeviceConfig_getPort(daqAddDeviceConfig* self, daqInt* port);
 
 #ifdef __cplusplus
 }

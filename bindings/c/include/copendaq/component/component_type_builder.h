@@ -67,8 +67,8 @@ extern "C"
     daqErrCode EXPORTED daqComponentTypeBuilder_getSupportedAuthenticationMethods(daqComponentTypeBuilder* self, daqDict** authenticationMethods);
     daqErrCode EXPORTED daqComponentTypeBuilder_setLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType* deviceType);
     daqErrCode EXPORTED daqComponentTypeBuilder_getLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType** deviceType);
-    daqErrCode EXPORTED daqComponentTypeBuilder_setTransportOptions(daqComponentTypeBuilder* self, daqList* transportOptions);
-    daqErrCode EXPORTED daqComponentTypeBuilder_getTransportOptions(daqComponentTypeBuilder* self, daqList** transportOptions);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setAvailableTransportOptions(daqComponentTypeBuilder* self, daqDict* transportOptions);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getAvailableTransportOptions(daqComponentTypeBuilder* self, daqDict** transportOptions);
     daqErrCode EXPORTED daqComponentTypeBuilder_setInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy policy);
     daqErrCode EXPORTED daqComponentTypeBuilder_getInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy* policy);
     daqErrCode EXPORTED daqComponentTypeBuilder_setSingleton(daqComponentTypeBuilder* self, daqBool singleton);

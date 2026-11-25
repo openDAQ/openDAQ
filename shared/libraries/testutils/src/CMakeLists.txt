@@ -4,6 +4,7 @@ set(SRC_CommonHeaders daq_memcheck_listener.h
                       crash_dump.h
                       ut_logging.h
                       test_comparators.h
+                      transport_options.h
 )
 opendaq_prepend_include(testutils SRC_CommonHeaders)
 

@@ -65,8 +65,8 @@ public:
     ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
-    ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
 
     ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) override;
     ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
@@ -89,7 +89,7 @@ private:
     DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
-    ListPtr<ITransportOption> transportOptions;
+    DictPtr<IString, ITransportOption> transportOptions;
     FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
     Bool isSingleton = False;
     StringPtr commonSettingsTypeId = nullptr;

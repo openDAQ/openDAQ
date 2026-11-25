@@ -32,11 +32,6 @@ daqErrCode daqServerCapabilityConfig_addConnectionString(daqServerCapabilityConf
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addConnectionString(reinterpret_cast<daq::IString*>(connectionString));
 }
 
-daqErrCode daqServerCapabilityConfig_setProtocolGroupId(daqServerCapabilityConfig* self, daqString* protocolGroupId)
-{
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolGroupId(reinterpret_cast<daq::IString*>(protocolGroupId));
-}
-
 daqErrCode daqServerCapabilityConfig_setProtocolId(daqServerCapabilityConfig* self, daqString* protocolId)
 {
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolId(reinterpret_cast<daq::IString*>(protocolId));
@@ -87,24 +82,19 @@ daqErrCode daqServerCapabilityConfig_setProtocolVersion(daqServerCapabilityConfi
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolVersion(reinterpret_cast<daq::IString*>(version));
 }
 
-daqErrCode daqServerCapabilityConfig_setProtocolSecurityLevel(daqServerCapabilityConfig* self, daqInteger* securityLevel)
-{
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolSecurityLevel(reinterpret_cast<daq::IInteger*>(securityLevel));
-}
-
 daqErrCode daqServerCapabilityConfig_addAuthenticationMethod(daqServerCapabilityConfig* self, daqString* methodId)
 {
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addAuthenticationMethod(reinterpret_cast<daq::IString*>(methodId));
 }
 
-daqErrCode daqServerCapabilityConfig_setTransportOptions(daqServerCapabilityConfig* self, daqList* transportOptions)
+daqErrCode daqServerCapabilityConfig_setAvailableTransportOptions(daqServerCapabilityConfig* self, daqDict* transportOptions)
 {
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setTransportOptions(reinterpret_cast<daq::IList*>(transportOptions));
+    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setAvailableTransportOptions(reinterpret_cast<daq::IDict*>(transportOptions));
 }
 
-daqErrCode daqServerCapabilityConfig_addTransportOption(daqServerCapabilityConfig* self, daqTransportOption* transportOption)
+daqErrCode daqServerCapabilityConfig_addAvailableTransportOption(daqServerCapabilityConfig* self, daqTransportOption* transportOption)
 {
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addTransportOption(reinterpret_cast<daq::ITransportOption*>(transportOption));
+    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addAvailableTransportOption(reinterpret_cast<daq::ITransportOption*>(transportOption));
 }
 
 daqErrCode daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType)

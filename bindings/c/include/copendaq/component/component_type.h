@@ -51,7 +51,7 @@ extern "C"
     daqErrCode EXPORTED daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig);
     daqErrCode EXPORTED daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info);
     daqErrCode EXPORTED daqComponentType_createAuthenticationConfig(daqComponentType* self, daqAuthenticationConfig** config);
-    daqErrCode EXPORTED daqComponentType_getTransportOptions(daqComponentType* self, daqList** transportOptions);
+    daqErrCode EXPORTED daqComponentType_getAvailableTransportOptions(daqComponentType* self, daqDict** transportOptions);
 
 #ifdef __cplusplus
 }

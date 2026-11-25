@@ -36,23 +36,15 @@ extern "C"
 
     typedef struct daqTransportOption daqTransportOption;
     typedef struct daqString daqString;
-    typedef struct daqInteger daqInteger;
-
-    typedef enum daqTransportProtection
-    {
-        daqTransportProtectionNone = 0,
-        daqTransportProtectionSigned,
-        daqTransportProtectionEncrypted
-    } daqTransportProtection;
 
     EXPORTED extern const daqIntfID DAQ_TRANSPORT_OPTION_INTF_ID;
     void EXPORTED daqTransportOption_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqTransportOption_getName(daqTransportOption* self, daqString** name);
-    daqErrCode EXPORTED daqTransportOption_getPort(daqTransportOption* self, daqInteger** port);
-    daqErrCode EXPORTED daqTransportOption_getProtection(daqTransportOption* self, daqTransportProtection* protection);
+    daqErrCode EXPORTED daqTransportOption_getId(daqTransportOption* self, daqString** id);
+    daqErrCode EXPORTED daqTransportOption_getPort(daqTransportOption* self, daqInt* port);
+    daqErrCode EXPORTED daqTransportOption_getSecurityMode(daqTransportOption* self, daqSecurityMode* securityMode);
     daqErrCode EXPORTED daqTransportOption_getCertificateRequired(daqTransportOption* self, daqBool* required);
-    daqErrCode EXPORTED daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* name, daqInteger* port, daqTransportProtection protection, daqBool certificateRequired);
+    daqErrCode EXPORTED daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* id, daqInt port, daqSecurityMode securityMode, daqBool certificateRequired);
 
 #ifdef __cplusplus
 }

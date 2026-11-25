@@ -19,8 +19,10 @@
 #include <opendaq/transport_option_ptr.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/server_capability_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
+#include <functional>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,16 +39,11 @@ class AddDeviceConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IA
 public:
     using Super = GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig, IAddDeviceConfigPrivate>;
 
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, IStreamingType>& streamingTypes, Bool scanOnAdd);
-
-    // Lists the transport options the server of a device announces instead of the ones of the types: `transportOptions`
-    // for the Device type and `streamingTransportOptions` by Streaming type ID. A type without them keeps its own.
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                         const DictPtr<IString, IStreamingType>& streamingTypes,
-                        Bool scanOnAdd,
-                        const ListPtr<ITransportOption>& transportOptions,
-                        const DictPtr<IString, IList>& streamingTransportOptions);
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const ListPtr<ITransportOption>& transportOptions, Partial);
+                        const ListPtr<IServerCapability>& capabilities,
+                        Bool scanOnAdd);
+    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
@@ -56,16 +53,18 @@ public:
     ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
-    ErrCode INTERFACE_FUNC setTransportOption(IString* name) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
+    ErrCode INTERFACE_FUNC setTransportOption(IString* id) override;
     ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
-    ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
-    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
+    ErrCode INTERFACE_FUNC setPort(Int port) override;
+    ErrCode INTERFACE_FUNC getPort(Int* port) override;
 
     ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) override;
     ErrCode INTERFACE_FUNC trim(IAddDeviceConfig** trimmed) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -81,11 +80,24 @@ protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
 private:
+    using StreamingTransportOptions = std::function<DictPtr<IString, ITransportOption>(const StreamingTypePtr&)>;
+
     static bool takesStreamings(const DeviceTypePtr& deviceType);
 
+    // With `source`, the config lists the transport options of `source` that the types know.
+    // Without it, the config lists the options of the types.
+    static AddDeviceConfigPtr BindSaved(const SerializedObjectPtr& saved,
+                                        const DictPtr<IString, IDeviceType>& deviceTypes,
+                                        const DictPtr<IString, IStreamingType>& streamingTypes,
+                                        Bool scanOnAdd,
+                                        const AddDeviceConfigPtr& source);
+
+    void addConfigProperties(const DictPtr<IString, IStreamingType>& streamingTypes,
+                             const StreamingTransportOptions& streamingOptions,
+                             Bool scanOnAdd);
+
     DeviceTypePtr deviceType;
-    // The options the server of the device announces, else the Device type's
-    ListPtr<ITransportOption> transportOptions;
+    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

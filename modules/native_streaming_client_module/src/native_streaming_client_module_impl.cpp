@@ -434,7 +434,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
-            .setPort(port)
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo);

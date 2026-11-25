@@ -594,7 +594,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
                   .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))

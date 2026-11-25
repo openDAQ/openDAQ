@@ -41,6 +41,16 @@ TransportOptionPtr SelectedTransportOption(const PropertyObjectPtr& config)
     return options.get(id);
 }
 
+// The port the "Port" property of the config names. The module manager adds the property; it is required.
+Int SelectedPort(const PropertyObjectPtr& config)
+{
+    if (!config.assigned() || !config.hasProperty(PortConfigProperty))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The config has no \"{}\" property", PortConfigProperty);
+
+    const Int port = config.getPropertyValue(PortConfigProperty);
+    return port;
+}
+
 // True for the options that connect over TLS
 bool IsTlsTransport(const StringPtr& id)
 {
@@ -369,26 +379,18 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
 {
-    if (!connectionString.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException);
-
-    const auto parsedType = ParseNativeType(connectionString);
-    if (!parsedType.has_value())
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
-
-    const NativeType nativeType = parsedType.value();
-
-    if (!acceptsConnectionParameters(connectionString, config))
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
+    validateConnectionParameters(connectionString, config);
 
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
-    const TransportOptionPtr transportOption = SelectedTransportOption(config);
-    const Int port = config.getPropertyValue(PortConfigProperty);
+    const NativeType nativeType = ParseNativeType(connectionString).value();
 
-    auto host = ConnectionStringUtils::GetHost(connectionString);
-    auto path = ConnectionStringUtils::GetPath(connectionString);
+    const TransportOptionPtr transportOption = SelectedTransportOption(config);
+    const Int port = SelectedPort(config);
+
+    const auto host = ConnectionStringUtils::GetHost(connectionString);
+    const auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
     if (nativeType == NativeType::streaming)
@@ -399,10 +401,10 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
         }
 
-        auto transportClient = createAndConnectTransportClient(host, port, path, config, IsTlsTransport(transportOption.getId()));
+        const auto transportClient = createAndConnectTransportClient(host, port, path, config, IsTlsTransport(transportOption.getId()));
 
-        PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-        Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
+        const PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+        const Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
         auto deviceType = createPseudoDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
@@ -538,13 +540,23 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     return defaultConfig;
 }
 
-bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
-                                                              const PropertyObjectPtr& config)
+void NativeStreamingClientModule::validateConnectionParameters(const StringPtr& connectionString,
+                                                               const PropertyObjectPtr& config)
 {
-    const auto nativeType = ParseNativeType(connectionString);
-    if (!nativeType.has_value() || !ValidateConnectionString(connectionString))
+    if (!connectionString.assigned())
     {
-        return false;
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Connection string is null");
+    }
+
+    const auto nativeType = ParseNativeType(connectionString);
+    if (!nativeType.has_value())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
+    }
+
+    if (!ValidateConnectionString(connectionString))
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Connection string \"{}\" is invalid", connectionString);
     }
 
     const bool pseudoDevicePrefixFound = nativeType == NativeType::streaming;
@@ -553,23 +565,27 @@ bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& c
     if (config.assigned() &&
         ((pseudoDevicePrefixFound && !validateConnectionConfig(config)) || (devicePrefixFound && !validateDeviceConfig(config))))
     {
-        LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
-        return false;
-    }
-    else
-    {
-        return true;
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Connection string \"{}\" is accepted but config is incomplete", connectionString);
     }
 }
 
-bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                       const PropertyObjectPtr& /*config*/)
+void NativeStreamingClientModule::validateStreamingConnectionParameters(const StringPtr& connectionString,
+                                                                        const PropertyObjectPtr& /*config*/)
 {
-    if (connectionString.assigned() && connectionString != "")
+    if (!connectionString.assigned())
     {
-        return ParseNativeType(connectionString) == NativeType::streaming && ValidateConnectionString(connectionString);
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Connection string is null");
     }
-    return false;
+
+    if (ParseNativeType(connectionString) != NativeType::streaming)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
+    }
+
+    if (!ValidateConnectionString(connectionString))
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Connection string \"{}\" is invalid", connectionString);
+    }
 }
 
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreamingProcessingContext(const StringPtr& connectionString)
@@ -694,11 +710,10 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    if (!acceptsStreamingConnectionParameters(connectionString, config))
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
+    validateStreamingConnectionParameters(connectionString, config);
 
     const TransportOptionPtr transportOption = SelectedTransportOption(config);
-    const Int port = config.getPropertyValue(PortConfigProperty);
+    const Int port = SelectedPort(config);
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);

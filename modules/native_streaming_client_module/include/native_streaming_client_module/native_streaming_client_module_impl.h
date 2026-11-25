@@ -97,8 +97,8 @@ private:
                                  const TransportOptionPtr& transportOption);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
-    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr createTransportLayerDefaultConfig();

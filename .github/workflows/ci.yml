@@ -31,7 +31,7 @@ jobs:
         [
           {
             "match-jobs": ["windows-2025-x86_64-msvs-v145-debug"],
-            "run": "$o = Join-Path $env:GITHUB_WORKSPACE \"build\\test-results\"; New-Item -ItemType Directory -Force $o | Out-Null; $cdb = \"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\cdb.exe\"; Write-Host (\"cdb present: \" + (Test-Path $cdb)); $ae = \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug\"; Set-ItemProperty -Path $ae -Name Debugger -Value (\"`\"\" + $cdb + \"`\" -p %ld -e %ld -g -loga \" + $o + \"\\cdb.txt -c `\".ecxr;kn 80;~*kn 50;q`\"\"); Set-ItemProperty -Path $ae -Name Auto -Value \"1\"; Get-ItemProperty -Path $ae | Format-List Debugger,Auto; $wer = \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps\\test_opcuatms_integration_debug.exe\"; New-Item -Path $wer -Force | Out-Null; Set-ItemProperty -Path $wer -Name DumpFolder -Value $o; Set-ItemProperty -Path $wer -Name DumpType -Type DWord -Value 1"
+            "run": "$o = Join-Path $env:GITHUB_WORKSPACE \"build\\test-results\"; New-Item -ItemType Directory -Force $o | Out-Null; $cdb = \"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\cdb.exe\"; Write-Host (\"cdb present: \" + (Test-Path $cdb)); $ifeo = \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\test_opcuatms_integration_debug.exe\"; New-Item -Path $ifeo -Force | Out-Null; Set-ItemProperty -Path $ifeo -Name Debugger -Value (\"`\"\" + $cdb + \"`\" -g -G -hd -xd av -xd ch -xd sov -loga \" + $o + \"\\cdb.txt -c `\".exr -1;.ecxr;r;kn 80;~*kn 50;q`\"\"); Get-ItemProperty -Path $ifeo | Format-List Debugger"
           },
           {
             "match-jobs": ["ubuntu-*-x86_64-*", "ubuntu-*-armv8-*"],

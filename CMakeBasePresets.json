@@ -388,6 +388,11 @@
             }
         },
         {
+            "name": "run_opcuatms_integration_only",
+            "inherits": "run_tests",
+            "filter": { "include": { "name": "^test_opcuatms_integration$" } }
+        },
+        {
             "name": "run_tests_nightly",
             "description": "Run all tests excluding unstable ones, streaming test output live",
             "inherits": [

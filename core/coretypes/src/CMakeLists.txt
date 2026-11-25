@@ -35,6 +35,7 @@ set(SRC_Cpp version.cpp
             struct_impl.cpp
             struct_type_impl.cpp
             type_manager_impl.cpp
+            diag_type_manager_refs.cpp
             simple_type_impl.cpp
             util.cpp
             struct_builder_impl.cpp
@@ -296,6 +297,10 @@ add_library(${LIB_NAME} SHARED ${SRC_Cpp}
                                ${ConfigHeaderSource}
 )
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
+
+if (WIN32)
+    target_link_libraries(${LIB_NAME} PRIVATE dbghelp)
+endif()
 
 target_link_libraries(${LIB_NAME} PRIVATE daq::core_containers
                                           rapidjson

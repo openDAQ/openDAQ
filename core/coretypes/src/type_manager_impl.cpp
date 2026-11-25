@@ -7,6 +7,10 @@
 #include <algorithm>
 #include <coretypes/coretype_utils.h>
 
+void diagTypeManagerRegister(void* object);
+void diagTypeManagerUnregister(void* object);
+void diagTypeManagerRecord(void* object, int delta);
+
 BEGIN_NAMESPACE_OPENDAQ
 
 TypeManagerImpl::TypeManagerImpl()
@@ -26,6 +30,24 @@ TypeManagerImpl::TypeManagerImpl()
                          "range",
                          "scaling"})
 {
+    diagTypeManagerRegister(this);
+}
+
+TypeManagerImpl::~TypeManagerImpl()
+{
+    diagTypeManagerUnregister(this);
+}
+
+int TypeManagerImpl::addRef()
+{
+    diagTypeManagerRecord(this, 1);
+    return ImplementationOfWeak<ITypeManager, ITypeManagerPrivate, ISerializable>::addRef();
+}
+
+int TypeManagerImpl::releaseRef()
+{
+    diagTypeManagerRecord(this, -1);
+    return ImplementationOfWeak<ITypeManager, ITypeManagerPrivate, ISerializable>::releaseRef();
 }
 
 ErrCode TypeManagerImpl::addType(IType* type)

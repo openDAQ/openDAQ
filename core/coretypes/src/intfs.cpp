@@ -6,6 +6,8 @@
 
 using namespace daq;
 
+void diagTypeManagerDumpAll();
+
 #if !defined(NDEBUG)
     #include <unordered_set>
 
@@ -90,6 +92,7 @@ PUBLIC_EXPORT void daqPrintTrackedObjects()
         fmt::print("{:p}: {}\n", (void*) obj, description);
     }
     isPrintingTrackedObjects = false;
+    diagTypeManagerDumpAll();
 #endif
 }
 

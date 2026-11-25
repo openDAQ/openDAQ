@@ -30,6 +30,10 @@ class TypeManagerImpl : public ImplementationOfWeak<ITypeManager, ITypeManagerPr
 {
 public:
     TypeManagerImpl();
+    ~TypeManagerImpl() override;
+
+    int INTERFACE_FUNC addRef() override;
+    int INTERFACE_FUNC releaseRef() override;
 
     ErrCode INTERFACE_FUNC addType(IType* type) override;
     ErrCode INTERFACE_FUNC removeType(IString* name) override;

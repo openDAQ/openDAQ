@@ -87,13 +87,47 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
 
 class TestTransportOption(opendaq_test.TestCase):
 
-    def test_create(self):
-        option = opendaq.TransportOption('tls', 7422, opendaq.SecurityMode.Encrypted, True)
+    def test_builder(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        builder.security_mode = opendaq.SecurityMode.Encrypted
+        builder.certificate_required = True
 
+        option = builder.build()
         self.assertEqual(option.id, 'tls')
         self.assertEqual(option.port, 7422)
         self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
         self.assertTrue(option.certificate_required)
+
+        self.assertEqual(opendaq.TransportOptionFromBuilder(builder).id, 'tls')
+
+    def test_builder_from_existing(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        builder.security_mode = opendaq.SecurityMode.Encrypted
+        option = builder.build()
+
+        copy = opendaq.TransportOptionBuilderFromExisting(option)
+        copy.port = 7500
+        copied = copy.build()
+        self.assertEqual(copied.id, 'tls')
+        self.assertEqual(copied.port, 7500)
+        self.assertEqual(copied.security_mode, opendaq.SecurityMode.Encrypted)
+        self.assertEqual(option.port, 7422)
+
+    def test_builder_defaults(self):
+        builder = opendaq.TransportOptionBuilder('serial')
+        self.assertEqual(builder.id, 'serial')
+
+        option = builder.build()
+        self.assertEqual(option.port, 0)
+        # SecurityMode.None cannot be written in Python: None is a keyword
+        self.assertEqual(option.security_mode, getattr(opendaq.SecurityMode, 'None'))
+        self.assertFalse(option.certificate_required)
+
+    def test_builder_with_empty_id_rejected(self):
+        with self.assertRaises(RuntimeError):
+            opendaq.TransportOptionBuilder('').build()
 
 class TestDeviceAddConfig(opendaq_test.TestCase):
 

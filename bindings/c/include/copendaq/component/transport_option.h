@@ -36,6 +36,7 @@ extern "C"
 
     typedef struct daqTransportOption daqTransportOption;
     typedef struct daqString daqString;
+    typedef struct daqTransportOptionBuilder daqTransportOptionBuilder;
 
     EXPORTED extern const daqIntfID DAQ_TRANSPORT_OPTION_INTF_ID;
     void EXPORTED daqTransportOption_getInterfaceId(daqIntfID* intfId);
@@ -44,7 +45,7 @@ extern "C"
     daqErrCode EXPORTED daqTransportOption_getPort(daqTransportOption* self, daqInt* port);
     daqErrCode EXPORTED daqTransportOption_getSecurityMode(daqTransportOption* self, daqSecurityMode* securityMode);
     daqErrCode EXPORTED daqTransportOption_getCertificateRequired(daqTransportOption* self, daqBool* required);
-    daqErrCode EXPORTED daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* id, daqInt port, daqSecurityMode securityMode, daqBool certificateRequired);
+    daqErrCode EXPORTED daqTransportOption_createTransportOptionFromBuilder(daqTransportOption** obj, daqTransportOptionBuilder* builder);
 
 #ifdef __cplusplus
 }

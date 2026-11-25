@@ -108,6 +108,7 @@ extern "C"
 #include <copendaq/component/tags_private.h>
 #include <copendaq/component/tags.h>
 #include <copendaq/component/transport_option.h>
+#include <copendaq/component/transport_option_builder.h>
 #include <copendaq/component/update_parameters.h>
 
 #include <copendaq/context/context.h>

@@ -92,6 +92,14 @@ protected:
         return JsonDeserializer().deserialize(json, context, nullptr);
     }
 
+    static ListPtr<IString> trimmedSelection(const ListPtr<IString>& typeIds)
+    {
+        auto selectionValues = List<IString>("None");
+        for (const auto& typeId : typeIds)
+            selectionValues.pushBack(typeId);
+        return selectionValues;
+    }
+
     static BaseObjectPtr roundTrip(const PropertyObjectPtr& obj)
     {
         const auto json = serialize(obj);
@@ -282,6 +290,81 @@ TEST_F(AddDeviceConfigTest, Clone)
 
     streamingConfig.getTypeConfig().setPropertyValue("Id", "changed");
     ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "other");
+}
+
+TEST_F(AddDeviceConfigTest, Trim)
+{
+    const auto config = createMirroredConfig();
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("a");
+    options.getStreamingConfig().getTypeConfig().setPropertyValue("Id", "changed");
+    const auto expectTrimmed = [](const AddDeviceConfigPtr& trimmed, const ListPtr<IString>& typeIds, const StringPtr& selection)
+    {
+        const auto trimmedOptions = trimmed.getStreamingOptions();
+        ASSERT_EQ(trimmedOptions.getAvailableStreamingConfigs().getKeyList(), typeIds);
+        ASSERT_EQ(trimmedOptions.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), selection);
+        ASSERT_EQ(trimmedOptions.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), trimmedSelection(typeIds));
+    };
+
+    const auto trimmed = config.asPtr<IAddDeviceConfigPrivate>().trim();
+    expectTrimmed(trimmed, List<IString>("a"), "a");
+    ASSERT_EQ(trimmed.getStreamingOptions().getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+    ASSERT_EQ(options.getAvailableStreamingConfigs().getCount(), 2u);
+
+    const AddDeviceConfigPtr deserialized = roundTrip(trimmed).asPtr<IAddDeviceConfig>();
+    expectTrimmed(deserialized, List<IString>("a"), "a");
+    ASSERT_EQ(deserialized.getStreamingOptions().getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+
+    options.setStreamingType(nullptr);
+    const auto trimmedNone = config.asPtr<IAddDeviceConfigPrivate>().trim();
+    expectTrimmed(trimmedNone, List<IString>(), "None");
+    expectTrimmed(roundTrip(trimmedNone).asPtr<IAddDeviceConfig>(), List<IString>(), "None");
+}
+
+TEST_F(AddDeviceConfigTest, TrimmedConfigSavesSelection)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+    const auto trimmed = config.asPtr<IAddDeviceConfigPrivate>().trim();
+
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", config.getDeviceType()}});
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
+    ASSERT_EQ(bindSaved(serializeForUpdate(trimmed), deviceTypes, streamingTypes).getStreamingOptions().getStreamingType(), "a");
+}
+
+TEST_F(AddDeviceConfigTest, TrimFollowsTrimRule)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+    const auto json = serialize(config);
+    ASSERT_EQ(json.find("\"trim"), std::string::npos);
+    const auto withRule = [&json](const std::string& rule)
+    {
+        auto ruled = json;
+        const std::string optionsType = R"("__type":"AddStreamingOptions",)";
+        ruled.insert(ruled.find(optionsType) + optionsType.size(), rule + ",");
+        return roundTrip(deserialize(ruled)).asPtr<IAddDeviceConfig>();
+    };
+    const auto expectKept = [&withRule](const std::string& rule, const ListPtr<IString>& typeIds)
+    {
+        const auto trimmedOptions = withRule(rule).asPtr<IAddDeviceConfigPrivate>().trim().getStreamingOptions();
+        ASSERT_EQ(trimmedOptions.getAvailableStreamingConfigs().getKeyList(), typeIds);
+        ASSERT_EQ(trimmedOptions.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), trimmedSelection(typeIds));
+    };
+
+    expectKept(R"("trimExceptions":["b"])", List<IString>("b", "a"));
+    expectKept(R"("trimUnselected":false)", List<IString>("b", "a"));
+    expectKept(R"("trimUnselected":false,"trimExceptions":["b"])", List<IString>("a"));
+
+    const auto propertyNames = [](const AddDeviceConfigPtr& config)
+    {
+        auto names = List<IString>();
+        for (const auto& property : config.getStreamingOptions().asPtr<IPropertyObject>().getAllProperties())
+            names.pushBack(property.getName());
+        return names;
+    };
+    const auto keepsAll = withRule(R"("trimUnselected":false)");
+    ASSERT_EQ(propertyNames(keepsAll.asPtr<IAddDeviceConfigPrivate>().trim()), propertyNames(keepsAll));
 }
 
 TEST_F(AddDeviceConfigTest, LinkedStreamingConfigHoldsWholeDefaultConfig)
@@ -513,6 +596,31 @@ TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
     const auto streamingTypes = Dict<IString, IStreamingType>({{"linked", createStreamingType("linked", "dev")}});
 
     ASSERT_FALSE(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions().assigned());
+}
+
+TEST_F(AddDeviceConfigTest, BindDropsUndefinedSavedValues)
+{
+    const auto config = createMirroredConfig();
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("a");
+    const auto addDroppedField = [](const PropertyObjectPtr& obj)
+    {
+        obj.addProperty(IntProperty("Dropped", 0));
+        obj.setPropertyValue("Dropped", 1);
+    };
+    addDroppedField(config);
+    addDroppedField(options);
+    addDroppedField(options.getStreamingConfig());
+
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", config.getDeviceType()}});
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
+    const auto bound = bindSaved(serializeForUpdate(config), deviceTypes, streamingTypes);
+
+    const auto boundOptions = bound.getStreamingOptions();
+    ASSERT_EQ(boundOptions.getStreamingType(), "a");
+    ASSERT_FALSE(bound.asPtr<IPropertyObject>().hasProperty("Dropped"));
+    ASSERT_FALSE(boundOptions.asPtr<IPropertyObject>().hasProperty("Dropped"));
+    ASSERT_FALSE(boundOptions.getStreamingConfig().asPtr<IPropertyObject>().hasProperty("Dropped"));
 }
 
 TEST_F(AddDeviceConfigTest, SortAddressInfos)

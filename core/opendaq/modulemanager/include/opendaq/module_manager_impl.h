@@ -71,7 +71,10 @@ public:
     ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) override;
     ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
-    ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) override;
+    ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config,
+                                                 IDeviceInfo* info,
+                                                 IString* prefix = nullptr,
+                                                 IDevice* parent = nullptr) override;
     ErrCode INTERFACE_FUNC createBoundAddDeviceConfig(IAddDeviceConfig** config,
                                                       /* ISerializedObject */ IBaseObject* saved,
                                                       IDevice* parent = nullptr) override;
@@ -92,7 +95,6 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    StringPtr resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability, AddressType primaryAddressType) const;
     ServerCapabilityPtr findDiscoveredCapability(const StringPtr& connectionString, const DeviceInfoPtr& discoveredDeviceInfo) const;
     StringPtr applySelectedTransportPort(const StringPtr& connectionString,
                                          const ServerCapabilityPtr& discoveredCapability,

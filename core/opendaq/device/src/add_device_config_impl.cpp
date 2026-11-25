@@ -217,6 +217,28 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
     });
 }
 
+ErrCode AddDeviceConfigImpl::trim(IAddDeviceConfig** trimmed)
+{
+    OPENDAQ_PARAM_NOT_NULL(trimmed);
+
+    return daqTry([&]
+    {
+        PropertyObjectPtr cloned;
+        checkErrorInfo(clone(&cloned));
+
+        AddDeviceConfigPtr copy = cloned;
+        const auto options = copy.getStreamingOptions();
+        if (options.assigned())
+        {
+            const auto optionsImpl = dynamic_cast<AddStreamingOptionsImpl*>(options.getObject());
+            if (optionsImpl)
+                optionsImpl->removeUnselected();
+        }
+
+        *trimmed = copy.detach();
+    });
+}
+
 ErrCode AddDeviceConfigImpl::serialize(ISerializer* serializer)
 {
     OPENDAQ_PARAM_NOT_NULL(serializer);

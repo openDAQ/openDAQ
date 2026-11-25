@@ -18,6 +18,7 @@
 - [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `createAddDeviceConfig` picks the default device type from the device's capabilities: native configuration first, else the first Mirrored type. The default streaming type is the one linked to the device type, else native streaming, else the first one the device advertises. `addDevice` without a config uses the same defaults.
 - [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types: how their blocks create input ports, at most one instance per parent (enforced by the core), and common settings for nested blocks of another type.
+- `createAddDeviceConfig` works on a remote device. A server at protocol 26 or later builds the config. For an older server, the client builds it from the server's device types.
 
 ## Python
 
@@ -135,6 +136,11 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 ### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
 
 `loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
+
+### A remote device's add config is an `IAddDeviceConfig`
+
+On a client connected with protocol 26 or later, `IComponentPrivate::getComponentConfig` of a remote device that its server added through the module manager returns an `IAddDeviceConfig`, not the old three-section config.
+Read its values through the `IAddDeviceConfig` getters instead of property names.
 
 ## Required module changes
 

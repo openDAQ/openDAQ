@@ -516,6 +516,42 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
     ASSERT_TRUE(isLegacy(clientFolder.getItem("newFb").asPtr<IComponentPrivate>().getComponentConfig()));
 }
 
+TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesServerInFormOfProtocolVersion)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto addConfig = AddDeviceConfig(deviceType, nullptr, False);
+    addConfig.asPtr<IPropertyObject>().addProperty(ObjectProperty("__AuthenticationConfig", PropertyObject()));
+
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    connectClient(26);
+    const auto device = clientDevice.addDevice("mock://test", addConfig);
+    const auto uploadedConfig = mock->lastAddDeviceConfig.asPtrOrNull<IAddDeviceConfig>();
+    ASSERT_TRUE(uploadedConfig.assigned());
+    ASSERT_TRUE(uploadedConfig.asPtr<IPropertyObject>().hasProperty("__AuthenticationConfig"));
+
+    clientDevice.removeDevice(device);
+    connectClient(25);
+    clientDevice.addDevice("mock://test", addConfig);
+    ASSERT_FALSE(mock->lastAddDeviceConfig.supportsInterface<IAddDeviceConfig>());
+    ASSERT_TRUE(mock->lastAddDeviceConfig.hasProperty("General"));
+}
+
+TEST_F(ConfigCoreEventTest, AddDeviceUploadsOnlySelectedStreamingConfig)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto s1 = StreamingTypeBuilder().setId("s1").setName("s1").setConnectionStringPrefix("s1").build();
+    const auto s2 = StreamingTypeBuilder().setId("s2").setName("s2").setConnectionStringPrefix("s2").build();
+    const auto addConfig = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}}), False);
+    addConfig.getStreamingOptions().setStreamingType("s1");
+
+    clientDevice.addDevice("mock://test", addConfig);
+
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+    const AddDeviceConfigPtr uploaded = mock->lastAddDeviceConfig;
+    ASSERT_EQ(uploaded.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("s1"));
+}
+
 TEST_F(ConfigCoreEventTest, ServerComponentAdded)
 {
     int addCount = 0;

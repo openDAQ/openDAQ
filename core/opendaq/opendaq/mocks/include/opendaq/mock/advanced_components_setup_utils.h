@@ -20,6 +20,9 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/server_impl.h>
+#include <opendaq/address_info_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 namespace daq::test_utils
 {
@@ -95,6 +98,9 @@ namespace daq::test_utils
             this->deviceInfo = deviceInfo;
         }
 
+        StringPtr lastAddDeviceConnectionString;
+        PropertyObjectPtr lastAddDeviceConfig;
+
     protected:
         bool allowAddDevicesFromModules() override
         {
@@ -139,6 +145,15 @@ namespace daq::test_utils
                     DeviceTypeBuilder().setId("mockAvailableDev").setName("Mock available device").setConnectionStringPrefix("mock").build());
                 availableDevices.pushBack(deviceInfo);
             }
+
+            auto capability = ServerCapability("x", "x", ProtocolType::Configuration).setPrefix("daqmockx");
+            capability.addAddressInfo(
+                AddressInfoBuilder().setAddress("127.0.0.1").setType("IPv4").setConnectionString("mock://test").build());
+
+            const auto smartDeviceInfo = DeviceInfo("daq://Testing_smart", "SmartMockDevice");
+            smartDeviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+            availableDevices.pushBack(smartDeviceInfo);
+
             return availableDevices;
         }
 
@@ -176,10 +191,12 @@ namespace daq::test_utils
             return addedDevices;
         }
 
-        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
         {
+            lastAddDeviceConnectionString = connectionString;
             if (connectionString == "mock://test")
             {
+                lastAddDeviceConfig = config;
                 auto dev = createTestSubDevice();
                 this->devices.addItem(dev);
                 return dev;

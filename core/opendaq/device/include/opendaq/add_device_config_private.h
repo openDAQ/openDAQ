@@ -50,6 +50,14 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfigPrivate, IBaseObject)
      * The bound config has no streaming options when no Streaming type is selected or the selected one is not among the given types.
      */
     virtual ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) = 0;
+
+    /*!
+     * @brief Creates a copy of this config that lists only the selected streaming config.
+     * @param[out] trimmed The copy
+     *
+     * The copy's Streaming type selection offers only `None` and the selected value.
+     */
+    virtual ErrCode INTERFACE_FUNC trim(IAddDeviceConfig** trimmed) = 0;
 };
 
 /*!@}*/

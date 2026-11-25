@@ -63,6 +63,7 @@ public:
     ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
 
     ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) override;
+    ErrCode INTERFACE_FUNC trim(IAddDeviceConfig** trimmed) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 

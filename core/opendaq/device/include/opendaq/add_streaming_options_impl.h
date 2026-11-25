@@ -51,19 +51,33 @@ public:
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
+    void removeUnselected();
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
     static StringPtr SavedStreamingType(const SerializedObjectPtr& saved);
 
 protected:
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     ErrCode serializePropertyValue(const StringPtr& name,
                                    const ObjectPtr<IBaseObject>& value,
                                    ISerializer* serializer,
                                    bool forUpdate) override;
 
 private:
-    ListPtr<IString> offeredTypeIds();
+    ListPtr<IString> offeredTypeIds(bool withConfig = false);
     bool isOffered(const StringPtr& typeId);
+    AddStreamingConfigPtr getConfig(const StringPtr& typeId);
+
+    // In case of remote device adds, the config is created on the server, and sent to the client
+    // with the current impl, it makes sense for the client to drop unselected streaming configs when sending back
+    // for forward compatibility, newer servers can send non default TrimData to disable trimming on client side
+    // zero cost, as they are serialized only when not set to defaults
+    struct TrimData
+    {
+        bool trimUnselected = true;
+        ListPtr<IString> exceptions = List<IString>();
+    } trimData;
 };
 
 END_NAMESPACE_OPENDAQ

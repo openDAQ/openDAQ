@@ -5532,6 +5532,86 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
     }
 }
 
+static InstancePtr CreateGatewayInstance()
+{
+    auto gateway = test_helpers::createInstance("[[none]]", "gateway");
+    addNativeClientModule(gateway);
+    addLtClientModule(gateway);
+    addNativeServerModule(gateway);
+
+    auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    serverConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    return gateway;
+}
+
+TEST_F(NativeDeviceModulesTest, GatewayAddsDeviceWithAddDeviceConfig)
+{
+    auto leaf = test_helpers::createInstance("[[none]]", "leaf");
+    addRefDeviceModule(leaf);
+    leaf.addDevice("daqref://device0");
+    addNativeServerModule(leaf);
+    leaf.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto gateway = CreateGatewayInstance();
+
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    const auto clientGatewayDevice = client.addDevice("daq.nd://127.0.0.1:7421");
+
+    const StringPtr connectionString = "daq.nd://127.0.0.1";
+    const auto config = clientGatewayDevice.createAddDeviceConfig(DeviceInfo(connectionString));
+    const auto options = config.getStreamingOptions();
+    ASSERT_GT(options.getAvailableStreamingConfigs().getCount(), 1u);
+    config.getTypeConfig().setPropertyValue("ConfigProtocolRequestTimeout", 5000);
+
+    ASSERT_TRUE(clientGatewayDevice.addDevice(connectionString, config).assigned());
+
+    const auto stored = gateway.getDevices()[0].getAddDeviceConfig();
+    ASSERT_EQ(stored.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("OpenDAQNativeStreaming"));
+    ASSERT_EQ(stored.getTypeConfig().getPropertyValue("ConfigProtocolRequestTimeout"), 5000);
+}
+
+TEST_F(NativeDeviceModulesTest, GatewayAddsDiscoveredDeviceWithAddDeviceConfigAtProtocol25)
+{
+    const StringPtr serialNumber = "GatewayAddsDiscoveredDeviceAtProtocol25";
+    const PropertyObjectPtr leafDeviceConfig = PropertyObject();
+    leafDeviceConfig.addProperty(StringProperty("SerialNumber", serialNumber));
+
+    auto leaf = test_helpers::instanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
+    addRefDeviceModule(leaf);
+    leaf.setRootDevice("daqref.root://device0", leafDeviceConfig);
+    addNativeServerModule(leaf);
+    const auto leafServerConfig = PropertyObject();
+    leafServerConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
+    leaf.addServer("OpenDAQNativeStreaming", leafServerConfig).enableDiscovery();
+
+    auto gateway = CreateGatewayInstance();
+
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    const StringPtr gatewayConnectionString = "daq.nd://127.0.0.1:7421";
+    const auto gatewayConfig = client.createAddDeviceConfig(DeviceInfo(gatewayConnectionString));
+    gatewayConfig.getTypeConfig().setPropertyValue("ProtocolVersion", 25);
+    const auto clientGatewayDevice = client.addDevice(gatewayConnectionString, gatewayConfig);
+    ASSERT_EQ(clientGatewayDevice.getInfo().getConfigurationConnectionInfo().getProtocolVersion(), "25");
+
+    DeviceInfoPtr leafInfo;
+    for (const auto& info : clientGatewayDevice.getAvailableDevices())
+        if (info.getSerialNumber() == serialNumber)
+            leafInfo = info;
+    ASSERT_TRUE(leafInfo.assigned());
+
+    const auto config = clientGatewayDevice.createAddDeviceConfig(leafInfo);
+    ASSERT_EQ(config.getDeviceType().getId(), "OpenDAQNativeConfiguration");
+
+    ASSERT_TRUE(clientGatewayDevice.addDevice(leafInfo.getConnectionString(), config).assigned());
+
+    const auto gatewayLeafInfo = gateway.getDevices()[0].getInfo();
+    ASSERT_EQ(gatewayLeafInfo.getSerialNumber(), serialNumber);
+    ASSERT_EQ(gatewayLeafInfo.getConnectionString().toStdString().rfind("daq.nd://", 0), 0u);
+}
+
 // Returns whether a write on the server's second device runs while the handler of a write on the first one waits
 static bool secondRpcRunsDuringFirst(Int rpcWorkerCount, std::chrono::milliseconds firstWriteWait)
 {

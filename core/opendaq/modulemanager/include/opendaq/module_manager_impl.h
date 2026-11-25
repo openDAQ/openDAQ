@@ -95,10 +95,6 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    ServerCapabilityPtr findDiscoveredCapability(const StringPtr& connectionString, const DeviceInfoPtr& discoveredDeviceInfo) const;
-    StringPtr applySelectedTransportPort(const StringPtr& connectionString,
-                                         const ServerCapabilityPtr& discoveredCapability,
-                                         const PropertyObjectPtr& deviceTypeConfig) const;
     DeviceTypePtr chooseDeviceType(const DeviceInfoPtr& info,
                                    const StringPtr& prefix,
                                    const DictPtr<IString, IDeviceType>& deviceTypes) const;

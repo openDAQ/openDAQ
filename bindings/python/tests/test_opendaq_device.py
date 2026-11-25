@@ -41,15 +41,15 @@ class TestDeviceType(opendaq_test.TestCase):
 class TestTransportOptions(opendaq_test.TestCase):
 
     def test_transport_option(self):
-        option = opendaq.TransportOption('tls', 7422, opendaq.TransportProtection.Encrypted, True)
+        option = opendaq.TransportOption('tls', 7422, opendaq.SecurityMode.Encrypted, True)
 
-        self.assertEqual(option.name, 'tls')
+        self.assertEqual(option.id, 'tls')
         self.assertEqual(option.port, 7422)
-        self.assertEqual(option.protection, opendaq.TransportProtection.Encrypted)
+        self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
         self.assertTrue(option.certificate_required)
 
-        plain = opendaq.TransportOption('plain', 7420)
-        self.assertEqual(plain.protection, getattr(opendaq.TransportProtection, 'None'))
+        plain = opendaq.TransportOption('plain', 7420, getattr(opendaq.SecurityMode, 'None'), False)
+        self.assertEqual(plain.security_mode, getattr(opendaq.SecurityMode, 'None'))
         self.assertFalse(plain.certificate_required)
 
     def test_native_types_list_options(self):
@@ -59,46 +59,46 @@ class TestTransportOptions(opendaq_test.TestCase):
         streaming_type = add_config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming'].streaming_type
 
         for component_type in (device_type, streaming_type):
-            options = list(component_type.transport_options)
-            self.assertEqual(options[0].name, 'plain')
-            self.assertEqual(options[0].port, 7420)
+            options = component_type.available_transport_options
+            self.assertEqual(list(options.keys())[0], 'plain')
+            self.assertEqual(options['plain'].port, 7420)
             # a plain type config selects the option by its TransportOption property
             config = component_type.create_default_config()
             self.assertEqual(config.get_property_value('TransportOption'), 'plain')
 
         # other types list none
-        self.assertEqual(len(list(opendaq.IDeviceType.cast_from(instance.available_device_types['daqref']).transport_options)), 0)
+        self.assertEqual(len(list(opendaq.IDeviceType.cast_from(instance.available_device_types['daqref']).available_transport_options)), 0)
 
     def test_add_device_config_selection(self):
         instance = opendaq.Instance()
         config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
 
-        names = [option.name for option in config.transport_options]
+        names = list(config.available_transport_options.keys())
         self.assertEqual(names[0], 'plain')
-        self.assertEqual(config.selected_transport_option.name, 'plain')
+        self.assertEqual(config.selected_transport_option.id, 'plain')
         self.assertEqual(config.port, 7420)
 
         config.port = 9000
         self.assertEqual(config.port, 9000)
-        # selecting an option drops the port set before
-        config.set_transport_option(names[-1])
-        self.assertEqual(config.selected_transport_option.name, names[-1])
-        self.assertEqual(config.port, config.selected_transport_option.port)
+        # DISCARD PORT: with the rebased #1391 a port set before stays when another option is selected
+        config.transport_option = names[-1]
+        self.assertEqual(config.selected_transport_option.id, names[-1])
+        self.assertEqual(config.port, 9000)
 
         with self.assertRaises(RuntimeError):
-            config.set_transport_option('wss')
+            config.transport_option = 'wss'
 
         streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
-        self.assertEqual(streaming_config.selected_transport_option.name, 'plain')
+        self.assertEqual(streaming_config.selected_transport_option.id, 'plain')
         self.assertEqual(streaming_config.port, 7420)
 
     def test_add_device_config_without_options(self):
         instance = opendaq.Instance()
         config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daqref://device0'))
 
-        self.assertEqual(len(list(config.transport_options)), 0)
+        self.assertEqual(len(config.available_transport_options), 0)
         with self.assertRaises(RuntimeError):
-            config.set_transport_option('plain')
+            config.transport_option = 'plain'
 
 
 class TestAddDeviceConfig(opendaq_test.TestCase):
@@ -132,7 +132,8 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
 
     def test_port_without_transport_options(self):
         instance = opendaq.Instance()
-        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+        # DISCARD PORT: on AEC_mix the native types list plain and tls, so a type without options is OPC UA with LT streaming
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.opcua://127.0.0.1'))
 
         self.assertEqual(len(config.device_type.available_transport_options), 0)
         self.assertEqual(len(config.available_transport_options), 0)
@@ -141,7 +142,7 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         config.port = 7500
         self.assertEqual(config.port, 7500)
 
-        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
+        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQLTStreaming']
         self.assertEqual(len(streaming_config.available_transport_options), 0)
         self.assertIsNone(streaming_config.selected_transport_option)
         self.assertEqual(streaming_config.port, -1)

@@ -241,21 +241,22 @@ TEST_F(NativeStreamingServerModuleTest, ServerTypeListsTransportOptions)
 {
     auto module = CreateModule();
 
-    const ListPtr<ITransportOption> options = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").getTransportOptions();
+    const DictPtr<IString, ITransportOption> options = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").getAvailableTransportOptions();
 #if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_EQ(options.getCount(), 2u);
-    const TransportOptionPtr tls = options[1];
-    ASSERT_EQ(tls.getName(), "tls");
+    const TransportOptionPtr tls = options.get("tls");
+    ASSERT_EQ(tls.getId(), "tls");
     ASSERT_EQ(tls.getPort(), 7422);
-    ASSERT_EQ(tls.getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(tls.getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_FALSE(tls.getCertificateRequired());
 #else
     ASSERT_EQ(options.getCount(), 1u);
 #endif
-    const TransportOptionPtr plain = options[0];
-    ASSERT_EQ(plain.getName(), "plain");
+    ASSERT_EQ(options.getKeyList()[0], "plain");
+    const TransportOptionPtr plain = options.get("plain");
+    ASSERT_EQ(plain.getId(), "plain");
     ASSERT_EQ(plain.getPort(), 7420);
-    ASSERT_EQ(plain.getProtection(), TransportProtection::None);
+    ASSERT_EQ(plain.getSecurityMode(), SecurityMode::None);
     ASSERT_FALSE(plain.getCertificateRequired());
 }
 
@@ -310,10 +311,10 @@ TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
     {
-        const auto options = capability.getTransportOptions();
+        const auto options = capability.getAvailableTransportOptions();
         ASSERT_EQ(options.getCount(), 1u);
-        ASSERT_EQ(options[0].getName(), "plain");
-        ASSERT_EQ(options[0].getPort(), capability.getPort());
+        ASSERT_EQ(options.getKeyList()[0], "plain");
+        ASSERT_EQ(options.get("plain").getPort(), capability.getPort());
     }
 }
 

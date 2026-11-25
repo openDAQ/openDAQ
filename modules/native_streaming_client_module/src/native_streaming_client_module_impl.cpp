@@ -6,6 +6,7 @@
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_type_factory.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/container_utils.h>
 #include <native_streaming_client_module/native_device_utils.h>
 #include <opendaq/authentication_method_factory.h>
 #include <native_streaming_client_module/native_streaming_device_impl.h>
@@ -29,26 +30,20 @@ using namespace config_protocol;
 namespace
 {
     // the options of the device and streaming types, with their default ports; plain first, the default one
-    ListPtr<ITransportOption> CreateTransportOptions()
+    DictPtr<IString, ITransportOption> CreateTransportOptions()
     {
-        auto options = List<ITransportOption>();
-        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, TransportProtection::None, False));
+        auto options = Dict<IString, ITransportOption>();
+        options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, SecurityMode::None, False));
 #if NATIVE_STREAMING_ENABLE_TLS
-        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, TransportProtection::Encrypted, False));
+        options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, SecurityMode::Encrypted, False));
 #endif
         options.freeze();
         return options;
     }
 
-    TransportOptionPtr FindOption(const ListPtr<ITransportOption>& options, const StringPtr& name)
+    TransportOptionPtr FindOption(const DictPtr<IString, ITransportOption>& options, const StringPtr& id)
     {
-        for (const auto& option : options)
-        {
-            if (option.getName() == name)
-                return option;
-        }
-
-        return nullptr;
+        return options.assigned() && options.hasKey(id) ? options.get(id) : nullptr;
     }
 }
 
@@ -437,7 +432,7 @@ DevicePtr NativeStreamingClientModule::createDeviceInternal(const StringPtr& con
 
     const NativeType nativeType = *parsedType;
     const auto selectedOption = getSelectedTransportOption(config);
-    const StringPtr transport = selectedOption.getName();
+    const StringPtr transport = selectedOption.getId();
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
@@ -503,7 +498,7 @@ DevicePtr NativeStreamingClientModule::createDeviceInternal(const StringPtr& con
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
-            .addTransportOption(NativeTransportOption(transport, port))
+            .addAvailableTransportOption(NativeTransportOption(transport, port))
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo)
@@ -552,8 +547,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     // The transport option to connect over (TransportOptionConfigProperty). Declared here, so that the module manager
     // keeps it and a plain config can select the option; the module manager names the first option otherwise.
     auto optionNames = List<IString>();
-    for (const auto& option : transportOptions)
-        optionNames.pushBack(option.getName());
+    for (const auto& [id, option] : transportOptions)
+        optionNames.pushBack(id);
     defaultConfig.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_PLAIN)
                                   .setSelectionValues(optionNames)
                                   .setDescription("The transport the connection is made over: \"plain\", or \"tls\" "
@@ -817,7 +812,7 @@ StreamingPtr NativeStreamingClientModule::createStreamingInternal(const StringPt
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     const auto selectedOption = getSelectedTransportOption(config);
-    const StringPtr transport = selectedOption.getName();
+    const StringPtr transport = selectedOption.getId();
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming)
                                                        : createConnectionDefaultConfig(NativeType::streaming);
@@ -843,7 +838,7 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         return false;
 
     // only the transport options both the server and this module support
-    if (const auto serverOptions = target.getTransportOptions(); serverOptions.getCount() > 0)
+    if (const auto serverOptions = target.getAvailableTransportOptions(); serverOptions.getCount() > 0)
     {
         const auto options = supportedTransportOptions(serverOptions);
         if (options.getCount() == 0)
@@ -853,7 +848,7 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         }
 
         if (options.getCount() != serverOptions.getCount())
-            target.setTransportOptions(options);
+            target.setAvailableTransportOptions(options);
     }
 
     if (!source.getAddresses().assigned() || !source.getAddresses().getCount())
@@ -892,8 +887,8 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     }
 
     // a server which does not list its transport options serves plain on the capability port
-    if (target.getTransportOptions().getCount() == 0)
-        target.addTransportOption(NativeTransportOption(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(port)));
+    if (target.getAvailableTransportOptions().getCount() == 0)
+        target.addAvailableTransportOption(NativeTransportOption(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(port)));
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
     const auto targetAddress = target.getAddresses();
@@ -952,7 +947,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setDeviceKind(DeviceKind::Adapter)
         .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
         .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
-        .setTransportOptions(transportOptions)
+        .setAvailableTransportOptions(transportOptions)
         .build();
 }
 
@@ -967,7 +962,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setDeviceKind(DeviceKind::Mirrored)
         .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
         .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
-        .setTransportOptions(transportOptions)
+        .setAvailableTransportOptions(transportOptions)
         .build();
 }
 
@@ -979,13 +974,13 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setLinkedDeviceType(createDeviceType())
-        .setTransportOptions(transportOptions)
+        .setAvailableTransportOptions(transportOptions)
         .build();
 }
 
 TransportOptionPtr NativeStreamingClientModule::getSelectedTransportOption(const PropertyObjectPtr& config) const
 {
-    const TransportOptionPtr defaultOption = transportOptions[0];
+    const TransportOptionPtr defaultOption = FirstValue(transportOptions);
     if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
         return defaultOption;
 
@@ -999,16 +994,16 @@ TransportOptionPtr NativeStreamingClientModule::getSelectedTransportOption(const
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Transport \"{}\" is not supported by the native streaming client", name);
 }
 
-ListPtr<ITransportOption> NativeStreamingClientModule::supportedTransportOptions(const ListPtr<ITransportOption>& serverOptions) const
+DictPtr<IString, ITransportOption> NativeStreamingClientModule::supportedTransportOptions(const DictPtr<IString, ITransportOption>& serverOptions) const
 {
-    auto options = List<ITransportOption>();
+    auto options = Dict<IString, ITransportOption>();
     if (!serverOptions.assigned())
         return options;
 
-    for (const auto& serverOption : serverOptions)
+    for (const auto& [id, serverOption] : serverOptions)
     {
-        if (FindOption(transportOptions, serverOption.getName()).assigned())
-            options.pushBack(serverOption);
+        if (FindOption(transportOptions, id).assigned())
+            options.set(id, serverOption);
     }
 
     return options;
@@ -1071,7 +1066,7 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
     }
 }
 
-ListPtr<ITransportOption> NativeStreamingClientModule::supportedDiscoveredTransportOptions(const MdnsDiscoveredDevice& discoveredDevice) const
+DictPtr<IString, ITransportOption> NativeStreamingClientModule::supportedDiscoveredTransportOptions(const MdnsDiscoveredDevice& discoveredDevice) const
 {
     // the TXT record carries the names and ports of the options the server serves, in the server's order
     auto serverTransports = discovery_common::DiscoveryUtils::populateTransports(
@@ -1081,24 +1076,24 @@ ListPtr<ITransportOption> NativeStreamingClientModule::supportedDiscoveredTransp
     if (serverTransports.getCount() == 0 && discoveredDevice.servicePort > 0)
         serverTransports.set(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(discoveredDevice.servicePort));
 
-    auto options = List<ITransportOption>();
+    auto options = Dict<IString, ITransportOption>();
     for (const auto& [name, port] : serverTransports)
     {
         if (FindOption(transportOptions, name).assigned())
-            options.pushBack(NativeTransportOption(name, port));
+            options.set(name, NativeTransportOption(name, port));
     }
 
     return options;
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice,
-                                                                               const ListPtr<ITransportOption>& discoveredOptions)
+                                                                               const DictPtr<IString, ITransportOption>& discoveredOptions)
 {
     auto cap = ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming);
 
     // the connection strings carry the port of the first (default) option
-    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX, discoveredOptions[0].getPort());
-    cap.setTransportOptions(discoveredOptions);
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX, FirstValue(discoveredOptions).getPort());
+    cap.setAvailableTransportOptions(discoveredOptions);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
@@ -1109,13 +1104,13 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice,
-                                                                           const ListPtr<ITransportOption>& discoveredOptions)
+                                                                           const DictPtr<IString, ITransportOption>& discoveredOptions)
 {
     auto cap = ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming);
 
     // the connection strings carry the port of the first (default) option
-    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX, discoveredOptions[0].getPort());
-    cap.setTransportOptions(discoveredOptions);
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX, FirstValue(discoveredOptions).getPort());
+    cap.setAvailableTransportOptions(discoveredOptions);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 

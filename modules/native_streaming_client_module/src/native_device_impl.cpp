@@ -617,7 +617,7 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .addTransportOption(NativeTransportOption(transport, port))
+                  .addAvailableTransportOption(NativeTransportOption(transport, port))
                   .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))

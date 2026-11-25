@@ -519,7 +519,7 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
 TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesServerInFormOfProtocolVersion)
 {
     const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
-    const auto addConfig = AddDeviceConfig(deviceType, nullptr, False);
+    const auto addConfig = AddDeviceConfig(deviceType, nullptr, nullptr, False);
     addConfig.asPtr<IPropertyObject>().addProperty(ObjectProperty("__AuthenticationConfig", PropertyObject()));
 
     const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
@@ -542,7 +542,7 @@ TEST_F(ConfigCoreEventTest, AddDeviceUploadsOnlySelectedStreamingConfig)
     const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
     const auto s1 = StreamingTypeBuilder().setId("s1").setName("s1").setConnectionStringPrefix("s1").build();
     const auto s2 = StreamingTypeBuilder().setId("s2").setName("s2").setConnectionStringPrefix("s2").build();
-    const auto addConfig = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}}), False);
+    const auto addConfig = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}}), nullptr, False);
     addConfig.getStreamingOptions().setStreamingType("s1");
 
     clientDevice.addDevice("mock://test", addConfig);

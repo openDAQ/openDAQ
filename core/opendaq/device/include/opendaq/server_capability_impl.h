@@ -402,12 +402,7 @@ inline ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
     
     return daqTry([&]
     {
-        const auto options = readTransportOptions();
-        if (options.getCount() > 0)
-            *port = options[0].getPort().detach();
-        else
-            *port = getTypedProperty<IInteger>(Port).detach();
-
+        *port = getTypedProperty<IInteger>(Port).detach();
         return OPENDAQ_SUCCESS;
     });
 }

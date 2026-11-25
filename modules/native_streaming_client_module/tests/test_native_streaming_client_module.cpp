@@ -1,3 +1,4 @@
+#include <testutils/transport_options.h>
 #include <testutils/testutils.h>
 #include <native_streaming_client_module/module_dll.h>
 #include <native_streaming_client_module/version.h>
@@ -39,19 +40,19 @@ static ListPtr<IString> ExpectedTransportNames()
 #endif
 }
 
-static ListPtr<IString> optionNames(const ListPtr<ITransportOption>& options)
+static ListPtr<IString> optionNames(const DictPtr<IString, ITransportOption>& options)
 {
     auto names = List<IString>();
-    for (const auto& option : options)
-        names.pushBack(option.getName());
+    for (const auto& [id, option] : options)
+        names.pushBack(id);
     return names;
 }
 
-static Int optionPort(const ListPtr<ITransportOption>& options, const std::string& name)
+static Int optionPort(const DictPtr<IString, ITransportOption>& options, const std::string& name)
 {
-    for (const auto& option : options)
+    for (const auto& [id, option] : options)
     {
-        if (option.getName() == name)
+        if (id == name)
             return option.getPort();
     }
     return -1;
@@ -291,15 +292,15 @@ TEST_F(NativeStreamingClientModuleTest, TypesListTransports)
 
     for (const auto& type : types)
     {
-        const auto transports = type.getTransportOptions();
+        const auto transports = type.getAvailableTransportOptions();
         ASSERT_EQ(optionNames(transports), ExpectedTransportNames()) << type.getId();
         ASSERT_EQ(optionPort(transports, "plain"), 7420) << type.getId();
-        ASSERT_EQ(transports[0].getProtection(), TransportProtection::None) << type.getId();
-        ASSERT_FALSE(transports[0].getCertificateRequired()) << type.getId();
+        ASSERT_EQ(transports.get("plain").getSecurityMode(), SecurityMode::None) << type.getId();
+        ASSERT_FALSE(transports.get("plain").getCertificateRequired()) << type.getId();
 #if NATIVE_STREAMING_ENABLE_TLS
         ASSERT_EQ(optionPort(transports, "tls"), 7422) << type.getId();
-        ASSERT_EQ(transports[1].getProtection(), TransportProtection::Encrypted) << type.getId();
-        ASSERT_FALSE(transports[1].getCertificateRequired()) << type.getId();
+        ASSERT_EQ(transports.get("tls").getSecurityMode(), SecurityMode::Encrypted) << type.getId();
+        ASSERT_FALSE(transports.get("tls").getCertificateRequired()) << type.getId();
 #endif
     }
 }
@@ -457,23 +458,23 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsSupportedTranspor
 
     auto target = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                       .setPrefix("daq.nd")
-                      .setTransportOptions(List<ITransportOption>(TransportOption("wss", 9000, TransportProtection::Encrypted),
-                                                                  TransportOption("plain", 7420),
-                                                                  TransportOption("tls", 7422, TransportProtection::Encrypted, True)));
+                      .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 9000, SecurityMode::Encrypted),
+                                                                         TransportOption("plain", 7420),
+                                                                         TransportOption("tls", 7422, SecurityMode::Encrypted, True)}));
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
-    const auto options = target.getTransportOptions();
+    const auto options = target.getAvailableTransportOptions();
     ASSERT_EQ(optionNames(options), ExpectedTransportNames());
 #if NATIVE_STREAMING_ENABLE_TLS
     // the server's option is kept as the server announces it
-    ASSERT_TRUE(options[1].getCertificateRequired());
+    ASSERT_TRUE(options.get("tls").getCertificateRequired());
 #endif
     ASSERT_EQ(target.getPort(), 7420);
     ASSERT_EQ(target.getConnectionString(), "daq.nd://127.0.0.1:7420");
 
     auto unsupported = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                            .setPrefix("daq.nd")
-                           .setTransportOptions(List<ITransportOption>(TransportOption("wss", 9000, TransportProtection::Encrypted)));
+                           .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 9000, SecurityMode::Encrypted)}));
     ASSERT_FALSE(module.completeServerCapability(source, unsupported));
 }
 
@@ -496,11 +497,11 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityWithoutTransportsServe
                             .addAddressInfo(sourceAddressInfo);
 
     auto target = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns").setPort(1234);
-    ASSERT_EQ(target.getTransportOptions().getCount(), 0u);
+    ASSERT_EQ(target.getAvailableTransportOptions().getCount(), 0u);
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
 
-    const auto transports = target.getTransportOptions();
+    const auto transports = target.getAvailableTransportOptions();
     ASSERT_EQ(optionNames(transports), List<IString>("plain"));
     ASSERT_EQ(optionPort(transports, "plain"), 1234);
     ASSERT_EQ(target.getPort(), 1234);
@@ -509,7 +510,7 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityWithoutTransportsServe
     // without a port the default plain port is taken
     auto withoutPort = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns");
     ASSERT_TRUE(module.completeServerCapability(source, withoutPort));
-    ASSERT_EQ(optionPort(withoutPort.getTransportOptions(), "plain"), 7420);
+    ASSERT_EQ(optionPort(withoutPort.getAvailableTransportOptions(), "plain"), 7420);
 }
 
 TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)

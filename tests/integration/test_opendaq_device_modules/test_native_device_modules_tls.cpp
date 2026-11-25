@@ -125,7 +125,7 @@ TEST_F(NativeTlsTest, TypesListTlsTransport)
 
     for (const auto& id : {ConfigId, StreamingId})
     {
-        const auto transports = deviceTypes.get(id).getTransportOptions();
+        const auto transports = deviceTypes.get(id).getAvailableTransportOptions();
         ASSERT_EQ(optionNames(transports), List<IString>("plain", "tls")) << id;
         ASSERT_EQ(optionPort(transports, "plain"), PlainPort) << id;
         ASSERT_EQ(optionPort(transports, "tls"), TlsPort) << id;
@@ -148,7 +148,7 @@ TEST_F(NativeTlsTest, ServerPublishesOneCapabilityPerProtocol)
     for (const auto& capability : capabilities)
     {
         const auto id = capability.getProtocolId().toStdString();
-        const auto transports = capability.getTransportOptions();
+        const auto transports = capability.getAvailableTransportOptions();
 
         // plain comes first, so the port older clients read is the plaintext one
         ASSERT_EQ(optionNames(transports), List<IString>("plain", "tls")) << id;
@@ -173,7 +173,7 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getProtocolId(), ConfigId);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
-    ASSERT_EQ(optionNames(connectionInfo.getTransportOptions()), List<IString>("tls"));
+    ASSERT_EQ(optionNames(connectionInfo.getAvailableTransportOptions()), List<IString>("tls"));
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
 }
 
@@ -350,7 +350,7 @@ TEST_F(NativeTlsTest, TlsOnlyServer)
     {
         ids.insert(capability.getProtocolId().toStdString());
 
-        ASSERT_EQ(optionNames(capability.getTransportOptions()), List<IString>("tls")) << capability.getProtocolId();
+        ASSERT_EQ(optionNames(capability.getAvailableTransportOptions()), List<IString>("tls")) << capability.getProtocolId();
         ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
     }
     ASSERT_EQ(ids, (std::set<std::string>{StreamingId, ConfigId}));
@@ -454,7 +454,7 @@ TEST_F(NativeTlsTest, PortFromConfigurationOverridesConnectionString)
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
 
     // the connection info reports the port the device is connected at
-    ASSERT_EQ(optionPort(device.getInfo().getConfigurationConnectionInfo().getTransportOptions(), "tls"), listeningPort);
+    ASSERT_EQ(optionPort(device.getInfo().getConfigurationConnectionInfo().getAvailableTransportOptions(), "tls"), listeningPort);
 }
 
 TEST_F(NativeTlsTest, CapabilitiesRemoved)
@@ -483,7 +483,7 @@ TEST_F(NativeTlsTest, CapabilitiesRemovedForTlsOnlyServer)
     const auto capabilities = instance.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
-        ASSERT_EQ(optionNames(capability.getTransportOptions()), List<IString>("tls")) << capability.getProtocolId();
+        ASSERT_EQ(optionNames(capability.getAvailableTransportOptions()), List<IString>("tls")) << capability.getProtocolId();
 
     instance.removeServer(server);
     ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 0u);
@@ -557,7 +557,7 @@ TEST_F(NativeTlsTest, DiscoveringServerWithBothChannels)
 
     for (const auto& [id, capability] : found)
     {
-        const auto transports = capability.getTransportOptions();
+        const auto transports = capability.getAvailableTransportOptions();
         ASSERT_EQ(optionNames(transports), List<IString>("plain", "tls")) << id;
         ASSERT_EQ(optionPort(transports, "plain"), PlainPort) << id;
         ASSERT_EQ(optionPort(transports, "tls"), TlsPort) << id;
@@ -607,7 +607,7 @@ TEST_F(NativeTlsTest, DiscoveredConnectionStringFollowsSelectedTransport)
 
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(optionNames(connectionInfo.getTransportOptions()), List<IString>("tls"));
+    ASSERT_EQ(optionNames(connectionInfo.getAvailableTransportOptions()), List<IString>("tls"));
 }
 
 TEST_F(NativeTlsTest, SmartConnectionFollowsSelectedTransport)
@@ -624,7 +624,7 @@ TEST_F(NativeTlsTest, SmartConnectionFollowsSelectedTransport)
 
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(optionNames(connectionInfo.getTransportOptions()), List<IString>("tls"));
+    ASSERT_EQ(optionNames(connectionInfo.getAvailableTransportOptions()), List<IString>("tls"));
 }
 
 // an explicit Port in the configuration wins over the port the server announces for the selected transport
@@ -651,14 +651,14 @@ TEST_F(NativeTlsTest, PortFromConfigurationOverridesDiscoveredTransportPort)
 
     const auto found = discoverNativeCapabilities(client, path, {ConfigId});
     ASSERT_EQ(found.count(ConfigId), 1u);
-    ASSERT_EQ(optionPort(found.at(ConfigId).getTransportOptions(), "tls"), TlsPort);
+    ASSERT_EQ(optionPort(found.at(ConfigId).getAvailableTransportOptions(), "tls"), TlsPort);
 
     auto clientConfig = secureClientConfig(client, ConfigId);
     clientConfig.setPropertyValue("Port", listeningPort);
 
     auto device = client.addDevice(found.at(ConfigId).getConnectionString(), clientConfig);
 
-    ASSERT_EQ(optionPort(device.getInfo().getConfigurationConnectionInfo().getTransportOptions(), "tls"), listeningPort);
+    ASSERT_EQ(optionPort(device.getInfo().getConfigurationConnectionInfo().getAvailableTransportOptions(), "tls"), listeningPort);
 }
 
 TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)
@@ -675,7 +675,7 @@ TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)
     // with no plaintext listener only the TLS transport is advertised
     for (const auto& [id, capability] : found)
     {
-        ASSERT_EQ(optionNames(capability.getTransportOptions()), List<IString>("tls")) << id;
+        ASSERT_EQ(optionNames(capability.getAvailableTransportOptions()), List<IString>("tls")) << id;
         ASSERT_EQ(capability.getPort(), TlsPort) << id;
     }
 }

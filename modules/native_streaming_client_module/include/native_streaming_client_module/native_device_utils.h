@@ -95,8 +95,8 @@ inline StringPtr buildConnectedStatusMessage(const std::string& transport)
  */
 inline TransportOptionPtr NativeTransportOption(const StringPtr& transport, Int port, Bool certificateRequired = False)
 {
-    const auto protection = transport == opendaq_native_streaming_protocol::CONST_NATIVE_TRANSPORT_TLS ? TransportProtection::Encrypted
-                                                                                                        : TransportProtection::None;
+    const auto protection = transport == opendaq_native_streaming_protocol::CONST_NATIVE_TRANSPORT_TLS ? SecurityMode::Encrypted
+                                                                                                        : SecurityMode::None;
     return TransportOption(transport, port, protection, certificateRequired);
 }
 

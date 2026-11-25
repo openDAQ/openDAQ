@@ -83,21 +83,21 @@ namespace test_helpers::native_tls
 
     /// @brief the names of transport options, in order
     [[maybe_unused]]
-    inline ListPtr<IString> optionNames(const ListPtr<ITransportOption>& options)
+    inline ListPtr<IString> optionNames(const DictPtr<IString, ITransportOption>& options)
     {
         auto names = List<IString>();
-        for (const auto& option : options)
-            names.pushBack(option.getName());
+        for (const auto& [id, option] : options)
+            names.pushBack(id);
         return names;
     }
 
     /// @brief the port of the transport option of a name; -1 if there is none
     [[maybe_unused]]
-    inline Int optionPort(const ListPtr<ITransportOption>& options, const std::string& name)
+    inline Int optionPort(const DictPtr<IString, ITransportOption>& options, const std::string& name)
     {
-        for (const auto& option : options)
+        for (const auto& [id, option] : options)
         {
-            if (option.getName() == name)
+            if (id == name)
                 return option.getPort();
         }
         return -1;

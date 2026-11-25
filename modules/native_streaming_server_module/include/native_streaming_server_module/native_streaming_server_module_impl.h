@@ -32,7 +32,7 @@ private:
     std::mutex sync;
     // the transport options the server type lists, with the default port of each; plain comes first.
     // Fixed at build time, so it is built once and frozen
-    const ListPtr<ITransportOption> transportOptions;
+    const DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE

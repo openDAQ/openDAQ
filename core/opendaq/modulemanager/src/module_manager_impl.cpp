@@ -1129,6 +1129,17 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
             // A module without transport options learns the port only from the connection string
             if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getSelectedTransportOption().assigned())
                 return ReplaceConnectionStringPort(connectionStringPtr, portSet);
+
+            // DISCARD PORT: a connection string of a discovered capability connects at the port the server announces
+            // for the selected option, as a daq:// one does
+            for (const auto& capability : capabilities)
+            {
+                if (getServerCapabilityPrefix(capability) != typePrefix)
+                    continue;
+                const ListPtr<IString> connectionStrings = capability.getConnectionStrings();
+                if (std::find(connectionStrings.begin(), connectionStrings.end(), connectionStringPtr) != connectionStrings.end())
+                    return SetCapabilityConnectionPort(connectionStringPtr, capability, config);
+            }
             return connectionStringPtr;
         }
 
@@ -1701,92 +1712,8 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const auto capabilities = infoPtr.getServerCapabilities();
         auto addDeviceConfig = createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
 
-        // A device info that announces no options names the port to connect to in its connection string, if any
-        if (!AnnouncedTransportOptions(capabilities, deviceType.getConnectionStringPrefix()).assigned() &&
-            addDeviceConfig.getTransportOptions().getCount() > 0)
-        {
-            if (const auto port = GetConnectionStringPort(infoPtr.getConnectionString()); port.has_value())
-                addDeviceConfig.setPort(Integer(port.value()));
-        }
         *config = addDeviceConfig.detach();
     });
-}
-
-// The discovered capability whose connection strings include the given one - of the device found with a smart
-// connection string, or of any discovered device
-ServerCapabilityPtr ModuleManagerImpl::findDiscoveredCapability(const StringPtr& connectionString,
-                                                                const DeviceInfoPtr& discoveredDeviceInfo) const
-{
-    const auto findIn = [&connectionString](const DeviceInfoPtr& info) -> ServerCapabilityPtr
-    {
-        for (const auto& capability : info.getServerCapabilities())
-        {
-            for (const auto& capabilityConnectionString : capability.getConnectionStrings())
-            {
-                if (capabilityConnectionString == connectionString)
-                    return capability;
-            }
-
-            for (const auto& addressInfo : capability.getAddressInfo())
-            {
-                if (addressInfo.getConnectionString() == connectionString)
-                    return capability;
-            }
-        }
-
-        return nullptr;
-    };
-
-    if (discoveredDeviceInfo.assigned())
-        return findIn(discoveredDeviceInfo);
-
-    if (!availableDevicesGroup.assigned())
-        return nullptr;
-
-    for (const auto& [_, info] : availableDevicesGroup)
-    {
-        if (const auto capability = findIn(info); capability.assigned())
-            return capability;
-    }
-
-    return nullptr;
-}
-
-// A connection string taken from discovery carries the port of the capability's default transport option. When the
-// type config selects another option the capability offers, the port the server announces for that option is used
-// instead: in the connection string, and as the Port of the type config unless that one was set explicitly.
-StringPtr ModuleManagerImpl::applySelectedTransportPort(const StringPtr& connectionString,
-                                                        const ServerCapabilityPtr& discoveredCapability,
-                                                        const PropertyObjectPtr& deviceTypeConfig) const
-{
-    if (!discoveredCapability.assigned())
-        return connectionString;
-
-    const StringPtr selected = GetSelectedTransportOption(deviceTypeConfig);
-    const auto options = discoveredCapability.getTransportOptions();
-    if (!selected.assigned() || !options.assigned() || options.getCount() == 0)
-        return connectionString;
-
-    const auto option = FindTransportOption(options, selected);
-    if (!option.assigned())
-    {
-        LOG_W("The discovered capability [{}] of {} does not offer the transport option '{}' selected in the type config, "
-              "connecting as is",
-              discoveredCapability.getProtocolId(),
-              connectionString,
-              selected);
-        return connectionString;
-    }
-
-    const Int port = option.getPort();
-    if (deviceTypeConfig.hasProperty(PortConfigProperty))
-    {
-        const auto portProperty = deviceTypeConfig.getProperty(PortConfigProperty);
-        if (deviceTypeConfig.getPropertyValue(PortConfigProperty) == portProperty.getDefaultValue())
-            deviceTypeConfig.setPropertyValue(PortConfigProperty, port);
-    }
-
-    return ReplaceConnectionStringPort(connectionString, port);
 }
 
 AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceTypePtr& deviceType,
@@ -2018,16 +1945,6 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 
             checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
         }
-
-        // The module connects by the selection properties; a config without them gets the default option
-        if (const auto options = ComponentTypeTransportOptions(streamingType); options.getCount() > 0)
-        {
-            if (!streamingTypeConfig.assigned())
-                streamingTypeConfig = streamingType.createDefaultConfig();
-            AddTransportSelectionProperties(streamingTypeConfig, options);
-        }
-
-        checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
 
         AuthenticationConfigPtr authenticationConfig;
         if (addStreamingConfig.assigned())

@@ -65,7 +65,7 @@ private:
     TransportOptionPtr getSelectedTransportOption(const PropertyObjectPtr& config) const;
 
     /// @brief the options of `serverOptions` this module supports too, in the server's order, with the server's ports
-    ListPtr<ITransportOption> supportedTransportOptions(const ListPtr<ITransportOption>& serverOptions) const;
+    DictPtr<IString, ITransportOption> supportedTransportOptions(const DictPtr<IString, ITransportOption>& serverOptions) const;
 
     DevicePtr createDeviceInternal(const StringPtr& connectionString,
                                    const ComponentPtr& parent,
@@ -91,11 +91,11 @@ private:
     /// @brief the transport options a discovered server lists that this module supports too, in the server's order,
     /// at the server's ports
     /// @return empty if the two have none in common
-    ListPtr<ITransportOption> supportedDiscoveredTransportOptions(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
+    DictPtr<IString, ITransportOption> supportedDiscoveredTransportOptions(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
     DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                        const ListPtr<ITransportOption>& discoveredOptions);
+                                                        const DictPtr<IString, ITransportOption>& discoveredOptions);
     DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                    const ListPtr<ITransportOption>& discoveredOptions);
+                                                    const DictPtr<IString, ITransportOption>& discoveredOptions);
     static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice,
                                        ServerCapabilityConfigPtr& cap,
                                        std::string protocolPrefix,
@@ -152,7 +152,7 @@ private:
     discovery::DiscoveryClient discoveryClient;
     // the transport options every native type lists, with the default port of each; plain comes first.
     // Fixed at build time, so it is built once and frozen
-    const ListPtr<ITransportOption> transportOptions;
+    const DictPtr<IString, ITransportOption> transportOptions;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
     std::vector<ProcessingContext> processingContextPool;

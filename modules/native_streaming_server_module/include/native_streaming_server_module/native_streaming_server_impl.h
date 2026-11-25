@@ -40,8 +40,8 @@ public:
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     /// @param transportOptions the transport options the type lists, built once by the module
-    static ServerTypePtr createType(const ContextPtr& context, const ListPtr<ITransportOption>& transportOptions);
-    static ListPtr<ITransportOption> createTransportOptions();
+    static ServerTypePtr createType(const ContextPtr& context, const DictPtr<IString, ITransportOption>& transportOptions);
+    static DictPtr<IString, ITransportOption> createTransportOptions();
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
@@ -59,12 +59,12 @@ protected:
     void validateChannelConfig(const PropertyObjectPtr& config) const;
 
     /// @brief the transport options of the open channels, at the ports they listen on; plain first
-    ListPtr<ITransportOption> servedTransportOptions() const;
+    DictPtr<IString, ITransportOption> servedTransportOptions() const;
 
     /// @brief publishes the streaming and the configuration capability, shared by the open channels
     /// @param transportOptions the open channels with their ports, plain first; the first one is the default
     void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
-                               const ListPtr<ITransportOption>& transportOptions,
+                               const DictPtr<IString, ITransportOption>& transportOptions,
                                const StringPtr& path) const;
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;

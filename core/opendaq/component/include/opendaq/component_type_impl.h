@@ -27,9 +27,6 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/authentication_config_ptr.h>
-#include <opendaq/transport_option_ptr.h>
-#include <coretypes/listobject_factory.h>
-#include <unordered_set>
 #include <coretypes/serializer_ptr.h>
 #include <opendaq/transport_option_ptr.h>
 #include <opendaq/container_utils.h>
@@ -158,32 +155,6 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
     , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
-}
-
-template <class Intf, class... Interfaces>
-ListPtr<ITransportOption> GenericComponentTypeImpl<Intf, Interfaces...>::FrozenTransportOptionsCopy(
-    const ListPtr<ITransportOption>& transportOptions)
-{
-    auto copy = List<ITransportOption>();
-    if (transportOptions.assigned())
-    {
-        std::unordered_set<std::string> names;
-        IList* items = transportOptions;
-        for (const auto& item : ListPtr<IBaseObject>::Borrow(items))
-        {
-            const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!option.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects");
-
-            if (!names.insert(option.getName().toStdString()).second)
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is listed more than once", option.getName());
-
-            copy.pushBack(option);
-        }
-    }
-
-    copy.freeze();
-    return copy;
 }
 
 template <class Intf, class... Interfaces>

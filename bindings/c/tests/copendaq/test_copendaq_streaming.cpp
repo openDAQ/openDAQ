@@ -41,22 +41,18 @@ TEST_F(COpendaqStreamingTest, TransportOptions)
 {
     daqString* plainName = nullptr;
     daqString_createString(&plainName, "plain");
-    daqInteger* plainPort = nullptr;
-    daqInteger_createInteger(&plainPort, 7420);
     daqTransportOption* plain = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOption(&plain, plainName, plainPort, daqTransportProtectionNone, False), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOption_createTransportOption(&plain, plainName, 7420, daqSecurityModeNone, False), DAQ_SUCCESS);
     ASSERT_NE(plain, nullptr);
 
     daqString* tlsName = nullptr;
     daqString_createString(&tlsName, "tls");
-    daqInteger* tlsPort = nullptr;
-    daqInteger_createInteger(&tlsPort, 7422);
     daqTransportOption* tls = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOption(&tls, tlsName, tlsPort, daqTransportProtectionEncrypted, True), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOption_createTransportOption(&tls, tlsName, 7422, daqSecurityModeEncrypted, True), DAQ_SUCCESS);
 
-    daqTransportProtection protection = daqTransportProtectionNone;
-    ASSERT_EQ(daqTransportOption_getProtection(tls, &protection), DAQ_SUCCESS);
-    ASSERT_EQ(protection, daqTransportProtectionEncrypted);
+    daqSecurityMode securityMode = daqSecurityModeNone;
+    ASSERT_EQ(daqTransportOption_getSecurityMode(tls, &securityMode), DAQ_SUCCESS);
+    ASSERT_EQ(securityMode, daqSecurityModeEncrypted);
     daqBool certificateRequired = False;
     ASSERT_EQ(daqTransportOption_getCertificateRequired(tls, &certificateRequired), DAQ_SUCCESS);
     ASSERT_TRUE(certificateRequired);
@@ -66,30 +62,31 @@ TEST_F(COpendaqStreamingTest, TransportOptions)
     daqString_createString(&protocolId, "protocol_id");
     daqServerCapabilityConfig* capability = nullptr;
     ASSERT_EQ(daqServerCapabilityConfig_createServerCapability(&capability, protocolId, protocolId, daqProtocolTypeStreaming), DAQ_SUCCESS);
-    ASSERT_EQ(daqServerCapabilityConfig_addTransportOption(capability, tls), DAQ_SUCCESS);
-    ASSERT_EQ(daqServerCapabilityConfig_addTransportOption(capability, plain), DAQ_SUCCESS);
+    ASSERT_EQ(daqServerCapabilityConfig_addAvailableTransportOption(capability, tls), DAQ_SUCCESS);
+    ASSERT_EQ(daqServerCapabilityConfig_addAvailableTransportOption(capability, plain), DAQ_SUCCESS);
 
     daqServerCapability* serverCapability = nullptr;
     daqBaseObject_borrowInterface(capability, DAQ_SERVER_CAPABILITY_INTF_ID, (void**) &serverCapability);
-    daqList* options = nullptr;
-    ASSERT_EQ(daqServerCapability_getTransportOptions(serverCapability, &options), DAQ_SUCCESS);
+    // DISCARD PORT: the options are a dict keyed by their ids, in the order added
+    daqDict* options = nullptr;
+    ASSERT_EQ(daqServerCapability_getAvailableTransportOptions(serverCapability, &options), DAQ_SUCCESS);
     daqSizeT count = 0;
-    daqList_getCount(options, &count);
+    daqDict_getCount(options, &count);
     ASSERT_EQ(count, 2u);
 
+    daqList* keys = nullptr;
+    daqDict_getKeyList(options, &keys);
+    daqBaseObject* firstName = nullptr;
+    daqList_getItemAt(keys, 0, &firstName);
+    daqConstCharPtr firstNameStr = nullptr;
+    daqString_getCharPtr((daqString*) firstName, &firstNameStr);
+    ASSERT_STREQ(firstNameStr, "tls");
     daqBaseObject* first = nullptr;
-    daqList_getItemAt(options, 0, &first);
+    daqDict_get(options, firstName, &first);
     daqTransportOption* firstOption = nullptr;
     daqBaseObject_borrowInterface(first, DAQ_TRANSPORT_OPTION_INTF_ID, (void**) &firstOption);
-    daqString* firstName = nullptr;
-    daqTransportOption_getName(firstOption, &firstName);
-    daqConstCharPtr firstNameStr = nullptr;
-    daqString_getCharPtr(firstName, &firstNameStr);
-    ASSERT_STREQ(firstNameStr, "tls");
-    daqInteger* firstPort = nullptr;
-    daqTransportOption_getPort(firstOption, &firstPort);
     daqInt firstPortValue = 0;
-    daqInteger_getValue(firstPort, &firstPortValue);
+    daqTransportOption_getPort(firstOption, &firstPortValue);
     ASSERT_EQ(firstPortValue, 7422);
 
     // the deprecated port follows the default option
@@ -100,16 +97,14 @@ TEST_F(COpendaqStreamingTest, TransportOptions)
     ASSERT_EQ(capabilityPortValue, 7422);
 
     daqBaseObject_releaseRef(capabilityPort);
-    daqBaseObject_releaseRef(firstPort);
+    daqBaseObject_releaseRef(keys);
     daqBaseObject_releaseRef(firstName);
     daqBaseObject_releaseRef(first);
     daqBaseObject_releaseRef(options);
     daqBaseObject_releaseRef(capability);
     daqBaseObject_releaseRef(protocolId);
     daqBaseObject_releaseRef(tls);
-    daqBaseObject_releaseRef(tlsPort);
     daqBaseObject_releaseRef(tlsName);
     daqBaseObject_releaseRef(plain);
-    daqBaseObject_releaseRef(plainPort);
     daqBaseObject_releaseRef(plainName);
 }

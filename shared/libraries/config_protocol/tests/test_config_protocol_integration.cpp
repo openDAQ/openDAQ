@@ -191,7 +191,7 @@ public:
 
     static AddDeviceConfigPtr createAddDeviceConfigForPrefix(const StringPtr& prefix)
     {
-        return AddDeviceConfig(DeviceTypeBuilder().setId(prefix).setName(prefix).setConnectionStringPrefix(prefix).build(), nullptr, False);
+        return AddDeviceConfig(DeviceTypeBuilder().setId(prefix).setName(prefix).setConnectionStringPrefix(prefix).build(), nullptr, nullptr, False);
     }
 
     static StringPtr serializeComponent(const ComponentPtr& component)
@@ -1416,7 +1416,7 @@ TEST_F(ConfigProtocolIntegrationTest, ClientDeviceHasAddDeviceConfigOfServerDevi
     const auto s1 = StreamingTypeBuilder().setId("s1").setName("s1").setConnectionStringPrefix("s1").build();
     const auto s2 = StreamingTypeBuilder().setId("s2").setName("s2").setConnectionStringPrefix("s2").build();
     const auto streamingTypes = Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}});
-    const auto addConfig = AddDeviceConfig(deviceType, streamingTypes, False);
+    const auto addConfig = AddDeviceConfig(deviceType, streamingTypes, nullptr, False);
     addConfig.getStreamingOptions().setStreamingType("s1");
 
     const auto serverSubDevice = serverDevice.getDevices()[0];

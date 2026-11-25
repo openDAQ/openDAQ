@@ -16,6 +16,24 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+namespace
+{
+    // DISCARD PORT: a legacy type config names its transport option in TransportOptionConfigProperty; the add config
+    // selects it, so the connection does not fall back to the default option
+    template <typename ConfigPtr>
+    void selectLegacyTransportOption(const ConfigPtr& config)
+    {
+        const PropertyObjectPtr typeConfig = config.getTypeConfig();
+        if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
+            return;
+
+        const StringPtr selected = typeConfig.getPropertyValue(TransportOptionConfigProperty);
+        const auto options = config.getAvailableTransportOptions();
+        if (selected.assigned() && options.assigned() && options.hasKey(selected))
+            config.setTransportOption(selected);
+    }
+}
+
 namespace LegacyAddDeviceConfig
 {
 static constexpr const char* DeviceSection = "Device";
@@ -255,6 +273,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     detail::translateTypeConfig(config.getTypeConfig(), deviceEntry, general);
     if (deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
         applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
+    selectLegacyTransportOption(config);
     if (const Int port = detail::portSetIn(deviceEntry, config.getTypeConfig(), config.getAvailableTransportOptions().getCount() > 0);
         port != -1)
         config.setPort(port);
@@ -265,6 +284,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
         detail::translateTypeConfig(streamingConfig.getTypeConfig(), streamingEntry, general);
         if (streamingConfig.getStreamingType().asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
             applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
+        selectLegacyTransportOption(streamingConfig);
         const bool streamingHasOptions = streamingConfig.getAvailableTransportOptions().getCount() > 0;
         if (const Int port = detail::portSetIn(streamingEntry, streamingConfig.getTypeConfig(), streamingHasOptions); port != -1)
             streamingConfig.setPort(port);

@@ -29,12 +29,17 @@ using namespace daq;
         static bool isObjectTrackingEnabled = true;
         return isObjectTrackingEnabled;
     }
+
+    // Set while this thread holds the mutex to print, so objects that toString creates or destroys do not lock it again
+    static thread_local bool isPrintingTrackedObjects = false;
 #endif
 
 extern "C"
 PUBLIC_EXPORT void daqTrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
+    if (isPrintingTrackedObjects)
+        return;
     std::lock_guard<std::mutex> lock(getObjectsMutex());
     if (getIsObjectTrackingEnabled()) getObjects().insert(obj);
 #endif
@@ -44,6 +49,8 @@ extern "C"
 PUBLIC_EXPORT void daqUntrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
+    if (isPrintingTrackedObjects)
+        return;
     std::lock_guard<std::mutex> lock(getObjectsMutex());
     const auto it = getObjects().find(obj);
     if (it != getObjects().end())
@@ -67,6 +74,7 @@ PUBLIC_EXPORT void daqPrintTrackedObjects()
 {
 #ifndef NDEBUG
     std::lock_guard<std::mutex> lock(getObjectsMutex());
+    isPrintingTrackedObjects = true;
     for (auto obj : getObjects())
     {
         assert(obj != nullptr);
@@ -81,6 +89,7 @@ PUBLIC_EXPORT void daqPrintTrackedObjects()
         }
         fmt::print("{:p}: {}\n", (void*) obj, description);
     }
+    isPrintingTrackedObjects = false;
 #endif
 }
 

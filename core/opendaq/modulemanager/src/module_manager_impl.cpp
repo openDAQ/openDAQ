@@ -187,6 +187,31 @@ Int GetPortSet(const ConfigPtr& config)
     return port;
 }
 
+// Returns the port set on a legacy streaming config, or -1.
+// A Port equal to the default Port of the type's own config is not a set port.
+inline Int GetLegacyPortSet(const PropertyObjectPtr& config, const StreamingTypePtr& type)
+{
+    if (!config.hasProperty(PortConfigProperty) || config.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return -1;
+
+    const Int port = config.getPropertyValue(PortConfigProperty);
+    if (port < 0)
+        return -1;
+
+    const PropertyObjectPtr typeDefaultConfig = type.createDefaultConfig();
+    if (!typeDefaultConfig.assigned() || !typeDefaultConfig.hasProperty(PortConfigProperty) ||
+        typeDefaultConfig.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return port;
+
+    const Int defaultPort = typeDefaultConfig.getProperty(PortConfigProperty).getDefaultValue();
+    return port == defaultPort ? -1 : port;
+}
+
+inline Int GetConnectionPort(Int portSet, const StringPtr& connectionString, const TransportOptionPtr& selected)
+{
+    return portSet != -1 ? portSet : GetConnectionStringPort(connectionString).value_or(selected.getPort());
+}
+
 // Applies "?TransportOption='id'" and "?Port=number" of a connection string to a config with transport options
 inline void ApplyConnectionStringTransportOptions(const AddDeviceConfigPtr& config,
                                                   const tsl::ordered_map<std::string, BaseObjectPtr>& options)
@@ -285,8 +310,7 @@ PropertyObjectPtr CreateConnectionConfig(const ConfigPtr& config,
         return connectionConfig;
     }
 
-    const Int portSet = GetPortSet(config);
-    const Int port = portSet != -1 ? portSet : GetConnectionStringPort(connectionString).value_or(selected.getPort());
+    const Int port = GetConnectionPort(GetPortSet(config), connectionString, selected);
 
     if (!connectionConfig.assigned())
         connectionConfig = PropertyObject();
@@ -1989,10 +2013,18 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             {
                 if (!streamingTypeConfig.assigned())
                     streamingTypeConfig = streamingType.createDefaultConfig();
-                AddTransportSelectionProperties(streamingTypeConfig, options);
-            }
 
-            checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
+                const Int portSet = GetLegacyPortSet(streamingTypeConfig, streamingType);
+                AddTransportSelectionProperties(streamingTypeConfig, options);
+                checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
+
+                const TransportOptionPtr selected = options.get(GetSelectedTransportOption(streamingTypeConfig));
+                if (streamingTypeConfig.getProperty(PortConfigProperty).getValueType() == ctInt)
+                {
+                    streamingTypeConfig.setPropertyValue(PortConfigProperty,
+                                                         GetConnectionPort(portSet, targetConnectionString, selected));
+                }
+            }
         }
 
         if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())

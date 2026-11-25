@@ -670,14 +670,61 @@ TEST_F(TransportSelectionTest, StreamingTypeWithoutOptionsGetsPortSetInString)
     ASSERT_EQ(module->streamingConnectionStrings[0], "plainstr://host:9000");
 }
 
-// A legacy config stays on its path: the first option, and the module chooses the port
-TEST_F(TransportSelectionTest, StreamingWithLegacyConfigStaysAsItWas)
+// A legacy config connects at the port it sets, then at the port of the string, then at the port of its option.
+// Its port wins over the port of the string, as it always did.
+
+TEST_F(TransportSelectionTest, StreamingWithLegacyPortWinsOverPortInString)
 {
     auto legacy = PropertyObject();
     legacy.addProperty(IntProperty(PortConfigProperty, 7600));
 
     addStreaming("str://host:7700", legacy);
     expectStreamingConnection("str://host:7700", "plain", 7600);
+}
+
+TEST_F(TransportSelectionTest, StreamingWithoutConfigUsesPortOfString)
+{
+    addStreaming("str://host:7700", nullptr);
+    expectStreamingConnection("str://host:7700", "plain", 7700);
+
+    addStreaming("str://host", nullptr);
+    expectStreamingConnection("str://host", "plain", 7430);
+}
+
+TEST_F(TransportSelectionTest, StreamingWithLegacyConfigUsesPortOfSelectedOption)
+{
+    auto legacy = PropertyObject();
+    legacy.addProperty(StringProperty(TransportOptionConfigProperty, "tls"));
+
+    addStreaming("str://host", legacy);
+    expectStreamingConnection("str://host", "tls", 7431);
+}
+
+// A Port equal to the default Port of the type's own config is not a set port
+TEST_F(TransportSelectionTest, StreamingWithLegacyConfigOfTypeWithOwnPort)
+{
+    auto portConfig = PropertyObject();
+    portConfig.addProperty(IntProperty(PortConfigProperty, 7000));
+    const auto type = StreamingTypeBuilder()
+                          .setId("portedstr")
+                          .setName("portedstr")
+                          .setConnectionStringPrefix("portedstr")
+                          .setDefaultConfig(portConfig)
+                          .setAvailableTransportOptions(TransportOptionsById(
+                              {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
+                          .build();
+    module->streamingTypes.set("portedstr", type);
+
+    addStreaming("portedstr://host:7700", type.createDefaultConfig());
+    expectStreamingConnection("portedstr://host:7700", "plain", 7700);
+
+    addStreaming("portedstr://host", type.createDefaultConfig());
+    expectStreamingConnection("portedstr://host", "plain", 7430);
+
+    const auto legacy = type.createDefaultConfig();
+    legacy.setPropertyValue(PortConfigProperty, 7500);
+    addStreaming("portedstr://host:7700", legacy);
+    expectStreamingConnection("portedstr://host:7700", "plain", 7500);
 }
 
 // A device as discovery reports it now: its capability has a connection string, but announces no options

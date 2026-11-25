@@ -30,10 +30,6 @@ jobs:
       packages: >
         [
           {
-            "match-jobs": ["windows-2025-x86_64-msvs-v145-debug"],
-            "run": "$o = Join-Path $env:GITHUB_WORKSPACE \"build\\test-results\"; New-Item -ItemType Directory -Force $o | Out-Null; $cdb = \"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\cdb.exe\"; Write-Host (\"cdb present: \" + (Test-Path $cdb)); $cmds = Join-Path $o \"cdb.cmds\"; Set-Content -Path $cmds -Encoding ascii -Value @(\"sxe -c `\".echo CXXEH;.exr -1;kn 30;gc`\" eh\", \"sxe -c `\".echo OVERFLOW;.exr -1;kn 4000;~*kn 60;q`\" sov\", \"sxd -c2 `\".echo SECOND;.exr -1;.ecxr;kn 200;~*kn 60;q`\" av\", \"sxd ch\", \"g\"); Get-Content $cmds; $ifeo = \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\test_opcuatms_integration_debug.exe\"; New-Item -Path $ifeo -Force | Out-Null; Set-ItemProperty -Path $ifeo -Name Debugger -Value (\"`\"\" + $cdb + \"`\" -G -hd -loga \" + $o + \"\\cdb.txt -cf \" + $cmds); Get-ItemProperty -Path $ifeo | Format-List Debugger"
-          },
-          {
             "match-jobs": ["ubuntu-*-x86_64-*", "ubuntu-*-armv8-*"],
             "apt-install": ["lld", "libssl-dev", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev"]
           },

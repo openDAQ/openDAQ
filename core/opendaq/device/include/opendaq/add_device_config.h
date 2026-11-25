@@ -89,6 +89,10 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) = 0;
 
+    /*!
+     * @brief Gets the authentication config used when adding the device.
+     * @param[out] config The authentication config, or null when the Device type supports no authentication method
+     */
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
 };
 

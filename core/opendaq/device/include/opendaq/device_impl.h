@@ -2407,10 +2407,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         // FIXME: DeviceUpdateOptions could hold the whole IAddDeviceConfig, open for editing, instead of only its authentication config
         const auto addDeviceConfig = deviceConfig.template asPtrOrNull<IAddDeviceConfig>(true);
-        DictPtr<IString, IAuthenticationMethod> authenticationMethods;
-        if (addDeviceConfig.assigned())
-            checkErrorInfo(addDeviceConfig.getDeviceType().template asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&authenticationMethods));
-        if (authenticationMethods.assigned() && authenticationMethods.getCount() > 0 && options.assigned())
+        const auto addDeviceAuthenticationConfig = addDeviceConfig.assigned() ? addDeviceConfig.getAuthenticationConfig() : nullptr;
+        if (addDeviceAuthenticationConfig.assigned() && options.assigned())
         {
             // The saved authentication method is already selected by binding the saved config. A caller may have changed it
             // or/and called `setSuppliedCredential` on the one parsed onto the matching DeviceUpdateOptions node, to
@@ -2418,7 +2416,6 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             const AuthenticationConfigPtr authenticationConfig = options.getAuthenticationConfig();
             if (authenticationConfig.assigned())
             {
-                const auto addDeviceAuthenticationConfig = addDeviceConfig.getAuthenticationConfig();
                 addDeviceAuthenticationConfig.setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod().getId());
                 addDeviceAuthenticationConfig.setSuppliedCredential(authenticationConfig.getSuppliedCredential());
             }

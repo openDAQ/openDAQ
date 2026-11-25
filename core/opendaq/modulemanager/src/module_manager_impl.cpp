@@ -69,36 +69,16 @@ static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
-// The authentication config of an add-device/add-streaming config - unassigned if its type supports no authentication method.
-template <typename ConfigPtr>
-AuthenticationConfigPtr GetAuthenticationConfig(const ConfigPtr& addConfig, const ComponentTypePtr& type)
-{
-    if (type.template asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
-        return nullptr;
-    return addConfig.getAuthenticationConfig();
-}
-
 // The credential supplied on the authentication config of an add-device/add-streaming config - nullptr if none.
 template <typename ConfigPtr>
-DictPtr<IString, IString> GetSuppliedCredential(const ConfigPtr& addConfig, const ComponentTypePtr& type)
+DictPtr<IString, IString> GetSuppliedCredential(const ConfigPtr& addConfig)
 {
-    const AuthenticationConfigPtr authenticationConfig = GetAuthenticationConfig(addConfig, type);
+    const AuthenticationConfigPtr authenticationConfig = addConfig.getAuthenticationConfig();
     if (!authenticationConfig.assigned())
         return nullptr;
 
     const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
     return credential.getCount() > 0 ? credential : nullptr;
-}
-
-// The credential supplied for the streaming selected in an add-device config - nullptr if none.
-DictPtr<IString, IString> GetSuppliedStreamingCredential(const AddDeviceConfigPtr& addDeviceConfig)
-{
-    const auto options = addDeviceConfig.getStreamingOptions();
-    if (!options.assigned() || !options.getStreamingConfig().assigned())
-        return nullptr;
-
-    const AddStreamingConfigPtr streamingConfig = options.getStreamingConfig();
-    return GetSuppliedCredential(streamingConfig, streamingConfig.getStreamingType());
 }
 
 // Only Root devices are created as the root. Unspecified devices can be created either way.
@@ -925,8 +905,10 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     DictPtr<IString, IString> streamingCredentials;
     if (inputAddDeviceConfig.assigned())
     {
-        deviceCredentials = GetSuppliedCredential(inputAddDeviceConfig, inputAddDeviceConfig.getDeviceType());
-        streamingCredentials = GetSuppliedStreamingCredential(inputAddDeviceConfig);
+        deviceCredentials = GetSuppliedCredential(inputAddDeviceConfig);
+        const auto options = inputAddDeviceConfig.getStreamingOptions();
+        if (options.assigned() && options.getStreamingConfig().assigned())
+            streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
     }
 
     const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
@@ -983,7 +965,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
     PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
 
-    const AuthenticationConfigPtr authenticationConfig = GetAuthenticationConfig(addDeviceConfig, deviceType);
+    const AuthenticationConfigPtr authenticationConfig = addDeviceConfig.getAuthenticationConfig();
 
     const DevicePtr device =
         connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig, deviceCredentials);
@@ -1762,8 +1744,10 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 
         AuthenticationConfigPtr authenticationConfig;
         if (addStreamingConfig.assigned())
-            authenticationConfig = GetAuthenticationConfig(addStreamingConfig, streamingType);
-        else if (streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+        {
+            authenticationConfig = addStreamingConfig.getAuthenticationConfig();
+        }
+        else
         {
             // A legacy config has no authentication config of its own
             authenticationConfig = streamingType.createAuthenticationConfig();

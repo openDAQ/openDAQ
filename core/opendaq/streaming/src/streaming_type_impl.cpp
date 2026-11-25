@@ -62,16 +62,6 @@ ErrCode StreamingTypeImpl::createAuthenticationConfig(IAuthenticationConfig** co
     return Super::createAuthenticationConfig(config);
 }
 
-ErrCode StreamingTypeImpl::getSupportedAuthenticationMethods(IDict** authenticationMethods)
-{
-    OPENDAQ_PARAM_NOT_NULL(authenticationMethods);
-
-    if (linkedDeviceType.assigned())
-        return linkedDeviceType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(authenticationMethods);
-
-    return Super::getSupportedAuthenticationMethods(authenticationMethods);
-}
-
 ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
 {
     OPENDAQ_PARAM_NOT_NULL(serializer);

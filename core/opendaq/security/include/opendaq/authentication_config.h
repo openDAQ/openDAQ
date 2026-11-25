@@ -72,9 +72,9 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationConfig, IBaseObject)
 
     /*!
      * @brief Gets every authentication method this config supports, keyed by their own id - the full set of
-     * `"AuthenticationMethod"` selection candidates, i.e. the same shape `IComponentTypePrivate::getSupportedAuthenticationMethods()`
-     * has, since this config was built from exactly that set. An equal, typed alternative to reading the
-     * candidates generically off the `"AuthenticationMethod"` property.
+     * `"AuthenticationMethod"` selection candidates, i.e. the methods the component type this config was built
+     * from supports. An equal, typed alternative to reading the candidates generically off the
+     * `"AuthenticationMethod"` property.
      * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
      */
     // [templateType(authenticationMethods, IString, IAuthenticationMethod)]

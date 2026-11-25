@@ -37,15 +37,14 @@ I can decide whether to offer an "authenticated connect" option in my UI at all.
   id string) per method added - the first one added starts out selected.
 - **Given** a Device or Streaming type whose module never called `addAuthenticationMethod` at all
   **When** I call `componentType.createAuthenticationConfig()`
-  **Then** it throws `NotSupportedException` ("This component type supports no authentication method") -
-  there is no implicit "every type supports at least Anonymous" fallback; a type that wants Anonymous among
+  **Then** it returns null - there is no implicit "every type supports at least Anonymous" fallback; a type that wants Anonymous among
   its options has to add `StandardAnonymousAuthenticationMethod()` explicitly, the way `credential_demo_module`
   does.
 - **Given** a Server or FunctionBlock type (sorts authentication is not a concept for at all, regardless of how
   the type was built)
-  **When** I call `componentType.createAuthenticationConfig()` or `IComponentTypePrivate::getSupportedAuthenticationMethods()`
-  **Then** both throw `NotImplementedException` - distinguishable from the "Device/Streaming type, zero
-  methods added" `NotSupportedException` case above: a developer can tell "this sort never supports auth at
+  **When** I call `componentType.createAuthenticationConfig()`
+  **Then** it throws `NotImplementedException` - distinguishable from the "Device/Streaming type, zero
+  methods added" null case above: a developer can tell "this sort never supports auth at
   all" apart from "this specific type just doesn't right now."
 - **Given** the plain, anonymous path is what's wanted instead
   **When** I call `instance.addDevice(connectionString)` on any type, whether or not it supports authentication
@@ -331,12 +330,11 @@ against.
 
 ## 7. Boundary & negative checks worth having somewhere, even briefly
 
-- Calling `componentType.createAuthenticationConfig()`/`getSupportedAuthenticationMethods()` on a Server or
-  FunctionBlock type - confirm both throw `NotImplementedException` regardless of anything the type was built
-  with, distinct from a Device/Streaming type that simply has zero methods added (`NotSupportedException`, see
-  §1.1).
+- Calling `componentType.createAuthenticationConfig()` on a Server or FunctionBlock type - confirm it throws
+  `NotImplementedException` regardless of anything the type was built with, distinct from a Device/Streaming
+  type that simply has zero methods added (null, see §1.1).
 - Calling `config.getAuthenticationConfig()` on the add-device config of a type that does **not** support
-  authentication at all - confirm it throws `NotSupportedException`: such a config has no authentication config
+  authentication at all - confirm it returns null: such a config has no authentication config
   to set up, and the device is created via the plain, unauthenticated path.
 - Two authentication attempts to the *same* connection string in quick succession without an intervening
   `removeDevice` (e.g. accidental double-click in a UI) - confirm the second attempt's failure/success mode is

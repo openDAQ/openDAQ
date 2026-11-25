@@ -23,15 +23,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct IAuthenticationMethod;
 
-/*#
- * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
- * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
- */
-
 /*!
- * @brief Private interface to component type. Allows for setting the module information, serializing the type
- * for components, and reading the raw authentication method dict a public
- * `IComponentType::createAuthenticationConfig()` call builds its config from.
+ * @brief Private interface to component type. Allows for setting the module information and serializing the type
+ * for components.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
 {
@@ -48,14 +42,6 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
      * @retval OPENDAQ_ERR_NOTIMPLEMENTED The type sort is not carried by components.
      */
     virtual ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) = 0;
-
-    /*!
-     * @brief Gets the authentication methods this component type supports authenticating with, keyed by their
-     * own authentication method id.
-     * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
-     */
-    // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
-    virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
 };
 
 /*!@}*/

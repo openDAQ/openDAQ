@@ -103,5 +103,5 @@ void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig
             return objectPtr.getAuthenticationConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the authentication config used when adding the device.");
 }

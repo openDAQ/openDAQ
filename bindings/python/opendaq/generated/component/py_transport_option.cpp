@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-#include "py_core_objects/py_variant_extractor.h"
+
 
 PyDaqIntf<daq::ITransportOption, daq::IBaseObject> declareITransportOption(pybind11::module_ m)
 {
@@ -45,10 +45,7 @@ void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption
 {
     cls.doc() = "Describes one way to connect to a component: a transport, its port and its security mode.";
 
-    m.def("TransportOption", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::Int port, daq::SecurityMode securityMode, const bool certificateRequired){
-        return daq::TransportOption_Create(getVariantValue<daq::IString*>(id), port, securityMode, certificateRequired);
-    }, py::arg("id"), py::arg("port"), py::arg("security_mode"), py::arg("certificate_required"));
-
+    m.def("TransportOptionFromBuilder", &daq::TransportOptionFromBuilder_Create);
 
     cls.def_property_readonly("id",
         [](daq::ITransportOption *object)

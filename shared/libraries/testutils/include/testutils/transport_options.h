@@ -17,10 +17,25 @@
 #pragma once
 
 #include <coretypes/dictobject_factory.h>
-#include <opendaq/transport_option_ptr.h>
+#include <opendaq/transport_option_factory.h>
 #include <initializer_list>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @brief Builds a transport option in one call, so that tests stay short.
+ */
+inline TransportOptionPtr TestTransportOption(const StringPtr& id,
+                                              Int port,
+                                              SecurityMode securityMode = SecurityMode::None,
+                                              Bool certificateRequired = False)
+{
+    return TransportOptionBuilder(id)
+        .setPort(port)
+        .setSecurityMode(securityMode)
+        .setCertificateRequired(certificateRequired)
+        .build();
+}
 
 /*!
  * @brief Gets transport options keyed by their ids, in the given order.

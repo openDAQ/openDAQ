@@ -25,7 +25,7 @@ class AddConfigTransportTest : public testing::Test
 protected:
     static DictPtr<IString, ITransportOption> TypeOptions()
     {
-        return TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)});
+        return TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)});
     }
 
     // A Mirrored Device type whose module declares a port of its own in the default config
@@ -55,7 +55,7 @@ protected:
 
     static AddDeviceConfigPtr CreateConfig(const DeviceTypePtr& deviceType = CreateDeviceType())
     {
-        return AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", CreateStreamingType()}}), True);
+        return AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", CreateStreamingType()}}), nullptr, True);
     }
 
     // Whether the saved form of the config holds a value of its Port property: a port not set is not saved
@@ -82,6 +82,91 @@ protected:
         const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", deviceType}});
         const auto streamingTypes = Dict<IString, IStreamingType>({{"str", CreateStreamingType()}});
         return config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+    }
+
+    static std::string SavedForm(const AddDeviceConfigPtr& config)
+    {
+        const auto serializer = JsonSerializer();
+        config.asPtr<IUpdatable>().serializeForUpdate(serializer);
+        return serializer.getOutput();
+    }
+
+    // Creates a config from the saved form, as loading a saved device does
+    static AddDeviceConfigPtr Load(const std::string& saved,
+                                   const DeviceTypePtr& deviceType = CreateDeviceType(),
+                                   const StreamingTypePtr& streamingType = CreateStreamingType())
+    {
+        AddDeviceConfigPtr loaded;
+        JsonDeserializer().callCustomProc(
+            [&](const SerializedObjectPtr& serialized)
+            {
+                loaded = BoundAddDeviceConfig(serialized,
+                                              Dict<IString, IDeviceType>({{"dev", deviceType}}),
+                                              Dict<IString, IStreamingType>({{"str", streamingType}}),
+                                              True);
+            },
+            saved);
+        return loaded;
+    }
+
+    static DictPtr<IString, ITransportOption> PlainFirstOptions()
+    {
+        return TransportOptionsById({TestTransportOption("plain", 7420), TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
+    }
+
+    // A config with a selected Streaming type, whose types both list plain first
+    static AddDeviceConfigPtr PlainFirstConfig()
+    {
+        const auto config = AddDeviceConfig(CreateDeviceType(PlainFirstOptions()),
+                                            Dict<IString, IStreamingType>({{"str", CreateStreamingType(PlainFirstOptions())}}),
+                                            nullptr,
+                                            True);
+        config.getStreamingOptions().setStreamingType("str");
+        return config;
+    }
+
+    // The capabilities of a server that announces the same options for the device and for streaming
+    static ListPtr<IServerCapability> ServerCapabilities(const DictPtr<IString, ITransportOption>& options)
+    {
+        auto capabilities = List<IServerCapability>();
+        for (const auto& [id, type] : {std::pair<std::string, ProtocolType>{"dev", ProtocolType::Configuration},
+                                       std::pair<std::string, ProtocolType>{"str", ProtocolType::Streaming}})
+        {
+            auto capability = ServerCapability(id, id, type).setPrefix(id).setConnectionString(id + "://host");
+            capability.setAvailableTransportOptions(options);
+            capabilities.pushBack(capability);
+        }
+        return capabilities;
+    }
+
+    // A config with a selected Streaming type, for a server with the given options
+    static AddDeviceConfigPtr ServerConfig(const DictPtr<IString, ITransportOption>& serverOptions)
+    {
+        const auto config = AddDeviceConfig(CreateDeviceType(PlainFirstOptions()),
+                                            Dict<IString, IStreamingType>({{"str", CreateStreamingType(PlainFirstOptions())}}),
+                                            ServerCapabilities(serverOptions),
+                                            True);
+        config.getStreamingOptions().setStreamingType("str");
+        return config;
+    }
+
+    static DictPtr<IString, ITransportOption> TlsFirstServerOptions()
+    {
+        return TransportOptionsById({TestTransportOption("tls", 7500, SecurityMode::Encrypted), TestTransportOption("plain", 7510)});
+    }
+
+    static AddDeviceConfigPtr BindToPlainFirstTypes(const AddDeviceConfigPtr& config)
+    {
+        const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", CreateDeviceType(PlainFirstOptions())}});
+        const auto streamingTypes = Dict<IString, IStreamingType>({{"str", CreateStreamingType(PlainFirstOptions())}});
+        return config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+    }
+
+    static void ExpectOptions(const DictPtr<IString, ITransportOption>& options, const ListPtr<IString>& ids, const std::vector<Int>& ports)
+    {
+        ASSERT_EQ(options.getKeyList(), ids);
+        for (SizeT i = 0; i < ports.size(); ++i)
+            ASSERT_EQ(options.get(ids[i]).getPort(), ports[i]);
     }
 };
 
@@ -276,20 +361,175 @@ TEST_F(AddConfigTransportTest, BindRejectsUnknownSelection)
     const auto config = CreateConfig();
     config.setTransportOption("plain");
 
-    ASSERT_THROW(Bind(config, CreateDeviceType(TransportOptionsById({TransportOption("wss", 7414), TransportOption("tls", 7421)}))),
+    ASSERT_THROW(Bind(config, CreateDeviceType(TransportOptionsById({TestTransportOption("wss", 7414), TestTransportOption("tls", 7421)}))),
                  InvalidValueException);
 }
 
-// An option not selected is not saved: the bound config selects the loaded type's first option
-TEST_F(AddConfigTransportTest, BindWithoutSavedSelection)
+// The first option is saved too: it stays selected when the loaded type lists another option first
+TEST_F(AddConfigTransportTest, BindKeepsFirstOption)
 {
-    const auto config =
-        CreateConfig(CreateDeviceType(TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421)})));
+    const auto config = PlainFirstConfig();
     ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
 
     const auto bound = Bind(config);
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getPort(), 7420);
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsFirstOption)
+{
+    const auto loaded = Load(SavedForm(PlainFirstConfig()));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getPort(), 7420);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsOptionThatIsNotFirst)
+{
+    const auto config = PlainFirstConfig();
+    config.setTransportOption("tls");
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("tls");
+
+    const auto loaded = Load(SavedForm(config), CreateDeviceType(PlainFirstOptions()), CreateStreamingType(PlainFirstOptions()));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getPort(), 7421);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+}
+
+TEST_F(AddConfigTransportTest, LoadKeepsPortSet)
+{
+    const auto config = PlainFirstConfig();
+    config.setPort(9000);
+    config.getStreamingOptions().getStreamingConfig().setPort(9001);
+
+    const auto loaded = Load(SavedForm(config));
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getPort(), 9000);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getPort(), 9001);
+}
+
+// A saved form written before the selection was saved loads with the first option of the type
+TEST_F(AddConfigTransportTest, LoadWithoutSavedSelection)
+{
+    const std::string key = R"("selectedTransportOption":"plain",)";
+    std::string saved = SavedForm(PlainFirstConfig());
+    for (auto pos = saved.find(key); pos != std::string::npos; pos = saved.find(key))
+        saved.erase(pos, key.size());
+    ASSERT_EQ(saved.find("selectedTransportOption"), std::string::npos);
+
+    const auto loaded = Load(saved);
+
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+}
+
+// The first option is rejected like any other: the device must not move to another option silently
+TEST_F(AddConfigTransportTest, LoadRejectsFirstOptionTheTypeDoesNotList)
+{
+    const auto saved = SavedForm(PlainFirstConfig());
+    const auto tlsOnly = TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
+
+    ASSERT_THROW(Load(saved, CreateDeviceType(tlsOnly)), InvalidValueException);
+    ASSERT_THROW(Load(saved, CreateDeviceType(), CreateStreamingType(tlsOnly)), InvalidValueException);
+}
+
+// A type without options has nothing to select
+TEST_F(AddConfigTransportTest, LoadIgnoresSelectionForTypeWithoutOptions)
+{
+    const auto noOptions = TransportOptionsById({});
+    const auto loaded = Load(SavedForm(PlainFirstConfig()), CreateDeviceType(noOptions), CreateStreamingType(noOptions));
+
+    ASSERT_FALSE(loaded.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().assigned());
+}
+
+TEST_F(AddConfigTransportTest, BindKeepsServerOptions)
+{
+    const auto bound = BindToPlainFirstTypes(ServerConfig(TlsFirstServerOptions()));
+
+    ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
     ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
-    ASSERT_EQ(bound.getPort(), 7421);
+    ASSERT_EQ(bound.getPort(), 7500);
+
+    const auto streaming = bound.getStreamingOptions().getStreamingConfig();
+    ExpectOptions(streaming.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
+    ASSERT_EQ(streaming.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(streaming.getPort(), 7500);
+}
+
+TEST_F(AddConfigTransportTest, BindKeepsServerOptionThatIsNotFirst)
+{
+    const auto config = ServerConfig(TlsFirstServerOptions());
+    config.setTransportOption("plain");
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("plain");
+
+    const auto bound = BindToPlainFirstTypes(config);
+
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getPort(), 7510);
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getPort(), 7510);
+}
+
+// A server with TLS only: the bound config must not get the plain option of the type
+TEST_F(AddConfigTransportTest, BindKeepsTlsOnlyServer)
+{
+    const auto tlsOnly = TransportOptionsById({TestTransportOption("tls", 7500, SecurityMode::Encrypted)});
+    const auto bound = BindToPlainFirstTypes(ServerConfig(tlsOnly));
+
+    ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_THROW(bound.setTransportOption("plain"), NotFoundException);
+
+    const auto streaming = bound.getStreamingOptions().getStreamingConfig();
+    ExpectOptions(streaming.getAvailableTransportOptions(), List<IString>("tls"), {7500});
+    ASSERT_EQ(streaming.getSelectedTransportOption().getId(), "tls");
+}
+
+TEST_F(AddConfigTransportTest, BindKeepsPortSetOnServerOption)
+{
+    const auto config = ServerConfig(TlsFirstServerOptions());
+    config.setPort(9000);
+
+    const auto bound = BindToPlainFirstTypes(config);
+
+    ASSERT_EQ(bound.getSelectedTransportOption().getPort(), 7500);
+    ASSERT_EQ(bound.getPort(), 9000);
+}
+
+// Binding twice gives the same result, as adding a device with the config of another device does
+TEST_F(AddConfigTransportTest, BindTwiceKeepsServerOptions)
+{
+    const auto bound = BindToPlainFirstTypes(BindToPlainFirstTypes(ServerConfig(TlsFirstServerOptions())));
+
+    ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+}
+
+TEST_F(AddConfigTransportTest, BindDropsOptionsTheTypeDoesNotList)
+{
+    const auto tlsOnlyType = TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
+    const auto bound = Bind(ServerConfig(TlsFirstServerOptions()), CreateDeviceType(tlsOnlyType));
+
+    ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});
+    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+}
+
+// A saved file holds the selection, not the options of the server: they come from the type on load
+TEST_F(AddConfigTransportTest, LoadTakesOptionsFromTheType)
+{
+    const auto loaded = Load(SavedForm(ServerConfig(TlsFirstServerOptions())),
+                             CreateDeviceType(PlainFirstOptions()),
+                             CreateStreamingType(PlainFirstOptions()));
+
+    ExpectOptions(loaded.getAvailableTransportOptions(), List<IString>("plain", "tls"), {7420, 7421});
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getPort(), 7421);
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
 }
 
 TEST_F(AddConfigTransportTest, SerializeDeserialize)
@@ -394,8 +634,8 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSet)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(DeviceTypeWithoutOwnPort()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").getPropertyValue(PortConfigProperty), 7600);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Streaming", "str").getPropertyValue(PortConfigProperty), 7600);
 }
 
 // The module has its own Port (7000). The legacy entry gets the set port instead.
@@ -403,7 +643,7 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyCarriesPortSetOverModulePort)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(ConfigWithPortsSet(CreateDeviceType()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
 }
 
 // Without a set port, the entries keep the module's values.
@@ -412,8 +652,8 @@ TEST_F(AddConfigTransportLegacyTest, ToLegacyWithoutPortSetKeepsTypeConfigs)
 {
     const PropertyObjectPtr legacy = toLegacyAddDeviceConfig(CreateConfig(CreateDeviceType()));
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7000);
-    ASSERT_FALSE(Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").hasProperty(PortConfigProperty));
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7000);
+    ASSERT_FALSE(Entry(legacy, "Streaming", "str").hasProperty(PortConfigProperty));
 }
 
 // A config serialized for an older peer (serializer version 3) goes through the translation
@@ -423,15 +663,15 @@ TEST_F(AddConfigTransportLegacyTest, SerializedForOlderPeerCarriesPortSet)
     ConfigWithPortsSet(CreateDeviceType()).serialize(serializer);
     const PropertyObjectPtr legacy = JsonDeserializer().deserialize(serializer.getOutput());
 
-    ASSERT_EQ(Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").getPropertyValue(PortConfigProperty), 7500);
+    ASSERT_EQ(Entry(legacy, "Device", "dev").getPropertyValue(PortConfigProperty), 7500);
 }
 
 TEST_F(AddConfigTransportLegacyTest, FromLegacyTakesPortSet)
 {
     const auto deviceType = CreateDeviceType();
     const auto legacy = LegacyConfig(deviceType);
-    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
-    Entry(legacy, LegacyAddDeviceConfig::StreamingSection, "str").addProperty(IntProperty(PortConfigProperty, 7600));
+    Entry(legacy, "Device", "dev").setPropertyValue(PortConfigProperty, 7500);
+    Entry(legacy, "Streaming", "str").addProperty(IntProperty(PortConfigProperty, 7600));
 
     const auto config = FromLegacy(legacy, deviceType);
 
@@ -467,7 +707,7 @@ TEST_F(AddConfigTransportLegacyTest, FromLegacyTypeWithoutOptionsKeepsModulePort
 {
     const auto deviceType = CreateDeviceType(Dict<IString, ITransportOption>());
     const auto legacy = LegacyConfig(deviceType);
-    Entry(legacy, LegacyAddDeviceConfig::DeviceSection, "dev").setPropertyValue(PortConfigProperty, 7500);
+    Entry(legacy, "Device", "dev").setPropertyValue(PortConfigProperty, 7500);
 
     const auto config = FromLegacy(legacy, deviceType);
 
@@ -485,7 +725,7 @@ TEST_F(AddConfigTransportLegacyTest, LegacyRoundTripKeepsPortSetWithoutOptions)
                                 .setDeviceKind(DeviceKind::Mirrored)
                                 .build();
     const auto streamingType = CreateStreamingType(Dict<IString, ITransportOption>());
-    const auto config = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", streamingType}}), True);
+    const auto config = AddDeviceConfig(deviceType, Dict<IString, IStreamingType>({{"str", streamingType}}), nullptr, True);
     config.setPort(7500);
     StreamingConfig(config).setPort(7600);
 

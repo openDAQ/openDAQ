@@ -13,6 +13,7 @@ set(TEST_SOURCES test_app.cpp
                  test_check_dependencies.cpp
                  module_manager_test.cpp
                  test_transport_selection.cpp
+                 test_legacy_add_device.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

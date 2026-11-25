@@ -18,6 +18,7 @@
 
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/add_device_config_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
@@ -331,49 +332,21 @@ void MirroredDeviceBase<Interfaces...>::removedNoLock()
 template <typename... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* config)
 {
-    ErrCode errCode = Super::setComponentConfig(config);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
 
-    if (this->componentConfig.assigned() && this->componentConfig.hasProperty("General"))
-    {
-        auto deviceSelf = this->template borrowPtr<DevicePtr>();
-        PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
-        bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-        ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
-        ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+    const AddDeviceConfigPtr addDeviceConfig =
+        this->componentConfig.assigned() ? this->componentConfig.template asPtrOrNull<IAddDeviceConfig>(true) : nullptr;
+    if (!addDeviceConfig.assigned())
+        return OPENDAQ_SUCCESS;
 
-        StringPtr streamingProtocol;
-        if (prioritizedStreamingProtocols.empty())
-            return errCode;
+    const auto options = addDeviceConfig.getStreamingOptions();
+    if (!options.assigned() || !options.getStreamingConfig().assigned())
+        return OPENDAQ_SUCCESS;
 
-        if (allowedStreamingProtocols.empty())
-        {
-            streamingProtocol = prioritizedStreamingProtocols[0];
-        }
-        else
-        {
-            for (const auto& protocolId : prioritizedStreamingProtocols)
-            {
-                for (const auto& allowedProtocol : allowedStreamingProtocols)
-                {
-                    if (protocolId == allowedProtocol)
-                    {
-                        streamingProtocol = protocolId;
-                        break;
-                    }
-                }
-                if (streamingProtocol.assigned())
-                    break;
-            }
-        }
-        if (automaticallyConnectStreamings
-            && !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2) // is not "NotConnected"
-            && streamingProtocol.assigned())
-            streamingSourceManager =
-                std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig, streamingProtocol);
-    }
+    auto deviceSelf = this->template borrowPtr<DevicePtr>();
+    streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, addDeviceConfig);
 
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>
@@ -432,9 +405,9 @@ AddStreamingConfigPtr MirroredDeviceBase<Interfaces...>::onCreateAddStreamingCon
         return AddStreamingConfig(streamingType);
     }
 
-    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType, true);
+    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType);
     if (!streamingType.assigned())
-        streamingType = selectStreamingType(loadedTypes, mirroredDeviceType, false);
+        streamingType = findLinkedStreamingType(loadedTypes, mirroredDeviceType);
     if (!streamingType.assigned())
     {
         DAQ_THROW_EXCEPTION(NotFoundException, "The device has no available or linked streaming type");

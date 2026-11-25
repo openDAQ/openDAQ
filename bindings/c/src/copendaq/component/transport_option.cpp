@@ -42,10 +42,10 @@ daqErrCode daqTransportOption_getCertificateRequired(daqTransportOption* self, d
     return reinterpret_cast<daq::ITransportOption*>(self)->getCertificateRequired(required);
 }
 
-daqErrCode daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* id, daqInt port, daqSecurityMode securityMode, daqBool certificateRequired)
+daqErrCode daqTransportOption_createTransportOptionFromBuilder(daqTransportOption** obj, daqTransportOptionBuilder* builder)
 {
     daq::ITransportOption* ptr = nullptr;
-    daqErrCode err = daq::createTransportOption(&ptr, reinterpret_cast<daq::IString*>(id), port, static_cast<daq::SecurityMode>(securityMode), certificateRequired);
+    daqErrCode err = daq::createTransportOptionFromBuilder(&ptr, reinterpret_cast<daq::ITransportOptionBuilder*>(builder));
     *obj = reinterpret_cast<daqTransportOption*>(ptr);
     return err;
 }

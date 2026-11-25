@@ -30,11 +30,11 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 inline TransportOptionPtr NativeTransportOption(const StringPtr& id, Int port)
 {
     if (id == CONST_NATIVE_TRANSPORT_WS)
-        return TransportOption(id, port);
+        return TransportOptionBuilder(id).setPort(port).build();
     if (id == CONST_NATIVE_TRANSPORT_WSS)
-        return TransportOption(id, port, SecurityMode::Encrypted);
+        return TransportOptionBuilder(id).setPort(port).setSecurityMode(SecurityMode::Encrypted).build();
     if (id == CONST_NATIVE_TRANSPORT_WSS_MTLS)
-        return TransportOption(id, port, SecurityMode::Encrypted, True);
+        return TransportOptionBuilder(id).setPort(port).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(True).build();
 
     DAQ_THROW_EXCEPTION(NotFoundException, "There is no native transport option \"{}\"", id);
 }

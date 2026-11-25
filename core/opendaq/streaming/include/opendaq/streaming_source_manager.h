@@ -16,7 +16,11 @@
 
 #pragma once
 
+#include <opendaq/add_device_config_ptr.h>
+#include <opendaq/address_info_utils.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_type_utils.h>
 #include <atomic>
 #include <map>
 #include <optional>
@@ -28,6 +32,8 @@
 #include <opendaq/module_manager_utils_ptr.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
+#include <opendaq/transport_selection_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,8 +45,7 @@ class StreamingSourceManager
 public:
     explicit StreamingSourceManager(const ContextPtr& context,
                                     const DevicePtr& ownerDevice,
-                                    const PropertyObjectPtr& deviceConfig,
-                                    const StringPtr& streamingProtocolId);
+                                    const AddDeviceConfigPtr& deviceConfig);
 
     ~StreamingSourceManager();
 
@@ -69,29 +74,26 @@ private:
 
     ContextPtr context;
     WeakRefPtr<IDevice> ownerDeviceRef;
-    PropertyObjectPtr deviceConfig;
+    AddStreamingConfigPtr streamingConfig;
     LoggerComponentPtr loggerComponent;
 
-    bool minHopsStreamingHeuristicEnabled{false};
-    StringPtr requiredStreamingProtocolId;
-    StringPtr primaryAddressType;
+    StreamingMode streamingMode;
+    StringPtr requiredStreamingPrefix;
+    AddressType primaryAddressType;
     std::atomic<bool> stopped{false};
 };
 
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
                                                       const DevicePtr& ownerDevice,
-                                                      const PropertyObjectPtr& deviceConfig,
-                                                      const StringPtr& streamingProtocolId)
+                                                      const AddDeviceConfigPtr& deviceConfig)
     : context(context)
     , ownerDeviceRef(ownerDevice)
-    , deviceConfig(deviceConfig)
+    , streamingConfig(deviceConfig.getStreamingOptions().getStreamingConfig())
     , loggerComponent(context.getLogger().getOrAddComponent(fmt::format("StreamingSourceManager({})", ownerDevice.getGlobalId())))
-    , requiredStreamingProtocolId(streamingProtocolId)
+    , streamingMode(deviceConfig.getStreamingOptions().getStreamingMode())
+    , requiredStreamingPrefix(streamingConfig.getStreamingType().getConnectionStringPrefix())
+    , primaryAddressType(deviceConfig.getPrimaryAddressType())
 {
-    PropertyObjectPtr generalConfig = this->deviceConfig.getPropertyValue("General");
-    minHopsStreamingHeuristicEnabled = generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1;
-    primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
     this->context.getOnCoreEvent() += event(this, &StreamingSourceManager::coreEventCallback);
 }
 
@@ -141,10 +143,10 @@ inline void StreamingSourceManager::componentAdded(const ComponentPtr& sender, c
 
     if (auto topAddedDevice = addedComponent.asPtrOrNull<IMirroredDeviceConfig>(); topAddedDevice.assigned())
     {
-        if (addedComponentGlobalId == ownerDeviceGlobalId || minHopsStreamingHeuristicEnabled)
+        if (addedComponentGlobalId == ownerDeviceGlobalId || streamingMode == StreamingMode::MinHops)
             completeStreamingConnections(topAddedDevice);
 
-        if (minHopsStreamingHeuristicEnabled)
+        if (streamingMode == StreamingMode::MinHops)
         {
             // enable streaming separately for top added and each of the nested devices - from bottom to top
             const auto allDevicesInTree = getAllDevicesRecursively(topAddedDevice);
@@ -188,7 +190,7 @@ inline void StreamingSourceManager::componentUpdated(const ComponentPtr& sender,
         else
         {
             if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredSignalConfig>();
-                updatedDevice.assigned() && minHopsStreamingHeuristicEnabled)
+                updatedDevice.assigned() && streamingMode == StreamingMode::MinHops)
                 completeStreamingConnections(updatedDevice);
             enableStreamingForUpdatedComponent(updatedComponent);
         }
@@ -209,7 +211,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         }
     );
     auto ancestorDevices = List<IDevice>();
-    if (minHopsStreamingHeuristicEnabled) // skip nested devices' streamings if MinHops disabled
+    if (streamingMode == StreamingMode::MinHops) // skip nested devices' streamings if MinHops disabled
         ancestorDevices = ownerDevice.getDevices(search::Recursive(search::Custom(isAncestorOrAddedComponent)));
     ancestorDevices.pushFront(ownerDevice);
 
@@ -416,36 +418,19 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    
-    auto result = List<IAddressInfo>();
-
-    auto const addToResult = [&result, &deviceConnectionAddress](AddressInfoPtr addressInfo)
+    auto sorted = sortAddressInfos(availableAddressesInfo, primaryAddressType);
+    if (deviceConnectionAddress.assigned())
     {
-        if (deviceConnectionAddress.assigned() && addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-            result.pushFront(addressInfo);
-        else
-            result.pushBack(addressInfo);
-    };
-
-    if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
-    {
-        for (const auto& addressInfo : availableAddressesInfo)
+        const auto isConnectionAddress = [&deviceConnectionAddress](const AddressInfoPtr& addressInfo)
         {
-            if (addressInfo.getType() == primaryAddressType)
-                addToResult(addressInfo);
-        }
-
-        if (!result.empty())
-            return result;
-
-        LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
+            return addressInfo.getAddress() == deviceConnectionAddress.getAddress();
+        };
+        std::stable_partition(sorted.begin(), sorted.end(), isConnectionAddress);
     }
 
-    for (const auto& addressInfo : availableAddressesInfo)
-    {
-        addToResult(addressInfo);
-    }
-
+    auto result = List<IAddressInfo>();
+    for (const auto& addressInfo : sorted)
+        result.pushBack(addressInfo);
     return result;
 }
 
@@ -473,7 +458,7 @@ inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const D
 
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
 {
-    if (minHopsStreamingHeuristicEnabled)
+    if (streamingMode == StreamingMode::MinHops)
     {
         // The order of handling nested devices is important since we need to establish streaming connections
         // for the leaf devices first. The custom function is used to get the list of sub-devices
@@ -512,50 +497,40 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
-        [[maybe_unused]] const auto protoGroupId = cap.getProtocolGroupId();
-
-        LOG_D("Device {} has streaming capability: name [{}] group id [{}] id [{}] string [{}] prefix [{}]",
+        LOG_D("Device {} has streaming capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
-              protoGroupId.assigned() ? protoGroupId : "<none>",
               cap.getProtocolId(),
               cap.getConnectionString(),
               cap.getPrefix());
 
         const StringPtr capabilityProtocolId = cap.getProtocolId();
-        // the protocol id should match to the required
-        if (cap.getProtocolType() != ProtocolType::Streaming || capabilityProtocolId != requiredStreamingProtocolId)
+        if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
+
+        if (!AnnouncesSelectedTransportOption(streamingConfig, cap))
+        {
+            LOG_D("Device {}: capability {} does not announce the selected transport option", device.getGlobalId(), capabilityProtocolId);
+            continue;
+        }
+
+        const auto streamingPort = GetCapabilityConnectionPort(streamingConfig, streamingConfig.getStreamingType(), cap);
+        const auto withStreamingPort = [&streamingPort](const StringPtr& connectionString) -> StringPtr
+        {
+            return streamingPort.has_value() ? ReplaceConnectionStringPort(connectionString, streamingPort.value()) : connectionString;
+        };
 
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
             (discoveredAddrsByProtocol.count(capabilityProtocolId) > 0) ? discoveredAddrsByProtocol.at(capabilityProtocolId) : cap.getAddressInfo();
 
-        // get the addresses of primary type giving the priority to known config connection address
         const auto suitableAddressesInfo = getSuitableAddressesInfo(addressesToUse, deviceConnectionAddress);
 
         auto streamingConnectionStrings = List<IString>();
         for (const auto& addressInfo : suitableAddressesInfo)
-            streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
+            streamingConnectionStrings.pushBack(withStreamingPort(addressInfo.getConnectionString()));
         if (streamingConnectionStrings.empty())
-            streamingConnectionStrings.pushBack(cap.getConnectionString());
-
-        // The streaming connects at the port of the capability's connection strings, which is the port of the server's
-        // default transport option, and its module gets the type's first option (see
-        // ModuleManagerImpl::onCreateStreaming). With the new createDevice the streaming is expected to connect over the
-        // option the add-device config selects for it (for example through IDevice::getAddDeviceConfig), at the port the
-        // server announces for that option:
-        //
-        //   streamingConfig = the streaming config of the add-device config the device was added with
-        //   selected = streamingConfig.getSelectedTransportOption();
-        //              for a Streaming type linked to the Device type, the option the device is added over
-        //   options = cap.getAvailableTransportOptions()
-        //   if !options.hasKey(selected.getId()): skip the capability
-        //   option = options.get(selected.getId())
-        //   port = the Port property of streamingConfig is not -1 ? streamingConfig.getPort() : option.getPort()
-        //   for each connection string: connectionString = ReplaceConnectionStringPort(connectionString, port)
-        //   the streaming type config gets TransportOptionConfigProperty = selected.getId() and
-        //   PortConfigProperty = port
+            streamingConnectionStrings.pushBack(withStreamingPort(cap.getConnectionString()));
 
         // try all suitable addresses until the first successful streaming connection
         for (const auto& connectionString : streamingConnectionStrings)
@@ -572,7 +547,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             auto errCode = daqTry(
                 [&]()
                 {
-                    streaming = managerUtils.createStreaming(connectionString, deviceConfig);
+                    streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
                     return OPENDAQ_SUCCESS;
                 });
             if (OPENDAQ_FAILED(errCode))
@@ -600,7 +575,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     }
     else
     {
-        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingProtocolId);
+        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingPrefix);
     }
 }
 

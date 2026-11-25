@@ -36,15 +36,14 @@ SecurityMode SecurityModeFromString(const StringPtr& securityMode)
 
 }
 
-TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
-                                         Int port,
-                                         SecurityMode securityMode,
-                                         Bool certificateRequired)
-    : id(id)
-    , port(port)
-    , securityMode(securityMode)
-    , certificateRequired(certificateRequired)
+TransportOptionImpl::TransportOptionImpl(ITransportOptionBuilder* builder)
 {
+    const auto builderPtr = TransportOptionBuilderPtr::Borrow(builder);
+    this->id = builderPtr.getId();
+    this->port = builderPtr.getPort();
+    this->securityMode = builderPtr.getSecurityMode();
+    this->certificateRequired = builderPtr.getCertificateRequired();
+
     if (!id.assigned() || id.getLength() == 0)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The transport option id must not be empty");
     if (securityMode != SecurityMode::None && securityMode != SecurityMode::Signed && securityMode != SecurityMode::Encrypted)
@@ -133,22 +132,20 @@ ErrCode TransportOptionImpl::Deserialize(ISerializedObject* serialized,
     return daqTry([&]
     {
         const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
-        const StringPtr id = serializedObj.readString("id");
-        const Int port = serializedObj.readInt("port");
-        const SecurityMode securityMode = SecurityModeFromString(serializedObj.readString("securityMode"));
-        const Bool certificateRequired = serializedObj.readBool("certificateRequired");
+        const auto builder = TransportOptionBuilder(serializedObj.readString("id"))
+                                 .setPort(serializedObj.readInt("port"))
+                                 .setSecurityMode(SecurityModeFromString(serializedObj.readString("securityMode")))
+                                 .setCertificateRequired(serializedObj.readBool("certificateRequired"));
 
-        *obj = TransportOption(id, port, securityMode, certificateRequired).detach();
+        *obj = builder.build().detach();
         return OPENDAQ_SUCCESS;
     });
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, TransportOption, ITransportOption,
-    IString*, id,
-    Int, port,
-    SecurityMode, securityMode,
-    Bool, certificateRequired
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, TransportOption,
+    ITransportOption, createTransportOptionFromBuilder,
+    ITransportOptionBuilder*, builder
 )
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TransportOptionImpl)

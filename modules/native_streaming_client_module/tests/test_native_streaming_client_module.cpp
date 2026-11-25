@@ -1,4 +1,5 @@
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 #include <native_streaming_client_module/module_dll.h>
 #include <native_streaming_client_module/version.h>
 #include <native_streaming_client_module/native_device_utils.h>
@@ -493,6 +494,34 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsGivenPort)
     ASSERT_TRUE(module.completeServerCapability(source, target));
     ASSERT_EQ(capabilityPort(target), 1234);
     ASSERT_EQ(target.getConnectionString(), prefix + "://127.0.0.1:1234");
+}
+
+// The connection string takes the port of the first option the capability announces, here of a TLS-only server
+TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityTakesPortOfFirstOption)
+{
+    const auto module = CreateModule();
+
+    const auto sourceAddressInfo = AddressInfoBuilder()
+                                       .setAddress("127.0.0.1")
+                                       .setType("IPv4")
+                                       .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                       .setConnectionString("daq.opcua://127.0.0.1")
+                                       .build();
+
+    const auto source = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUAConfiguration", ProtocolType::Configuration)
+                            .setConnectionType("TCP/IP")
+                            .setPrefix("daq.opcua")
+                            .addAddress("127.0.0.1")
+                            .addAddressInfo(sourceAddressInfo);
+
+    const std::string protocolId = "OpenDAQNativeConfiguration";
+    const std::string prefix = "daq.nd";
+
+    auto target = ServerCapability(protocolId, protocolId, ProtocolType::ConfigurationAndStreaming).setPrefix(prefix);
+    target.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("wss", 7502, SecurityMode::Encrypted)}));
+
+    ASSERT_TRUE(module.completeServerCapability(source, target));
+    ASSERT_EQ(target.getConnectionString(), prefix + "://127.0.0.1:7502");
 }
 
 TEST_F(NativeStreamingClientModuleTest, CollectAlternativeAddresses)

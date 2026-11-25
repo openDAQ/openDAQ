@@ -17,6 +17,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
 #include <native_streaming_protocol/native_streaming_transport_options.h>
+#include <opendaq/container_utils.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -747,6 +748,14 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         return false;
     }
 
+    Int port;
+    if (const TransportOptionPtr defaultOption = FirstValue(target.getAvailableTransportOptions()); defaultOption.assigned())
+    {
+        port = defaultOption.getPort();
+    }
+    else
+    {
+        // A server older than the transport options announces only the Port of the capability
 #if defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -755,13 +764,15 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     #pragma warning(push)
     #pragma warning(disable : 4996)
 #endif
-    auto port = target.getPort();
+        port = target.getPort();
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
 #if defined(__GNUC__)
     #pragma GCC diagnostic pop
 #endif
+    }
+
     if (port == -1)
     {
         port = DEFAULT_PORT;
@@ -782,7 +793,7 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         const auto prefix = target.getPrefix();
         const auto sourceConnectionString = addrInfo.getConnectionString();
         StringPtr connectionString;
-        if (source.getPrefix() == prefix && ConnectionStringUtils::GetPort(sourceConnectionString) == std::to_string(static_cast<Int>(port)))
+        if (source.getPrefix() == prefix && ConnectionStringUtils::GetPort(sourceConnectionString) == std::to_string(port))
             connectionString = sourceConnectionString;
         else
             connectionString = CreateUrlConnectionString(prefix, address, port, path);

@@ -12,7 +12,6 @@
 #include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_client_device_info_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
-#include <coretypes/json_deserializer_factory.h>
 #include <config_protocol/config_client_property.h>
 #include <opendaq/exceptions.h>
 
@@ -393,18 +392,6 @@ PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std:
     if (getProtocolVersion() < 19)
         return PropertyObject();
     return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
-}
-
-AddDeviceConfigPtr ConfigProtocolClientComm::createAddDeviceConfig(const std::string& globalId,
-                                                                   const DeviceInfoPtr& info,
-                                                                   const StringPtr& prefix)
-{
-    if (getProtocolVersion() < 27)
-        DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config on a remote device requires config protocol version 27.");
-
-    auto params = Dict<IString, IBaseObject>({{"Info", info}, {"Prefix", prefix}});
-    const StringPtr serialized = sendComponentCommand(globalId, ClientCommand("CreateAddDeviceConfig", 27), params);
-    return JsonDeserializer().deserialize(serialized);
 }
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)

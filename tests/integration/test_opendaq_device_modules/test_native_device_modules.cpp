@@ -3940,28 +3940,6 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
-TEST_F(NativeDeviceModulesTest, CreateAddDeviceConfigOnRemoteDevice)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
-    const auto remoteDevice = client.getDevices()[0];
-
-    const AddDeviceConfigPtr config = remoteDevice.createAddDeviceConfig(DeviceInfo("daqref://device1"));
-    ASSERT_EQ(config.getDeviceType().getId(), "daqref");
-
-    config.getTypeConfig().setPropertyValue("NumberOfChannels", 1);
-    const auto device = remoteDevice.addDevice("daqref://device1", config);
-    ASSERT_EQ(device.getChannels().getCount(), 1u);
-}
-
-TEST_F(NativeDeviceModulesTest, CreateAddDeviceConfigOnRemoteDeviceOfOldProtocol)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance(26);
-
-    ASSERT_THROW(client.getDevices()[0].createAddDeviceConfig(DeviceInfo("daqref://device1")), NotImplementedException);
-}
-
 TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
 {
     StringPtr config;

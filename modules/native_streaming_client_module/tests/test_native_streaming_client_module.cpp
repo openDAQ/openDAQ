@@ -410,6 +410,28 @@ TEST_F(NativeStreamingClientModuleTest, DefaultConfigTlsSettings)
 
 #endif
 
+namespace
+{
+IntegerPtr capabilityPort(const ServerCapabilityPtr& capability)
+{
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
+    return capability.getPort();
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
+}
+}
+
 // A capability which arrives without a port is completed with the default port
 TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityPortDefaults)
 {
@@ -436,11 +458,11 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityPortDefaults)
     for (const auto& [protocolId, prefix, port] : expected)
     {
         auto target = ServerCapability(protocolId, protocolId, ProtocolType::Streaming).setPrefix(prefix);
-        ASSERT_EQ(target.getPort(), -1) << protocolId;
+        ASSERT_EQ(capabilityPort(target), -1) << protocolId;
 
         ASSERT_TRUE(module.completeServerCapability(source, target)) << protocolId;
 
-        ASSERT_EQ(target.getPort(), port) << protocolId;
+        ASSERT_EQ(capabilityPort(target), port) << protocolId;
         ASSERT_EQ(target.getConnectionString(), prefix + "://127.0.0.1:" + std::to_string(port)) << protocolId;
     }
 }
@@ -469,7 +491,7 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsGivenPort)
     auto target = ServerCapability(protocolId, protocolId, ProtocolType::ConfigurationAndStreaming).setPrefix(prefix).setPort(1234);
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
-    ASSERT_EQ(target.getPort(), 1234);
+    ASSERT_EQ(capabilityPort(target), 1234);
     ASSERT_EQ(target.getConnectionString(), prefix + "://127.0.0.1:1234");
 }
 

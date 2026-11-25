@@ -22,6 +22,21 @@ void daqFunctionBlockType_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_FUNCTION_BLOCK_TYPE_INTF_ID;
 }
 
+daqErrCode daqFunctionBlockType_getInputPolicy(daqFunctionBlockType* self, daqFunctionBlockInputPolicy* policy)
+{
+    return reinterpret_cast<daq::IFunctionBlockType*>(self)->getInputPolicy(reinterpret_cast<daq::FunctionBlockInputPolicy*>(policy));
+}
+
+daqErrCode daqFunctionBlockType_getSingleton(daqFunctionBlockType* self, daqBool* singleton)
+{
+    return reinterpret_cast<daq::IFunctionBlockType*>(self)->getSingleton(singleton);
+}
+
+daqErrCode daqFunctionBlockType_getCommonSettingsTypeId(daqFunctionBlockType* self, daqString** typeId)
+{
+    return reinterpret_cast<daq::IFunctionBlockType*>(self)->getCommonSettingsTypeId(reinterpret_cast<daq::IString**>(typeId));
+}
+
 daqErrCode daqFunctionBlockType_createFunctionBlockType(daqFunctionBlockType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig)
 {
     daq::IFunctionBlockType* ptr = nullptr;

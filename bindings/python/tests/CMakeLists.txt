@@ -18,6 +18,7 @@ set(PYHTON_TEST_SRC
     test_freezable.py
     test_synchronization.py
     test_type_manager.py
+    test_function_block_type.py
 )
 
 option(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS "Use python executable from virtual environment for tests" OFF)

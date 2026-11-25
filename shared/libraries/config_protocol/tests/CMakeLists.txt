@@ -13,8 +13,10 @@ set(TEST_SOURCES
     test_ref_modules.cpp
     test_app.cpp
     test_core_events.cpp
+    test_core_event_concurrency.cpp
     test_nested_property_objects.cpp
     test_remote_update.cpp
+    test_config_protocol_singleton.cpp
     test_c2d_streaming.cpp
     test_gateway_devices.cpp
     test_synchronization.cpp

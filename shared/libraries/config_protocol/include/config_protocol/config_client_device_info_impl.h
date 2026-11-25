@@ -32,6 +32,8 @@ public:
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
 
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
                                              IBaseObject* context,
@@ -84,6 +86,20 @@ inline ErrCode ConfigClientDeviceInfoImpl::setValueInternal(IString* propertyNam
 inline ErrCode ConfigClientDeviceInfoImpl::addProperty(IProperty* property)
 {
     return Impl::addProperty(property);
+}
+
+inline ErrCode ConfigClientDeviceInfoImpl::beginUpdate()
+{
+    if (this->remoteUpdating)
+        return Impl::beginUpdate();
+    return Super::beginUpdate();
+}
+
+inline ErrCode ConfigClientDeviceInfoImpl::endUpdate()
+{
+    if (this->remoteUpdating)
+        return Impl::endUpdate();
+    return Super::endUpdate();
 }
 
 inline ErrCode ConfigClientDeviceInfoImpl::deserializeValues(ISerializedObject* serializedObject,

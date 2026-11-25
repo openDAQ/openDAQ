@@ -276,6 +276,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
+    OPENDAQ_PARAM_NOT_NULL(value);
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     return daqTry([this, &propertyNamePtr, &value]()

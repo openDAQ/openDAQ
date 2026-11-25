@@ -19,6 +19,8 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <atomic>
+#include <memory>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -38,7 +40,8 @@ public:
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        Int initTimeout,
-                                       const DeviceTypePtr& type);
+                                       const DeviceTypePtr& type,
+                                       std::shared_ptr<std::atomic<bool>> callbacksHoldDevice);
 
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
@@ -66,6 +69,9 @@ protected:
     DeviceTypePtr deviceType;
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient;
+
+    // Set by the creator once it references the device; from then on a streaming callback runs only while it holds the device
+    const std::shared_ptr<std::atomic<bool>> callbacksHoldDevice;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

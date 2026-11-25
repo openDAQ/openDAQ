@@ -145,10 +145,7 @@ class ConnectionStringUtils
 public:
     static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
-    /// @param defaultPort used when neither the connection string nor the config sets a port
-    static StringPtr GetPort(const StringPtr& url,
-                             const PropertyObjectPtr& config = nullptr,
-                             Int defaultPort = opendaq_native_streaming_protocol::DEFAULT_PORT);
+    static StringPtr GetPort(const StringPtr& url);
     static StringPtr GetPath(const StringPtr& url);
 };
 

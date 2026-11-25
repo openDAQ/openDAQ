@@ -48,9 +48,9 @@ bool IsTlsTransport(const StringPtr& id)
 }
 
 // The option at the port the connection is made to, for the connection info
-TransportOptionPtr ConnectedTransportOption(const TransportOptionPtr& option, const StringPtr& port)
+TransportOptionPtr ConnectedTransportOption(const TransportOptionPtr& option, Int port)
 {
-    return TransportOptionBuilderCopy(option).setPort(std::stoi(port.toStdString())).build();
+    return TransportOptionBuilderCopy(option).setPort(port).build();
 }
 
 }
@@ -185,7 +185,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& connectionString,
                                                           const PropertyObjectPtr& deviceConfig,
                                                           const StringPtr& host,
-                                                          const StringPtr& port,
+                                                          Int port,
                                                           const StringPtr& path,
                                                           uint16_t& protocolVersion,
                                                           const TransportOptionPtr& transportOption)
@@ -385,9 +385,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
     const TransportOptionPtr transportOption = SelectedTransportOption(config);
+    const Int port = config.getPropertyValue(PortConfigProperty);
 
     auto host = ConnectionStringUtils::GetHost(connectionString);
-    auto port = ConnectionStringUtils::GetPort(connectionString, config, transportOption.getPort());
     auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
@@ -431,7 +431,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
-            .setPort(std::stoi(port.toStdString()))
+            .setPort(port)
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo);
@@ -594,7 +594,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
 
 NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTransportClient(
     const StringPtr& host,
-    const StringPtr& port,
+    Int port,
     const StringPtr& path,
     const PropertyObjectPtr& config,
     bool secure)
@@ -623,7 +623,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
 #else
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
 #endif
-    if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
+    if (!transportClientHandler->connect(modifiedHost.toStdString(), std::to_string(port), path.toStdString()))
         DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
 
     return transportClientHandler;
@@ -698,9 +698,9 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     const TransportOptionPtr transportOption = SelectedTransportOption(config);
+    const Int port = config.getPropertyValue(PortConfigProperty);
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
-    StringPtr port = ConnectionStringUtils::GetPort(connectionString, config, transportOption.getPort());
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");

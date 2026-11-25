@@ -639,7 +639,7 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
     std::smatch match;
@@ -647,18 +647,10 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    Int port = defaultPort;
+    Int port = opendaq_native_streaming_protocol::DEFAULT_PORT;
 
     if (std::regex_search(suffix, match, RegexPort))
         port = std::stoi(match[1]);
-
-    if (config.assigned() && config.hasProperty("Port"))
-    {
-        const Int configuredPort = config.getPropertyValue("Port");
-        const Int configDefaultPort = config.getProperty("Port").getDefaultValue();
-        if (configuredPort != configDefaultPort)
-            port = configuredPort;
-    }
 
     return String(std::to_string(port));
 }

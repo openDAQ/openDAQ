@@ -225,6 +225,15 @@ inline void ApplyConnectionStringTransportOptions(const AddDeviceConfigPtr& conf
     }
 }
 
+// A module without transport options learns the port only from the connection string, so a port set goes into it
+template <typename ConfigPtr>
+StringPtr PutPortSetInConnectionString(const ConfigPtr& config, const StringPtr& connectionString)
+{
+    if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getSelectedTransportOption().assigned())
+        return ReplaceConnectionStringPort(connectionString, portSet);
+    return connectionString;
+}
+
 template <typename ConfigPtr>
 void CheckPortMatchesConnectionString(const ConfigPtr& config, const StringPtr& connectionString)
 {
@@ -1144,10 +1153,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                     deviceType.getId());
             }
 
-            // A module without transport options learns the port only from the connection string
-            if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getSelectedTransportOption().assigned())
-                return ReplaceConnectionStringPort(connectionStringPtr, portSet);
-            return connectionStringPtr;
+            return PutPortSetInConnectionString(config, connectionStringPtr);
         }
 
         const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
@@ -1942,10 +1948,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     {
         CheckPortMatchesConnectionString(addStreamingConfig, connectionString);
 
-        // A module without transport options learns the port only from the connection string
-        const Int portSet = GetPortSet(addStreamingConfig);
-        if (portSet != -1 && !addStreamingConfig.getSelectedTransportOption().assigned())
-            targetConnectionString = ReplaceConnectionStringPort(connectionString, portSet);
+        targetConnectionString = PutPortSetInConnectionString(addStreamingConfig, connectionString);
     }
     else if (config.assigned())
     {

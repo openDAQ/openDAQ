@@ -5,6 +5,7 @@
 #include <opendaq/add_device_config_legacy.h>
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/container_utils.h>
+#include <opendaq/add_config_transport_selection.h>
 #include <opendaq/streaming_type_utils.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/json_serializer_factory.h>
@@ -21,8 +22,6 @@ static const char* PrimaryAddressType = "PrimaryAddressType";
 static const char* ScanOnAdd = "ScanOnAdd";
 static const char* Streaming = "Streaming";
 static const char* AuthenticationConfig = "AuthenticationConfig";
-static const char* TransportOption = "TransportOption";
-static const char* Port = "Port";
 
 static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
@@ -117,15 +116,7 @@ void AddDeviceConfigImpl::addConfigProperties(const DictPtr<IString, IStreamingT
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    if (this->transportOptions.getCount() > 0)
-    {
-        const TransportOptionPtr firstOption = FirstValue(this->transportOptions);
-        Super::addProperty(StringPropertyBuilder(add_device_config::TransportOption, firstOption.getId())
-                               .setSelectionValues(this->transportOptions.getKeyList())
-                               .build());
-    }
-
-    Super::addProperty(IntPropertyBuilder(add_device_config::Port, -1).setMinValue(-1).build());
+    add_config::AddTransportSelectionProperties(objPtr, this->transportOptions);
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
@@ -391,7 +382,7 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
         // Without this key the first option of the server would become the first option of the type on load.
         if (transportOptions.getCount() > 0)
         {
-            const StringPtr selected = objPtr.getPropertyValue(add_device_config::TransportOption);
+            const StringPtr selected = objPtr.getPropertyValue(TransportOptionConfigProperty);
             serializerPtr.key(add_device_config::SelectedTransportOptionKey);
             serializerPtr.writeString(selected);
         }
@@ -423,66 +414,22 @@ ErrCode AddDeviceConfigImpl::getAvailableTransportOptions(IDict** transportOptio
 
 ErrCode AddDeviceConfigImpl::setTransportOption(IString* id)
 {
-    OPENDAQ_PARAM_NOT_NULL(id);
-
-    return daqTry([&]
-    {
-        const StringPtr idStr = id;
-        if (!transportOptions.hasKey(idStr))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", idStr));
-
-        // A port set stays: it overrides the port of whichever option is selected
-        return Super::setPropertyValue(String(add_device_config::TransportOption), idStr);
-    });
+    return add_config::SetTransportOption(objPtr, transportOptions, id);
 }
 
 ErrCode AddDeviceConfigImpl::getSelectedTransportOption(ITransportOption** transportOption)
 {
-    OPENDAQ_PARAM_NOT_NULL(transportOption);
-
-    if (transportOptions.getCount() == 0)
-    {
-        *transportOption = nullptr;
-        return OPENDAQ_SUCCESS;
-    }
-
-    // The property only takes the ids of the options
-    return daqTry([&]
-    {
-        const StringPtr selected = objPtr.getPropertyValue(add_device_config::TransportOption);
-        *transportOption = transportOptions.get(selected).detach();
-    });
+    return add_config::GetSelectedTransportOption(objPtr, transportOptions, transportOption);
 }
 
 ErrCode AddDeviceConfigImpl::setPort(Int port)
 {
-    // -1 drops the port set, so the port of the selected option applies again
-    if (port == -1)
-        return Super::clearPropertyValue(String(add_device_config::Port));
-
-    if (port < 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The port must not be negative, other than -1");
-
-    return Super::setPropertyValue(String(add_device_config::Port), Integer(port));
+    return add_config::SetPort(objPtr, port);
 }
 
 ErrCode AddDeviceConfigImpl::getPort(Int* port)
 {
-    OPENDAQ_PARAM_NOT_NULL(port);
-
-    return daqTry([&]
-    {
-        // A port set is used whichever option is selected; -1 means none is set
-        const Int portSet = objPtr.getPropertyValue(add_device_config::Port);
-        if (portSet != -1 || transportOptions.getCount() == 0)
-        {
-            *port = portSet;
-            return;
-        }
-
-        const StringPtr selected = objPtr.getPropertyValue(add_device_config::TransportOption);
-        *port = transportOptions.get(selected).getPort();
-    });
+    return add_config::GetPort(objPtr, transportOptions, port);
 }
 
 bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)

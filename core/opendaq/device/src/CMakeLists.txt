@@ -190,6 +190,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/add_device_config_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_options_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_config_impl.h
+        ${SDK_HEADERS_DIR}/add_config_transport_selection.h
         ${SDK_SRC_DIR}/add_device_config_impl.cpp
         ${SDK_SRC_DIR}/add_device_config_legacy.cpp
         ${SDK_SRC_DIR}/add_streaming_options_impl.cpp
@@ -267,6 +268,7 @@ set(SRC_PrivateHeaders_Component
     add_device_config_impl.h
     add_streaming_options_impl.h
     add_streaming_config_impl.h
+    add_config_transport_selection.h
     add_device_config_legacy.h
     PARENT_SCOPE
 )

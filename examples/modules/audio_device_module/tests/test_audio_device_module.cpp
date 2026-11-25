@@ -8,6 +8,13 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/channel_ptr.h>
+#include <opendaq/signal_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
+#include <coretypes/ratio_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
+#include <chrono>
+#include <thread>
 
 using AudioDeviceModuleTest = testing::Test;
 using namespace daq;
@@ -101,6 +108,28 @@ TEST_F(AudioDeviceModuleTest, CreateDeviceConnectionStringCorrect)
         DevicePtr device;
         ASSERT_NO_THROW(device = module.createDevice(connectionString, nullptr));
     }
+}
+
+TEST_F(AudioDeviceModuleTest, ChangeSampleRateWhileCapturing)
+{
+    auto module = CreateModule();
+    const auto deviceInfoList = module.getAvailableDevices();
+    if (deviceInfoList.getCount() == 0)
+        GTEST_SKIP() << "No audio capture device";
+
+    const auto device = module.createDevice(deviceInfoList[0].getConnectionString(), nullptr);
+
+    {
+        // Held long enough that a callback taking the device lock would be waiting for it when the write stops the stream
+        const auto deviceLock = device.asPtr<IPropertyObjectInternal>().getRecursiveLockGuard();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        // Selection key 6 is 22050 Hz
+        device.setPropertyValue("SampleRate", 6);
+    }
+
+    const auto timeSignal = device.getChannels()[0].getSignals()[0].getDomainSignal();
+    ASSERT_EQ(timeSignal.getDescriptor().getTickResolution(), Ratio(1, 22050));
 }
 
 TEST_F(AudioDeviceModuleTest, AddFunctionBlockBackwardsCompat)

@@ -209,9 +209,19 @@ bool initAudioDevice(ma_context* pContext, const ma_device_config* pConfig, ma_d
     return true;
 }
 
+// miniaudio's own test for an asynchronous backend (Core Audio, JACK, AAudio, OpenSL|ES, Web Audio), which it keeps internal
+static bool isAsynchronousBackend(const ma_context* pContext)
+{
+    const auto& callbacks = pContext->callbacks;
+    return callbacks.onDeviceRead == nullptr && callbacks.onDeviceWrite == nullptr && callbacks.onDeviceDataLoop == nullptr;
+}
+
 void uninitializeDevice(ma_device* pDevice)
 {
     ComGuard guard;
+    // Stopped first only where uninit does not wait for the audio thread; elsewhere stopping can hang after system sleep
+    if (isAsynchronousBackend(pDevice->pContext) && ma_device_is_started(pDevice))
+        ma_device_stop(pDevice);
     ma_device_uninit(pDevice);
 }
 

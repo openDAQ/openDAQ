@@ -38,10 +38,9 @@ inline constexpr const char* TransportOptionConfigProperty = "TransportOption";
  * An Int property next to TransportOptionConfigProperty, added the same way. A module that already declares a "Port"
  * property in its type config keeps it; otherwise the default is the port of the type's first transport option.
  *
- * When the device or streaming is added with an add-device or add-streaming config, the property holds the port to
- * connect at, and the connection string names the same port (see IAddDeviceConfig and IAddStreamingConfig). Otherwise
- * the module chooses the port: a value that differs from the property's default comes first, then the port the
- * connection string names, then the default.
+ * The module manager sets the property to the port to connect at, chosen as IAddDeviceConfig and IAddStreamingConfig
+ * describe, also when the device or streaming is added without such a config. The connection string the module gets
+ * can name another port: the module connects at the port of this property.
  */
 inline constexpr const char* PortConfigProperty = "Port";
 

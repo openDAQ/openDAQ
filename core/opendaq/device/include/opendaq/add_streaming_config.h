@@ -47,9 +47,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * 1. the port set on the config;
  * 2. the port named by the connection string the streaming is added with (e.g. "daq.ns://127.0.0.1:7420");
  * 3. the port of the selected option.
- *
- * A port set and another port named by the connection string contradict each other: adding the streaming fails with
- * OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {

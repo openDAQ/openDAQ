@@ -465,13 +465,13 @@ TEST_F(TransportSelectionTest, SamePortSetAndInString)
     expectConnection("dev://host:7500", "plain", 7500);
 }
 
-TEST_F(TransportSelectionTest, DifferentPortSetAndInStringRejected)
+TEST_F(TransportSelectionTest, PortSetWinsOverOtherPortInString)
 {
     const auto config = configFor("dev://host");
     config.setPort(7500);
 
-    ASSERT_EQ(create("dev://host:7600", config), OPENDAQ_ERR_INVALIDPARAMETER);
-    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+    ASSERT_EQ(create("dev://host:7600", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7500);
 }
 
 TEST_F(TransportSelectionTest, ConnectionStringSelectsOptionAndPort)
@@ -489,10 +489,10 @@ TEST_F(TransportSelectionTest, ConnectionStringWithUnknownOptionRejected)
     ASSERT_EQ(module->connectionStrings.getCount(), 0u);
 }
 
-TEST_F(TransportSelectionTest, ConnectionStringPortAndOtherPortInStringRejected)
+TEST_F(TransportSelectionTest, ConnectionStringPortWinsOverOtherPortInString)
 {
-    ASSERT_EQ(create("dev://host:7600?Port=7500", configFor("dev://host")), OPENDAQ_ERR_INVALIDPARAMETER);
-    ASSERT_EQ(module->connectionStrings.getCount(), 0u);
+    ASSERT_EQ(create("dev://host:7600?Port=7500", configFor("dev://host")), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:7600", "plain", 7500);
 }
 
 TEST_F(TransportSelectionTest, ConnectionStringOptionsDoNotChangeConfigOfUser)
@@ -638,13 +638,13 @@ TEST_F(TransportSelectionTest, StreamingUsesPortOfString)
     expectStreamingConnection("str://host:7500", "tls", 7500);
 }
 
-TEST_F(TransportSelectionTest, StreamingWithDifferentPortSetAndInStringRejected)
+TEST_F(TransportSelectionTest, StreamingPortSetWinsOverOtherPortInString)
 {
     const auto config = streamingConfig();
     config.setPort(7500);
 
-    ASSERT_THROW(utils().createStreaming("str://host:7600", config), InvalidParameterException);
-    ASSERT_EQ(module->streamingTypeConfigs.getCount(), 0u);
+    addStreaming("str://host:7600", config);
+    expectStreamingConnection("str://host:7600", "plain", 7500);
 }
 
 TEST_F(TransportSelectionTest, StreamingConfigOfUserStaysAsItIs)

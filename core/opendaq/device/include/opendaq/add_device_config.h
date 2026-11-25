@@ -52,9 +52,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * 2. the port named by the connection string the device is added with (e.g. "daq.nd://127.0.0.1:7420"), even when
  *    that string is taken from a device info;
  * 3. the port of the selected option.
- *
- * A port set and another port named by the connection string contradict each other: adding the device fails with
- * OPENDAQ_ERR_INVALIDPARAMETER.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {

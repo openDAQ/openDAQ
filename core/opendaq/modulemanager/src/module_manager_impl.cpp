@@ -234,18 +234,17 @@ StringPtr PutPortSetInConnectionString(const ConfigPtr& config, const StringPtr&
     return connectionString;
 }
 
-template <typename ConfigPtr>
-void CheckPortMatchesConnectionString(const ConfigPtr& config, const StringPtr& connectionString)
+inline void WarnIfPortSetOverridesConnectionString(Int portSet,
+                                                   const StringPtr& connectionString,
+                                                   const LoggerComponentPtr& loggerComponent)
 {
-    const Int portSet = GetPortSet(config);
     const auto stringPort = GetConnectionStringPort(connectionString);
     if (portSet != -1 && stringPort.has_value() && stringPort.value() != portSet)
     {
-        DAQ_THROW_EXCEPTION(InvalidParameterException,
-                            R"(The port {} set on the config differs from the port {} of the connection string "{}")",
-                            portSet,
-                            stringPort.value(),
-                            connectionString);
+        LOG_W(R"(Connecting at the port {} set on the config instead of the port {} of the connection string "{}")",
+              portSet,
+              stringPort.value(),
+              connectionString);
     }
 }
 
@@ -1134,8 +1133,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
 
     const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
     ApplyConnectionStringTransportOptions(addDeviceConfig, connectionStringOptions);
-    if (inputAddDeviceConfig.assigned())
-        CheckPortMatchesConnectionString(addDeviceConfig, connectionStringPtr);
+    WarnIfPortSetOverridesConnectionString(GetPortSet(addDeviceConfig), connectionStringPtr, loggerComponent);
 
     // Check the device type and resolve the address
     const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
@@ -1946,8 +1944,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     PropertyObjectPtr typeConfig;
     if (addStreamingConfig.assigned())
     {
-        CheckPortMatchesConnectionString(addStreamingConfig, connectionString);
-
+        WarnIfPortSetOverridesConnectionString(GetPortSet(addStreamingConfig), connectionString, loggerComponent);
         targetConnectionString = PutPortSetInConnectionString(addStreamingConfig, connectionString);
     }
     else if (config.assigned())
@@ -1991,6 +1988,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                     streamingTypeConfig = streamingType.createDefaultConfig();
 
                 const Int portSet = GetLegacyPortSet(streamingTypeConfig, streamingType);
+                WarnIfPortSetOverridesConnectionString(portSet, targetConnectionString, loggerComponent);
                 AddTransportSelectionProperties(streamingTypeConfig, options);
                 checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
 

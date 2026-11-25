@@ -8,7 +8,7 @@ from ..app_context import AppContext
 from .generic_properties_treeview import PropertiesTreeview
 
 NO_DOMAIN = 'No reference domain'
-LOCAL_CLOCKS = 'Local clocks'
+INTERNAL_CLOCKS = 'Internal clocks'
 SOURCE_STATUS = 'SyncSourceStatus'
 ROLE_STATUS = 'SyncRoleStatus'
 
@@ -319,10 +319,10 @@ class SyncView(ttk.Frame):
             groups.append((domain, owner, members))
 
         feeding = [owner for domain, owner, members in groups if owner is not None and owner not in members]
-        alone = {domain for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1}
-        local = [members[0] for domain, owner, members in groups if domain in alone and members[0] not in feeding]
-        if local:
-            yield 'l:', LOCAL_CLOCKS, None, local
+        alone = {domain for domain, owner, members in groups if domain.startswith('internal:') and len(members) == 1}
+        internal = [members[0] for domain, owner, members in groups if domain in alone and members[0] not in feeding]
+        if internal:
+            yield 'i:', INTERNAL_CLOCKS, None, internal
 
         # Prefixed keys, so no reported domain can collide with another group's key
         for domain, owner, members in groups:
@@ -359,9 +359,9 @@ class SyncView(ttk.Frame):
 
     @staticmethod
     def clock_owner(domain, members, owners):
-        local = (record for record in members if record.source.sync_type == 'local')
+        internal = (record for record in members if record.source.sync_type == 'internal')
         inside = (record for record in members if record.domain == domain)
-        return owners.get(domain) or next(local, None) or next(inside, None)
+        return owners.get(domain) or next(internal, None) or next(inside, None)
 
     def tree_fill(self):
         closed = {iid for iid in self.tree.get_children() if not self.tree.item(iid, 'open')}

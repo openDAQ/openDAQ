@@ -293,7 +293,7 @@ TEST_F(SynchronizationTest, getInterfaces)
     const auto interfaces = sync.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
     ASSERT_TRUE(interfaces.hasKey("InternalClock"));
-    ASSERT_EQ(sync.getSource().getSyncType(), "local");
+    ASSERT_EQ(sync.getSource().getSyncType(), "internal");
 }
 
 TEST_F(SynchronizationTest, getAvailableSources)
@@ -472,7 +472,7 @@ TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
     ListPtr<IString> referenceDomainId;
     ASSERT_ERROR_CODE_EQ(sync->getReferenceDomainIds(&referenceDomainId), OPENDAQ_SUCCESS);
     ASSERT_EQ(referenceDomainId.getCount(), 1u);
-    ASSERT_EQ(referenceDomainId[0], "local:testDevice");
+    ASSERT_EQ(referenceDomainId[0], "internal:testDevice");
 }
 
 TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSource)
@@ -486,7 +486,7 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSourc
     // ClockSyncInterface starts out as the selected source
     const DictPtr<IString, ISyncInterface> interfaces = sync.getInterfaces();
     const SyncInterfacePtr clockSyncInterface = interfaces.get("InternalClock");
-    ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "local:testDevice");
+    ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "internal:testDevice");
 
     // Demote it by switching the source to another interface
     const auto newInterface = TestSyncInterface::Create(manager);
@@ -601,7 +601,7 @@ TEST_F(SynchronizationTest, InterfaceInOffHasNoReferenceDomainId)
 
     const ListPtr<IString> ids = sync.getReferenceDomainIds();
     ASSERT_EQ(ids.getCount(), 1u);
-    ASSERT_EQ(ids[0], "local:testDevice");
+    ASSERT_EQ(ids[0], "internal:testDevice");
 
     syncInterface.setMode(SyncMode::Output);
     impl->setReferenceDomainId("ptp:0:0a0b0cfffe0d0e0f");
@@ -624,10 +624,10 @@ TEST_F(SynchronizationTest, InterfaceInOffIsLeftOutOfReferenceDomainIds)
 
     const ListPtr<IString> ids = sync.getReferenceDomainIds();
     ASSERT_EQ(ids.getCount(), 1u);
-    ASSERT_EQ(ids[0], "local:testDevice");
+    ASSERT_EQ(ids[0], "internal:testDevice");
 
     syncInterface.setMode(SyncMode::Output);
-    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("local:testDevice", "test:fixed"));
+    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("internal:testDevice", "test:fixed"));
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetId)

@@ -683,11 +683,11 @@ class App(tk.Tk):
 
     def shown_synchronization(self, node):
         # Outside the full topology a sync component row shows the device's synchronization instead, when
-        # that has more than the local clock, the default with nothing to configure
+        # that has more than the internal clock, the default with nothing to configure
         if self.current_tab() == DisplayType.TOPOLOGY or not daq.ISyncComponent.can_cast_from(node):
             return None
         synchronization = self.device_synchronization(node.parent)
-        if synchronization is None or all(i.sync_type == 'local' for i in synchronization.interfaces.values()):
+        if synchronization is None or all(i.sync_type == 'internal' for i in synchronization.interfaces.values()):
             return None
         return synchronization
 

@@ -271,8 +271,8 @@ TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSyncType)
     auto serverSource = serverSync.getSource();
     auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(serverSource.getSyncType(), "local");
-    ASSERT_EQ(clientSource.getSyncType(), "local");
+    ASSERT_EQ(serverSource.getSyncType(), "internal");
+    ASSERT_EQ(clientSource.getSyncType(), "internal");
 }
 
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)

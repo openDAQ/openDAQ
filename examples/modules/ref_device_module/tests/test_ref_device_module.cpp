@@ -188,7 +188,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
-    ASSERT_EQ(res, "local:openDAQ_DevSer1");
+    ASSERT_EQ(res, "internal:openDAQ_DevSer1");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
@@ -221,7 +221,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIds)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainIds();
-    ASSERT_EQ(res, List<IString>("local:openDAQ_DevSer1"));
+    ASSERT_EQ(res, List<IString>("internal:openDAQ_DevSer1"));
 }
 
 TEST_F(RefDeviceModuleTest, Synchronization)
@@ -239,9 +239,9 @@ TEST_F(RefDeviceModuleTest, Synchronization)
     auto source = sync.getSource();
     ASSERT_EQ(source.getId(), "InternalClock");
     ASSERT_EQ(source.getMode(), SyncMode::Input);
-    ASSERT_EQ(source.getReferenceDomainId(), "local:openDAQ_DevSer1");
+    ASSERT_EQ(source.getReferenceDomainId(), "internal:openDAQ_DevSer1");
     ASSERT_EQ(source.getStatusContainer().getStatus("SyncSourceStatus").getValue(), "Synced");
-    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("local:openDAQ_DevSer1"));
+    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("internal:openDAQ_DevSer1"));
 }
 
 TEST_F(RefDeviceModuleTest, DomainSignalsMatchDeviceDomain)

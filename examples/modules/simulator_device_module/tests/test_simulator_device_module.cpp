@@ -32,7 +32,7 @@ TEST_F(SimulatorDeviceModuleTest, Synchronization)
     ASSERT_TRUE(sync.assigned());
     ASSERT_EQ(sync.getInterfaces().getCount(), 1u);
     ASSERT_EQ(sync.getSource().getId(), "InternalClock");
-    ASSERT_EQ(sync.getSource().getReferenceDomainId().toStdString(), "local:" + device.getLocalId().toStdString());
+    ASSERT_EQ(sync.getSource().getReferenceDomainId().toStdString(), "internal:" + device.getLocalId().toStdString());
 }
 
 TEST_F(SimulatorDeviceModuleTest, ReferenceDomainInfo)
@@ -40,7 +40,7 @@ TEST_F(SimulatorDeviceModuleTest, ReferenceDomainInfo)
     const auto module = CreateModule();
     const auto device = CreateDevice(module);
 
-    const StringPtr referenceDomainId = String("local:" + device.getLocalId().toStdString());
+    const StringPtr referenceDomainId = String("internal:" + device.getLocalId().toStdString());
     const auto info = device.getDomain().getReferenceDomainInfo();
     ASSERT_EQ(info.getReferenceDomainId(), referenceDomainId);
     ASSERT_EQ(info.getReferenceDomainIds(), List<IString>(referenceDomainId));

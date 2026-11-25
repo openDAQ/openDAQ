@@ -13,12 +13,12 @@ class TestSynchronization(opendaq_test.TestCase):
 
         self.assertEqual(list(sync.interfaces.keys()), ['InternalClock'])
         self.assertEqual(list(sync.available_sources.keys()), ['InternalClock'])
-        self.assertEqual(list(sync.reference_domain_ids), ['local:testDevice'])
+        self.assertEqual(list(sync.reference_domain_ids), ['internal:testDevice'])
 
         source = sync.source
         self.assertEqual(source.id, 'InternalClock')
-        self.assertEqual(source.sync_type, 'local')
-        self.assertEqual(source.reference_domain_id, 'local:testDevice')
+        self.assertEqual(source.sync_type, 'internal')
+        self.assertEqual(source.reference_domain_id, 'internal:testDevice')
         self.assertTrue(source.source_supported)
         self.assertEqual(source.mode, opendaq.SyncMode.Input)
         self.assertEqual(len(source.available_modes), 1)
@@ -46,7 +46,7 @@ class TestSynchronization(opendaq_test.TestCase):
         sync = device.synchronization
         self.assertIsNotNone(sync)
         self.assertEqual(sync.source.id, 'InternalClock')
-        self.assertEqual(sync.source.reference_domain_id, 'local:openDAQ_DevSer0')
+        self.assertEqual(sync.source.reference_domain_id, 'internal:openDAQ_DevSer0')
 
 
 if __name__ == '__main__':

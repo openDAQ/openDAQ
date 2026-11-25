@@ -1,0 +1,216 @@
+name: LT server stress
+
+# Builds only the tests of the Modern LT modules and the integration suites on the CI matrix and loops those that use the
+# LT server overnight (stress.py). Two passes of up to six hours run one after the other; gate.py makes a push wait for
+# 18:00 Europe/Ljubljana and ends the passes by 06:30. The report job merges every failing test per platform.
+on:
+  push:
+    branches: [ci/lt-server-stress]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Wait for the start time
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    outputs:
+      minutes: ${{ steps.gate.outputs.minutes }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/lt_server_stress
+
+      - name: Wait for the start time
+        id: gate
+        run: python3 .github/lt_server_stress/gate.py --pass 1
+
+  pass1:
+    name: Pass 1
+    needs: gate
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v4
+    with:
+      upload-pattern: pass1-*
+      timeout: &timeout '[{"timeout-minutes": 360}]'
+      include-jobs: &jobs >
+        [
+          "windows-2025-x86_64-msvs-v142-release",
+          "windows-2025-x86_64-msvs-v145-debug",
+          "windows-2025-x86-msvs-v145-release",
+          "windows-2025-x86_64-ninja-clang-22-release",
+          "windows-2022-x86_64-ninja-intel-cc-release",
+          "ubuntu-20.04-x86-ninja-gcc-7-release",
+          "ubuntu-20.04-armv8-ninja-clang-9-release",
+          "ubuntu-26.04-armv8-ninja-gcc-15-debug",
+          "ubuntu-26.04-x86_64-ninja-clang-22-release",
+          "manylinux_2_28-x86_64-ninja-gcc-14-release",
+          "manylinux_2_28-armv8-ninja-gcc-14-release",
+          "macos-26-x86_64-ninja-appleclang-17-debug",
+          "macos-27-armv8-ninja-appleclang-21-release"
+        ]
+      packages: &packages >
+        [
+          {
+            "match-jobs": ["ubuntu-*-x86_64-*", "ubuntu-*-armv8-*"],
+            "apt-install": ["lld", "libssl-dev", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev"]
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-x86_64-*", "ubuntu-20.04-armv8-*"],
+            "apt-install": ["libfreetype6-dev"]
+          },
+          {
+            "match-jobs": ["ubuntu-26.04-*"],
+            "apt-install": ["libfreetype-dev"]
+          },
+          {
+            "match-jobs": ["ubuntu-*-clang-22-*"],
+            "apt-install": ["lld-22"]
+          },
+          {
+            "match-jobs": ["ubuntu-*-x86-*"],
+            "apt-install": ["lld", "libssl-dev:i386", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+          },
+          {
+            "match-jobs": ["windows-*"],
+            "vcpkg-install": ["openssl"]
+          },
+          {
+            "match-jobs": ["windows-*", "ubuntu-*-x86_64-*", "ubuntu-*-armv8-*", "macos-*"],
+            "pip-install": ["numpy"],
+            "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["manylinux*"],
+            "yum-install": ["openssl-devel", "libX11-devel", "libXrandr-devel", "libXcursor-devel", "libXi-devel", "mesa-libGL-devel", "systemd-devel", "freetype-devel", "mono-core"],
+            "run": "/opt/python/cp314-cp314/bin/python -m pip install numpy"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
+            "use-python-version": "3.8"
+          }
+        ]
+      cmake-presets: &presets >
+        [
+          {
+            "configure-preset": "ci",
+            "test-preset": "lt_server_stress",
+            "build-targets": [
+              "test_ws_stream_srv_module", "test_ws_stream_cl_module", "test_lt_streaming_tls_integration",
+              "test_device_modules", "test_device_modules_streaming"
+            ],
+            "cache-variables": {
+              "OPENDAQ_PYTHON_VERSION": "3.14",
+              "OPENDAQ_LT_SERVER_STRESS": true,
+              "OPENDAQ_LT_SERVER_STRESS_MINUTES": "${{ needs.gate2.outputs.minutes || needs.gate.outputs.minutes }}"
+            },
+            "cache-externals": true
+          },
+          {
+            "match-jobs": ["windows-*-x86-*"],
+            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x86-windows"}
+          },
+          {
+            "match-jobs": ["windows-*-x86_64-*"],
+            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x64-windows"}
+          },
+          {
+            "match-jobs": ["manylinux*"],
+            "cache-variables": {"Python_EXECUTABLE": "/opt/python/cp314-cp314/bin/python"}
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "run-tests-priv": true
+          },
+          {
+            "match-jobs": ["macos-*-x86_64-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          },
+          {
+            "match-jobs": ["macos-*-armv8-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"}
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "cache-variables": {
+              "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false,
+              "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
+              "OPENDAQ_PYTHON_VERSION": "3.8"
+            }
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-x86-*"],
+            "cache-variables": {
+              "OPENDAQ_FORCE_COMPILE_32BIT": true,
+              "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+              "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+              "CMAKE_CXX_FLAGS": "-Wno-error=shift-count-overflow"
+            }
+          },
+          {
+            "match-jobs": ["*-intel-cc-*"],
+            "cache-variables": {
+              "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+              "OPENDAQ_GENERATE_CSHARP_BINDINGS": false
+            }
+          }
+        ]
+
+  gate2:
+    name: Time left for the second pass
+    needs: [gate, pass1]
+    if: ${{ !cancelled() && needs.gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      minutes: ${{ steps.gate.outputs.minutes }}
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/lt_server_stress
+
+      - name: Time left
+        id: gate
+        run: python3 .github/lt_server_stress/gate.py --pass 2
+
+  pass2:
+    name: Pass 2
+    needs: [gate, pass1, gate2]
+    if: ${{ !cancelled() && needs.gate2.outputs.run == 'true' }}
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v4
+    with:
+      upload-pattern: pass2-*
+      timeout: *timeout
+      include-jobs: *jobs
+      packages: *packages
+      cmake-presets: *presets
+
+  report:
+    name: Report
+    needs: [pass1, pass2]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/lt_server_stress
+
+      - name: Download results
+        uses: actions/download-artifact@v7
+        with:
+          pattern: pass*-test-results-*
+          path: results
+
+      - name: Merge results
+        env:
+          JOBS: *jobs
+        run: |
+          python3 .github/lt_server_stress/report.py results --jobs "$JOBS" > lt_server_stress_report.md
+          cat lt_server_stress_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: lt-server-stress-report
+          path: lt_server_stress_report.md

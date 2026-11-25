@@ -421,6 +421,20 @@
                     "name": "test_py_opendaq"
                 }
             }
+        },
+        {
+            "name": "lt_server_stress",
+            "description": "Loop the Modern LT module tests and the LT integration suites until the deadline set at configure (OPENDAQ_LT_SERVER_STRESS)",
+            "configurePreset": "ci",
+            "output": {
+                "outputOnFailure": true,
+                "verbosity": "verbose"
+            },
+            "filter": {
+                "include": {
+                    "name": "^lt_server_stress$"
+                }
+            }
         }
     ]
 }

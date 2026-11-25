@@ -495,6 +495,11 @@ else()
     message(ERROR "missing mdns dependency")
 endif()
 
+option(OPENDAQ_LT_SERVER_STRESS "Register the lt_server_stress test (.github/workflows/lt_server_stress.yml)" OFF)
+if (OPENDAQ_LT_SERVER_STRESS AND OPENDAQ_ENABLE_TESTS)
+    add_subdirectory(.github/lt_server_stress)
+endif()
+
 set(OPENDAQ_CONFIGURED_ONCE TRUE CACHE INTERNAL "A flag showing that CMake has configured at least once.")
 
 include(cmake/Packing.cmake)

@@ -810,6 +810,20 @@ TEST_F(TransportSelectionTest, SmartConnectionToServerWithoutSelectedOptionRejec
     ASSERT_EQ(module->connectionStrings.getCount(), 0u);
 }
 
+// Unlike the streaming of a device, which skips such a capability
+TEST_F(TransportSelectionTest, SmartConnectionWithPortSetToServerWithoutSelectedOption)
+{
+    module->availableDevices.clear();
+    module->availableDevices.pushBack(DeviceInfoAnnouncing(TransportOptionsById({TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    utils().getAvailableDevices();
+
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
+    config.setPort(9000);
+
+    ASSERT_EQ(create("daq://m_s", config), OPENDAQ_SUCCESS);
+    expectConnection("dev://host:9000", "plain", 9000);
+}
+
 TEST_F(TransportSelectionTest, SavedSmartConnectionKeepsOptionAndPort)
 {
     utils().getAvailableDevices();

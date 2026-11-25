@@ -19,6 +19,7 @@
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
 #include <miniaudio/miniaudio.h>
+#include <atomic>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -47,7 +48,7 @@ private:
     SignalConfigPtr timeSignal;
     SignalConfigPtr outputSignal;
 
-    uint64_t samplesGenerated;
+    std::atomic<uint64_t> samplesGenerated;
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

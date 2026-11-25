@@ -75,8 +75,9 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
 
     /*!
-     * @brief Sets the locking strategy of the object. The locking strategy must be set before the
-     * object gets an owner or is added to a parent folder.
+     * @brief Sets the locking strategy of the object. A property object sets it before it gets an owner.
+     * A component sets it while it is constructed, before its core events are enabled and before other
+     * threads use it; its child components that inherit a lock then switch to the lock the new strategy resolves to.
      *
      * Property objects default to `InheritLock`, so an object stored in an object-type property shares the
      * lock of the object that holds it. Components default to `OwnLock`. A clone keeps the strategy of its source.

@@ -46,6 +46,7 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
@@ -208,6 +209,19 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::setLockingStrategy(LockingStrategy strategy)
+{
+    const ErrCode errCode = ComponentImpl<Intf, Intfs...>::setLockingStrategy(strategy);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    // Every child is visited: a child's own mutex owner does not show whether the lock it cached is stale
+    for (const auto& component : this->components)
+        OPENDAQ_RETURN_IF_FAILED(this->resolveChildLock(component));
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>

@@ -3255,6 +3255,28 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingSt
 
     this->lockingStrategy = strategy;
     IntegerPtr strategyIntPtr = static_cast<Int>(lockingStrategy);
+
+    // An object that stops inheriting gets a mutex of its own again; a lock owner is set only while the mutex is inherited
+    if (strategy != LockingStrategy::InheritLock || !getPropertyObjectParent().assigned())
+    {
+        if (lockOwner.assigned())
+        {
+            setLockOwner(PropertyObjectInternalPtr());
+            setMutex(Mutex());
+        }
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    // A component has its parent from construction, so it locks its mutex owner's lock before an instance enables its core events
+    const ErrCode errCode = daqTry([this]
+    {
+        PropertyObjectInternalPtr lockOwnerPtr;
+        checkErrorInfo(getMutexOwner(&lockOwnerPtr));
+        setLockOwner(lockOwnerPtr);
+        setMutex(lockOwnerPtr.getMutex());
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return OPENDAQ_SUCCESS;
 }
 

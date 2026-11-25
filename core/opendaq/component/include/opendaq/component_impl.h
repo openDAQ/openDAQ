@@ -72,9 +72,6 @@ public:
                   const StringPtr& className = nullptr,
                   const StringPtr& name = nullptr);
 
-    // IPropertyObjectInternal
-    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
-
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
@@ -195,6 +192,9 @@ protected:
 
     PropertyObjectPtr getPropertyObjectParent() override;
 
+    // Resolves the lock of a child that inherits it again, and of its children, after this component's locking strategy was set
+    static ErrCode resolveChildLock(const ComponentPtr& child);
+
     static bool validateComponentId(const std::string& id);
 
     // Initialize component status with "Ok" status
@@ -286,20 +286,17 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger()
+ErrCode ComponentImpl<Intf, Intfs...>::resolveChildLock(const ComponentPtr& child)
 {
+    const auto childInternal = child.asPtr<IPropertyObjectInternal>(true);
     LockingStrategy ls;
-    OPENDAQ_RETURN_IF_FAILED(this->getLockingStrategy(&ls));
-    if (ls == LockingStrategy::InheritLock)
-    {
-        PropertyObjectInternalPtr lockOwnerPtr;
-        OPENDAQ_RETURN_IF_FAILED(this->getMutexOwner(&lockOwnerPtr));
+    OPENDAQ_RETURN_IF_FAILED(childInternal->getLockingStrategy(&ls));
 
-        this->setLockOwner(lockOwnerPtr);
-        this->setMutex(lockOwnerPtr.getMutex());
-    }
+    // A child with its own lock is the mutex owner of everything below it, so nothing there changes
+    if (ls == LockingStrategy::OwnLock)
+        return OPENDAQ_SUCCESS;
 
-    return Super::enableCoreEventTrigger();
+    return childInternal->setLockingStrategy(ls);
 }
 
 template <class Intf, class ... Intfs>

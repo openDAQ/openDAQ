@@ -33,8 +33,7 @@
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
 #include <opendaq/connection_string_utils.h>
-#include <opendaq/container_utils.h>
-#include <opendaq/transport_option_factory.h>
+#include <opendaq/transport_selection_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -71,8 +70,6 @@ private:
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
-    bool announcesSelectedOption(const ServerCapabilityPtr& capability) const;
-    std::optional<Int> getStreamingPort(const ServerCapabilityPtr& capability) const;
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
 
     ContextPtr context;
@@ -511,13 +508,13 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
 
-        if (!announcesSelectedOption(cap))
+        if (!AnnouncesSelectedTransportOption(streamingConfig, cap))
         {
             LOG_D("Device {}: capability {} does not announce the selected transport option", device.getGlobalId(), capabilityProtocolId);
             continue;
         }
 
-        const auto streamingPort = getStreamingPort(cap);
+        const auto streamingPort = GetCapabilityConnectionPort(streamingConfig, streamingConfig.getStreamingType(), cap);
         const auto withStreamingPort = [&streamingPort](const StringPtr& connectionString) -> StringPtr
         {
             return streamingPort.has_value() ? ReplaceConnectionStringPort(connectionString, streamingPort.value()) : connectionString;
@@ -580,40 +577,6 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     {
         LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingPrefix);
     }
-}
-
-inline bool StreamingSourceManager::announcesSelectedOption(const ServerCapabilityPtr& capability) const
-{
-    const TransportOptionPtr selected = streamingConfig.getSelectedTransportOption();
-    if (!selected.assigned())
-        return true;
-
-    const auto announced = capability.getAvailableTransportOptions();
-    return !announced.assigned() || announced.getCount() == 0 || announced.hasKey(selected.getId());
-}
-
-inline std::optional<Int> StreamingSourceManager::getStreamingPort(const ServerCapabilityPtr& capability) const
-{
-    const Int portSet = streamingConfig.asPtr<IPropertyObject>().getPropertyValue(PortConfigProperty);
-    if (portSet != -1)
-        return portSet;
-
-    const TransportOptionPtr selected = streamingConfig.getSelectedTransportOption();
-    if (!selected.assigned())
-        return std::nullopt;
-
-    const auto announced = capability.getAvailableTransportOptions();
-    if (announced.assigned() && announced.getCount() > 0)
-    {
-        const TransportOptionPtr option = announced.get(selected.getId());
-        return option.getPort();
-    }
-
-    const TransportOptionPtr firstOption = FirstValue(streamingConfig.getStreamingType().getAvailableTransportOptions());
-    if (selected.getId() == firstOption.getId())
-        return std::nullopt;
-
-    return selected.getPort();
 }
 
 inline std::unordered_map<std::string, ListPtr<IAddressInfo>>

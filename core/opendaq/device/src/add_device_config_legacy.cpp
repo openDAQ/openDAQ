@@ -5,6 +5,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/transport_selection_utils.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
@@ -130,13 +131,6 @@ static Int portSetIn(const PropertyObjectPtr& entry, const PropertyObjectPtr& ty
 
     const Int defaultPort = typeConfig.getProperty(PortConfigProperty).getDefaultValue();
     return port == defaultPort ? -1 : port;
-}
-
-// Returns the port set on an add config, or -1 if no port is set
-static Int portSetOn(const BaseObjectPtr& config)
-{
-    const auto obj = config.asPtr<IPropertyObject>();
-    return obj.hasProperty("Port") ? static_cast<Int>(obj.getPropertyValue("Port")) : -1;
 }
 
 // Writes the set port to the Port of the entry. Adds the property if the entry has none.
@@ -314,7 +308,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
 
     auto deviceSection = PropertyObject();
     const auto deviceEntry = cloneTypeConfig(config.getTypeConfig());
-    detail::writePortSet(deviceEntry, detail::portSetOn(config));
+    detail::writePortSet(deviceEntry, GetPortSet(config));
     deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), deviceEntry));
 
     auto streamingSection = PropertyObject();
@@ -329,7 +323,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
         for (const auto& [typeId, streamingConfig] : options.getAvailableStreamingConfigs())
         {
             const auto streamingEntry = cloneTypeConfig(streamingConfig.getTypeConfig());
-            detail::writePortSet(streamingEntry, detail::portSetOn(streamingConfig));
+            detail::writePortSet(streamingEntry, GetPortSet(streamingConfig));
             streamingSection.addProperty(ObjectProperty(typeId, streamingEntry));
         }
 

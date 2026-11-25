@@ -186,6 +186,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/add_streaming_config.h
         ${SDK_HEADERS_DIR}/add_component_config_factory.h
         ${SDK_HEADERS_DIR}/add_device_config_legacy.h
+        ${SDK_HEADERS_DIR}/transport_selection_utils.h
         ${SDK_HEADERS_DIR}/add_device_config_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_options_impl.h
         ${SDK_HEADERS_DIR}/add_streaming_config_impl.h
@@ -236,6 +237,7 @@ set(SRC_PublicHeaders_Component
     device_domain_factory.h
     address_info_factory.h
     address_info_utils.h
+    transport_selection_utils.h
     log_file_info.h
     log_file_info_builder.h
     log_file_info_factory.h

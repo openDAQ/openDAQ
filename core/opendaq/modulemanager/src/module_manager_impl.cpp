@@ -4,6 +4,7 @@
 #include <opendaq/transport_option_impl.h>
 #include <opendaq/container_utils.h>
 #include <opendaq/connection_string_utils.h>
+#include <opendaq/transport_selection_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -179,14 +180,6 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
                                            ids));
 }
 
-// Returns the port set on an add-device or add-streaming config, or -1 if no port is set
-template <typename ConfigPtr>
-Int GetPortSet(const ConfigPtr& config)
-{
-    const Int port = config.template asPtr<IPropertyObject>().getPropertyValue(PortConfigProperty);
-    return port;
-}
-
 // Returns the port set on a legacy streaming config, or -1.
 // A Port equal to the default Port of the type's own config is not a set port.
 inline Int GetLegacyPortSet(const PropertyObjectPtr& config, const StreamingTypePtr& type)
@@ -247,42 +240,22 @@ void CheckPortMatchesConnectionString(const ConfigPtr& config, const StringPtr& 
     }
 }
 
-// Puts the port of the connection into the connection string of a server capability. The port is:
-// - the port set on the config;
-// - the port the capability announces for the selected option;
-// - for a capability without options, the port in its string for the first option of the type,
-//   and the port of the selected option for any other option.
+// Puts the port of the connection into the connection string of a server capability (see GetCapabilityConnectionPort).
+// A port set is used even when the capability does not announce the selected option.
 inline StringPtr SetCapabilityConnectionPort(const StringPtr& connectionString,
                                              const ServerCapabilityPtr& capability,
                                              const AddDeviceConfigPtr& config)
 {
-    if (const Int portSet = GetPortSet(config); portSet != -1)
-        return ReplaceConnectionStringPort(connectionString, portSet);
-
-    const TransportOptionPtr selected = config.getSelectedTransportOption();
-    if (!selected.assigned())
-        return connectionString;
-
-    const auto announced = capability.getAvailableTransportOptions();
-    if (announced.assigned() && announced.getCount() > 0)
+    if (GetPortSet(config) == -1 && !AnnouncesSelectedTransportOption(config, capability))
     {
-        if (!announced.hasKey(selected.getId()))
-        {
-            DAQ_THROW_EXCEPTION(NotFoundException,
-                                R"(The server capability "{}" does not announce the transport option "{}")",
-                                capability.getProtocolId(),
-                                selected.getId());
-        }
-
-        const TransportOptionPtr option = announced.get(selected.getId());
-        return ReplaceConnectionStringPort(connectionString, option.getPort());
+        DAQ_THROW_EXCEPTION(NotFoundException,
+                            R"(The server capability "{}" does not announce the transport option "{}")",
+                            capability.getProtocolId(),
+                            config.getSelectedTransportOption().getId());
     }
 
-    const TransportOptionPtr firstOption = FirstValue(config.getDeviceType().getAvailableTransportOptions());
-    if (selected.getId() == firstOption.getId())
-        return connectionString;
-
-    return ReplaceConnectionStringPort(connectionString, selected.getPort());
+    const auto port = GetCapabilityConnectionPort(config, config.getDeviceType(), capability);
+    return port.has_value() ? ReplaceConnectionStringPort(connectionString, port.value()) : connectionString;
 }
 
 // Creates the config the module connects with: a copy of the type config with the selected option and the final port.

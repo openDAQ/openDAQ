@@ -84,8 +84,32 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daq.ns://127.0.0.1", nullptr), NotFoundException);
-    ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr), NotFoundException);
+    auto config = PropertyObject();
+    config.addProperty(StringProperty("TransportOption", "ws"));
+
+    ASSERT_THROW(module.createDevice("daq.ns://127.0.0.1", nullptr, config), NotFoundException);
+    ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr, config), NotFoundException);
+}
+
+// The module manager adds the transport option to the config; the module does not pick one itself
+TEST_F(NativeStreamingClientModuleTest, TransportOptionRequired)
+{
+    auto module = CreateModule();
+
+    for (const auto& connectionString : {"daq.ns://127.0.0.1", "daq.nd://127.0.0.1"})
+    {
+        try
+        {
+            module.createDevice(connectionString, nullptr);
+            FAIL() << connectionString << ": the device was created";
+        }
+        catch (const InvalidParameterException& e)
+        {
+            ASSERT_NE(std::string(e.what()).find("TransportOption"), std::string::npos) << connectionString << ": " << e.what();
+        }
+    }
+
+    ASSERT_THROW(module.createStreaming("daq.ns://127.0.0.1", nullptr), InvalidParameterException);
 }
 
 TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
@@ -298,11 +322,11 @@ TEST_F(NativeStreamingClientModuleTest, TypesListTransportOptions)
 #endif
     }
 
-    // The default config of the device types selects the first option, at its port
+    // The selection is not part of the default config: the module manager adds it
     for (const auto& id : {"OpenDAQNativeConfiguration", "OpenDAQNativeStreaming"})
     {
         const auto config = deviceTypes.get(id).createDefaultConfig();
-        ASSERT_EQ(config.getPropertyValue("TransportOption"), "ws") << id;
+        ASSERT_FALSE(config.hasProperty("TransportOption")) << id;
         ASSERT_EQ(config.getPropertyValue("Port"), 7420) << id;
     }
 }
@@ -326,7 +350,7 @@ TEST_F(NativeStreamingClientModuleTest, UnknownTransportOptionRefused)
         for (const auto& option : unknownIds)
         {
             auto config = deviceTypes.get(id).createDefaultConfig();
-            config.setPropertyValue("TransportOption", option);
+            config.addProperty(StringProperty("TransportOption", option));
 
             try
             {

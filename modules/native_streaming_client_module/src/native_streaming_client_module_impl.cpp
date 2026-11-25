@@ -27,7 +27,7 @@ using namespace config_protocol;
 namespace
 {
 
-// The option the "TransportOption" property of the config names. The property is required.
+// The option the "TransportOption" property of the config names. The module manager adds the property; it is required.
 TransportOptionPtr SelectedTransportOption(const PropertyObjectPtr& config)
 {
     if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
@@ -365,41 +365,6 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-PropertyObjectPtr NativeStreamingClientModule::populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType)
-{
-    auto defConfig = createConnectionDefaultConfig(nativeType);
-    for (const auto& prop : defConfig.getAllProperties())
-    {
-        const auto name = prop.getName();
-        if (config.hasProperty(name))
-        {
-            if (name == "TransportLayerConfig")
-            {
-                const PropertyObjectPtr transportLayerConfig = config.getPropertyValue(name);
-                PropertyObjectPtr defTransportLayerConfig = defConfig.getPropertyValue(name);
-                populateDefaultTransportLayerConfig(defTransportLayerConfig, transportLayerConfig);
-            }
-            else
-            {
-                defConfig.setPropertyValue(name, config.getPropertyValue(name));
-            }
-        }
-    }
-
-    return defConfig;
-}
-
-void NativeStreamingClientModule::populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig,
-                                                                      const PropertyObjectPtr& config)
-{
-    for (const auto& prop : defaultConfig.getAllProperties())
-    {
-        const auto propName = prop.getName();
-        if (config.hasProperty(propName))
-            defaultConfig.setPropertyValue(propName, config.getPropertyValue(propName));
-    }
-}
-
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
@@ -413,22 +378,16 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
     const NativeType nativeType = parsedType.value();
 
-    PropertyObjectPtr deviceConfig;
-    if (!config.assigned())
-        deviceConfig = createConnectionDefaultConfig(nativeType);
-    else
-        deviceConfig = populateDefaultConfig(config, nativeType);
-
-    if (!acceptsConnectionParameters(connectionString, deviceConfig))
+    if (!acceptsConnectionParameters(connectionString, config))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
-    const TransportOptionPtr transportOption = SelectedTransportOption(deviceConfig);
+    const TransportOptionPtr transportOption = SelectedTransportOption(config);
 
     auto host = ConnectionStringUtils::GetHost(connectionString);
-    auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, transportOption.getPort());
+    auto port = ConnectionStringUtils::GetPort(connectionString, config, transportOption.getPort());
     auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
@@ -440,9 +399,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
         }
 
-        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, IsTlsTransport(transportOption.getId()));
+        auto transportClient = createAndConnectTransportClient(host, port, path, config, IsTlsTransport(transportOption.getId()));
 
-        PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
+        PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
         auto deviceType = createPseudoDeviceType();
@@ -485,8 +444,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
     else if (nativeType == NativeType::config)
     {
-        uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
-        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion, transportOption);
+        uint16_t protocolVersion = config.getPropertyValue("ProtocolVersion");
+        device = createNativeDevice(context, parent, connectionString, config, host, port, path, protocolVersion, transportOption);
 
         auto deviceType = createDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
@@ -522,10 +481,6 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     auto defaultConfig = PropertyObject();
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
-    // Declared here, so that a value given in the config of an add reaches the module (see TransportOptionConfigProperty)
-    defaultConfig.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_WS)
-                                  .setDescription("The id of the transport option to connect over, one of those the type lists.")
-                                  .build());
     defaultConfig.addProperty(IntProperty("Port", DEFAULT_PORT));
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
@@ -742,19 +697,16 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming)
-                                                       : createConnectionDefaultConfig(NativeType::streaming);
-
-    const TransportOptionPtr transportOption = SelectedTransportOption(parsedConfig);
+    const TransportOptionPtr transportOption = SelectedTransportOption(config);
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
-    StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, transportOption.getPort());
+    StringPtr port = ConnectionStringUtils::GetPort(connectionString, config, transportOption.getPort());
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
-    PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig, IsTlsTransport(transportOption.getId()));
+    auto transportClient = createAndConnectTransportClient(host, port, path, config, IsTlsTransport(transportOption.getId()));
     return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 

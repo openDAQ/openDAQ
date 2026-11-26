@@ -12,7 +12,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/tags_private_ptr.h>
-#include <future>
+#include <thread>
 
 using namespace testing;
 
@@ -328,15 +328,18 @@ TEST_F(FolderTest, InheritedLocking1)
 }
 
 // Tried from another thread, as try_lock on a std::mutex the calling thread holds is undefined
+// A joined thread frees its thread-locals before the test ends; a std::async pool thread outlives it and trips the memcheck listener
 static bool isLockedElsewhere(const daq::MutexPtr& mutex)
 {
-    return std::async(std::launch::async, [&mutex]
+    bool locked = true;
+    std::thread thread([&mutex, &locked]
     {
-        if (!mutex.tryLock())
-            return true;
-        mutex.unlock();
-        return false;
-    }).get();
+        locked = !mutex.tryLock();
+        if (!locked)
+            mutex.unlock();
+    });
+    thread.join();
+    return locked;
 }
 
 TEST_F(FolderTest, InheritedLockingWithoutCoreEvents)

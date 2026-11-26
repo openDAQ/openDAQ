@@ -59,6 +59,8 @@
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Fix a hang when a native streaming client is destroyed: its transport thread is drained instead of stopped, and a connection attempt still in flight is closed (libNativeStreaming v1.0.23), so removing a device that is connecting or reconnecting to a host that does not answer no longer blocks.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) The native inactivity timeout runs from the moment connection activity monitoring starts, so a peer that never sends anything after connecting is timed out like any other silent peer. Before, the timeout started with the first received frame.
 - [#1410](https://github.com/openDAQ/openDAQ/pull/1410) A component that inherits its lock shares its owner's mutex from construction, and every object that inherits a lock, nested property objects included, switches mutex when a strategy or owner above it changes. All lock getters of an object lock the same mutex, and recursive locking moves into the mutex (`IMutex::lockRecursive`, `IMutex::unlockRecursive`).
+- [#1411](https://github.com/openDAQ/openDAQ/pull/1411) Fix a streaming being destroyed on its own thread, and the process aborting, when it is released while it delivers packets
+- [#1411](https://github.com/openDAQ/openDAQ/pull/1411) Fix a hang when a root device is removed with servers still attached: the servers are destroyed after the device's lock is released, so a server that joins its threads in its destructor no longer waits for a thread that needs that lock
 
 ## Misc
 

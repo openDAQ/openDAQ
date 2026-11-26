@@ -236,6 +236,9 @@ protected:
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
 
+    void removed() override;
+    void removedNoLock() override;
+
     virtual ListPtr<ILogFileInfo> onGetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
 
@@ -307,6 +310,7 @@ private:
     DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
     ErrCode setDeviceInfo(const DeviceInfoPtr& deviceInfo);
 
+    ListPtr<IComponent> removedServers;  // the servers of the removed device, until its lock is released
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
@@ -1515,6 +1519,22 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& s
         DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
 
     this->servers.removeItem(server);
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removed()
+{
+    // The servers are stopped here, but destroyed only after the lock is released: the destructor of a server can wait for
+    // a thread of its own that needs this lock
+    removedServers = this->servers.getItems(search::Any());
+    Super::removed();
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removedNoLock()
+{
+    removedServers.release();
+    Super::removedNoLock();
 }
 
 template <typename TInterface, typename... Interfaces>

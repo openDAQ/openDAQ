@@ -147,7 +147,7 @@ public:
     }
 
     // Connects another client, which deserializes the server device in its current state.
-    DevicePtr connectNewClient()
+    DevicePtr connectNewClient(uint16_t protocolVersion = GetLatestConfigProtocolVersion())
     {
         auto newClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
             NullContext(),
@@ -157,7 +157,7 @@ public:
             nullptr,
             nullptr);
 
-        DevicePtr device = newClient->connect();
+        DevicePtr device = newClient->connect(nullptr, protocolVersion);
         extraClients.push_back(std::move(newClient));
         return device;
     }
@@ -179,6 +179,12 @@ TEST_F(ConfigSynchronizationTest, Connect)
 
     ASSERT_TRUE(serverSync.assigned());
     ASSERT_TRUE(clientSync.assigned());
+}
+
+TEST_F(ConfigSynchronizationTest, ClientBelowProtocolVersion26GetsNoSynchronization)
+{
+    ASSERT_FALSE(connectNewClient(24).getSynchronization().assigned());
+    ASSERT_TRUE(connectNewClient(26).getSynchronization().assigned());
 }
 
 TEST_F(ConfigSynchronizationTest, getInterfaces)

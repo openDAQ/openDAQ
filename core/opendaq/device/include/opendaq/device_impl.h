@@ -211,6 +211,11 @@ protected:
                                   LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+    ErrCode serializePropertyValue(const StringPtr& name,
+                                   const ObjectPtr<IBaseObject>& value,
+                                   ISerializer* serializer,
+                                   bool forUpdate) override;
+    ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
     void updateDevice(const std::string& deviceId,
                       const SerializedObjectPtr& serializedDevice,
                       const BaseObjectPtr& context);
@@ -2054,6 +2059,31 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 
     parent.addItem(folder);
     return folder;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
+                                                                         const ObjectPtr<IBaseObject>& value,
+                                                                         ISerializer* serializer,
+                                                                         bool forUpdate)
+{
+    Int version;
+    OPENDAQ_RETURN_IF_FAILED(serializer->getVersion(&version));
+
+    if (name == "daqSynchronization" && version < 4)
+        return OPENDAQ_IGNORED;
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
+{
+    Int version;
+    OPENDAQ_RETURN_IF_FAILED(serializer->getVersion(&version));
+
+    if (property.getName() == "daqSynchronization" && version < 4)
+        return OPENDAQ_IGNORED;
+    return Super::serializeProperty(property, serializer);
 }
 
 template <typename TInterface, typename ... Interfaces>

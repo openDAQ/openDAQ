@@ -2151,6 +2151,15 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
+    if (deviceInfo.assigned() && serializer.getVersion() < 4)
+    {
+        serializer.key("deviceInfo");
+        if (forUpdate)
+            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            deviceInfo.serialize(serializer);
+    }
+
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");

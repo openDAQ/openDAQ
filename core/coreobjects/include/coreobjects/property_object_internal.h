@@ -73,7 +73,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      *  was already created on this thread.
      *
      *  Re-entry is tracked by the mutex, so a thread that holds the recursive lock guard of any object
-     *  sharing the mutex can take this one as well.
+     *  sharing the mutex can take this one as well. Release the guard on the thread that created it.
      */
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
 

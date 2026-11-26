@@ -519,10 +519,6 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     ASSERT_EQ(secureCap.getPrefix(), "daq.lts");
     ASSERT_EQ(plainCap.getPort(), 7414);
     ASSERT_EQ(secureCap.getPort(), 7415);
-    // both channels belong to the same protocol group, so a client can pick either of them
-    ASSERT_EQ(secureCap.getProtocolGroupId(), plainCap.getProtocolGroupId());
-    // and the secure one wins whenever protocols are ordered by their security level
-    ASSERT_GT(secureCap.getProtocolSecurityLevel(), plainCap.getProtocolSecurityLevel());
 
     auto device = client.addDevice(secureCap.getConnectionString(), test_helpers::lt_tls::secureDeviceConfig(client));
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();

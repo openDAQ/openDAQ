@@ -109,7 +109,6 @@ source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
                                      ${SDK_HEADERS_DIR}/property_object_protected.h
                                      ${SDK_HEADERS_DIR}/property_object_internal.h
                                      ${SDK_HEADERS_DIR}/object_lock_guard.h
-                                     ${SDK_HEADERS_DIR}/object_lock_guard_impl.h
                                      ${SDK_HEADERS_DIR}/property_object_utils.h
                                      property_object_impl.cpp
                                      property_object_utils.cpp
@@ -295,7 +294,6 @@ set(SRC_PublicHeaders coreobjects.h
                       mutex_factory.h
                       mutex_ptr.custom.h
                       mutex_impl.h
-                      object_lock_guard_impl.h
                       property_object_utils.h
                       permissions_internal.h
 )

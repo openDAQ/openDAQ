@@ -50,7 +50,6 @@
 #include <set>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
-#include <coreobjects/object_lock_guard_impl.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
 #include <coreobjects/property_object_utils.h>

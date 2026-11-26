@@ -25,6 +25,9 @@
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/object_lock_guard_ptr.h>
 #include <coretypes/coretypes.h>
+#include <coretypes/impl.h>
+#include <cassert>
+#include <mutex>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -110,6 +113,53 @@ private:
 inline RecursiveConfigLockGuard::RecursiveConfigLockGuard(const LockGuardPtr& lg)
     : lg(lg)
 {
+}
+
+// LockGuardImpl
+
+// Holds the mutex locked without recursion until the guard is released
+class LockGuardImpl : public ImplementationOf<ILockGuard>
+{
+public:
+    explicit LockGuardImpl(MutexPtr lock);
+
+private:
+    MutexPtr mutex;
+    std::lock_guard<MutexPtr> lockGuard;
+};
+
+inline LockGuardImpl::LockGuardImpl(MutexPtr lock)
+    : mutex(std::move(lock))
+    , lockGuard(mutex)
+{
+}
+
+// RecursiveLockGuardImpl
+
+// Holds the mutex through lockRecursive, so its thread can take further recursive guards of any object that shares it
+class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
+{
+public:
+    explicit RecursiveLockGuardImpl(MutexPtr lock);
+    ~RecursiveLockGuardImpl() override;
+
+private:
+    MutexPtr mutex;
+};
+
+inline RecursiveLockGuardImpl::RecursiveLockGuardImpl(MutexPtr lock)
+    : mutex(std::move(lock))
+{
+    checkErrorInfo(mutex->lockRecursive());
+}
+
+inline RecursiveLockGuardImpl::~RecursiveLockGuardImpl()
+{
+    // Fails only for a guard released on a thread other than the one that took it; a destructor cannot report it
+    const ErrCode errCode = mutex->unlockRecursive();
+    assert(OPENDAQ_SUCCEEDED(errCode));
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
 }
 
 // PropertyUpdateStack

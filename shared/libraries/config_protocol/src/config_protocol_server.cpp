@@ -854,7 +854,15 @@ ConfigProtocolServer::RpcScopeTracker::~RpcScopeTracker()
 SerializerPtr ConfigProtocolServer::createSerializer()
 {
     // if version is not yet known i.e. protocolVersion == 0 just create a default serilizer - needed for tests
-    SerializerPtr serializer = (0 < protocolVersion && protocolVersion < 11) ? JsonSerializerWithVersion(2) : JsonSerializer();
+    SerializerPtr serializer;
+    if (protocolVersion == 0)
+        serializer = JsonSerializer();
+    else if (protocolVersion < 11)
+        serializer = JsonSerializerWithVersion(2);
+    else if (protocolVersion < 26)
+        serializer = JsonSerializerWithVersion(3);
+    else
+        serializer = JsonSerializer();
     serializer.setUser(user);
     return serializer;
 }

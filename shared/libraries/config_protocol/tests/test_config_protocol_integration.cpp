@@ -83,6 +83,21 @@ public:
         client->triggerNotificationPacket(notificationPacket);
     }
 
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> createClient(
+        const std::function<void(const PacketBuffer&)>& onReply = nullptr)
+    {
+        const auto sendRequest = [this, onReply](const PacketBuffer& requestPacket)
+        {
+            auto replyPacket = server->processRequestAndGetReply(requestPacket);
+            if (onReply)
+                onReply(replyPacket);
+            return replyPacket;
+        };
+        const auto sendNoReplyRequest = [](const PacketBuffer& /*requestPacket*/) {};
+        return std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+            NullContext(), sendRequest, sendNoReplyRequest, nullptr, nullptr, nullptr);
+    }
+
 protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
@@ -1189,13 +1204,7 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentTypesCarriedWithoutDefaultConfig)
 
     // The carried module info is kept; the serialized module version does not replace it with a placeholder.
     serverFbType.asPtr<IComponentTypePrivate>()->setModuleInfo(ModuleInfo(VersionInfo(1, 2, 3), "ServerModule", "server_module"));
-    auto secondClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-        NullContext(),
-        [this](const PacketBuffer& requestPacket) { return server->processRequestAndGetReply(requestPacket); },
-        [](const PacketBuffer& /*requestPacket*/) {},
-        nullptr,
-        nullptr,
-        nullptr);
+    auto secondClient = createClient();
     const auto secondClientFbType = secondClient->connect().getDevices()[0].getFunctionBlocks()[0].getFunctionBlockType();
     ASSERT_EQ(secondClientFbType.getModuleInfo().getName(), "ServerModule");
     ASSERT_EQ(secondClientFbType.getModuleInfo().getId(), "server_module");
@@ -1275,17 +1284,29 @@ TEST_F(ConfigProtocolIntegrationTest, ServerFunctionBlockAddedOnServerSide)
 
 TEST_F(ConfigProtocolIntegrationTest, ServerFunctionBlocksNeedProtocolVersion26)
 {
-    auto oldClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-        NullContext(),
-        [this](const PacketBuffer& requestPacket) { return server->processRequestAndGetReply(requestPacket); },
-        [](const PacketBuffer& /*requestPacket*/) {},
-        nullptr,
-        nullptr,
-        nullptr);
+    auto oldClient = createClient();
     const auto oldClientDevice = oldClient->connect(nullptr, 25);
     const auto oldClientSrv = oldClientDevice.getServers()[0];
 
     ASSERT_EQ(oldClientSrv.getAvailableFunctionBlockTypes().getCount(), 0u);
     ASSERT_THROW(oldClientSrv.addFunctionBlock("mockfb1"), ServerVersionTooLowException);
     ASSERT_EQ(serverDevice.getServers()[0].getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ServerWritesDeviceInfoKeyBelowProtocolVersion26)
+{
+    const auto serverReplies = [this](uint16_t protocolVersion)
+    {
+        std::string replies;
+        const auto onReply = [&replies](const PacketBuffer& replyPacket)
+        {
+            if (replyPacket.getPacketType() == config_protocol::PacketType::Rpc)
+                replies += replyPacket.parseRpcRequestOrReply().toStdString();
+        };
+        createClient(onReply)->connect(nullptr, protocolVersion);
+        return replies;
+    };
+
+    ASSERT_THAT(serverReplies(24), HasSubstr("\"deviceInfo\":"));
+    ASSERT_THAT(serverReplies(26), Not(HasSubstr("\"deviceInfo\":")));
 }

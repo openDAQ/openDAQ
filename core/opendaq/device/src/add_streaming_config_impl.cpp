@@ -29,8 +29,8 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
           streamingType, transportOptions.assigned() ? transportOptions : streamingType.getAvailableTransportOptions(), Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
-    if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
-        Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, streamingType.createAuthenticationConfig()));
+    if (const auto authenticationConfig = streamingType.createAuthenticationConfig(); authenticationConfig.assigned())
+        Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, authenticationConfig));
 
     add_config::AddTransportSelectionProperties(objPtr, this->transportOptions);
 }
@@ -63,10 +63,12 @@ ErrCode AddStreamingConfigImpl::getAuthenticationConfig(IAuthenticationConfig** 
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This streaming type supports no authentication method");
-
-    return daqTry([&] { *config = objPtr.getPropertyValue(add_streaming_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
+    return daqTry([&]
+    {
+        *config = objPtr.hasProperty(add_streaming_config::AuthenticationConfig)
+                      ? objPtr.getPropertyValue(add_streaming_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach()
+                      : nullptr;
+    });
 }
 
 ErrCode AddStreamingConfigImpl::clone(IPropertyObject** cloned)

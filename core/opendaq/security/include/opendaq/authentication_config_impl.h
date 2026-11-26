@@ -46,6 +46,10 @@ public:
     ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
 
+    // A clone keeps the implementation, so that it is an `IAuthenticationConfig` as well, e.g. when cloned as a part of
+    // an add-device/add-streaming config.
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+
     // Serialization is entirely custom (replaces the inherited generic `IPropertyObject` one, like
     // `DeviceTypeImpl`'s own pattern) - writes only `supportedAuthenticationMethods` (the real
     // `IAuthenticationMethod` objects this config was built from - format/parameters included, not just

@@ -5,8 +5,7 @@ Credentials are modelled as a dictionary of named **fields** per authentication 
 - `Text`, `Secret` (masked), or `FilePath`. Authentication method selection happens through an
 `IAuthenticationConfig` object - a single, self-contained property object built with
 `componentType.createAuthenticationConfig()`, listing every method the named component type itself declares
-supporting (via `IComponentTypePrivate::getSupportedAuthenticationMethods()`, set when the module built the
-type) as a candidate the caller selects among directly, tunes, and attaches to a plain `addDevice`/
+supporting (set when the module built the type) as a candidate the caller selects among directly, tunes, and attaches to a plain `addDevice`/
 `addStreaming` call (see [§3](#3-two-ways-to-add-a-device)).
 
 At most one credential provider can ever be registered for an entire `Instance` - on `IInstanceBuilder`, at
@@ -85,7 +84,7 @@ Carries the authentication settings for a single connection attempt. Lives along
 There is no "additional config" on `IAuthenticationConfig` itself - any other per-connection setting (unrelated to authentication) still travels via the component's own, generic config object instead (the same one `addDevice`/`addStreaming` always take), read by the module from its own `config` parameter alongside the authentication config. Nor is there any credential-provider selection on it at all.
 
 **Factory:** two overloads.
-- `componentType.createAuthenticationConfig()` — the recommended way to build a config for a live device/streaming type. Reads the supported methods straight off `componentType`'s own `IComponentTypePrivate::getSupportedAuthenticationMethods()` (see [§2](#2-extensions-to-existing-interfaces)) - the type itself is the single source of truth for what it supports, set via `IComponentTypeBuilder::addAuthenticationMethod` when the module built it. Throws `NotSupportedException` if the type has no methods added, or `NotImplementedException` if the type's sort (Server, FunctionBlock) doesn't carry authentication data at all.
+- `componentType.createAuthenticationConfig()` — the recommended way to build a config for a live device/streaming type. Lists the methods `componentType` itself supports (see [§2](#2-extensions-to-existing-interfaces)) - the type itself is the single source of truth for what it supports, set via `IComponentTypeBuilder::addAuthenticationMethod` when the module built it. Returns null if the type has no methods added, or throws `NotImplementedException` if the type's sort (Server, FunctionBlock) doesn't carry authentication data at all.
 - `AuthenticationConfig(authenticationMethods)` — the lower-level overload, for building a config with no live `IComponentType` object at hand (e.g. deserialization). Each entry of `authenticationMethods` (a dict keyed by each authentication method's own id) becomes one candidate value of the resulting config's `"AuthenticationMethod"` Selection property, so a caller can later switch between methods just by changing that property's selection instead of needing a different config object per method; the dict's first entry, in iteration order, starts out selected.
 
 `"SuppliedCredential"` is never set by either factory - set it afterward via that property directly, the same way regardless of which one built the config.
@@ -161,16 +160,15 @@ A module declares which authentication methods a Device or Streaming type suppor
 `IComponentTypeBuilder::addAuthenticationMethod(method)` once per method, while building the type - the first
 one added becomes the type's default selection on a freshly-built `IAuthenticationConfig`. A type with no
 methods added this way simply doesn't support authentication: `componentType.createAuthenticationConfig()`
-throws `NotSupportedException`, and `IComponentTypePrivate::getSupportedAuthenticationMethods()` returns an
-empty dict - there is no implicit fallback to `"Anonymous"` or any other method. Server and FunctionBlock types
-don't carry this data at all, regardless of how they were built: both calls throw `NotImplementedException`
+returns null - there is no implicit fallback to `"Anonymous"` or any other method. Server and FunctionBlock types
+don't carry this data at all, regardless of how they were built: the call throws `NotImplementedException`
 for these sorts instead, distinguishable from the "Device/Streaming type, nothing added" case above (see
 `core/opendaq/opendaq/tests/test_factories.cpp` for this distinction tested directly).
 
 There is no dedicated "add an authenticated device" entry point anywhere in the public API - only the plain,
 config-only `addDevice`/`addStreaming` exist. The `IAuthenticationConfig` is a part of the config passed to
 them: `IAddDeviceConfig::getAuthenticationConfig()`/`IAddStreamingConfig::getAuthenticationConfig()` return it
-for a type with any supported method, and throw `NotSupportedException` for a type with none - see
+for a type with any supported method, and null for a type with none - see
 [§3](#3-two-ways-to-add-a-device) below and `examples/applications/cpp/credential_providers/credential_providers.cpp`.
 
 A type with at least one method added always goes through `createAuthenticatedDevice`/`createAuthenticatedStreaming`
@@ -252,7 +250,7 @@ Same connection string, but the caller's own explicitly selected method is resol
 default.
 
 The add-device config of a type with no authentication methods added has no authentication config at all -
-`getAuthenticationConfig()` throws `NotSupportedException`.
+`getAuthenticationConfig()` returns null.
 
 ### Legacy config
 

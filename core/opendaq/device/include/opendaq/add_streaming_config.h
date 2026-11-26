@@ -62,6 +62,10 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) = 0;
 
+    /*!
+     * @brief Gets the authentication config used when adding the streaming.
+     * @param[out] config The authentication config, or null when the Streaming type supports no authentication method
+     */
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
 
     // [templateType(transportOptions, IString, ITransportOption)]

@@ -58,11 +58,6 @@ ErrCode ServerTypeImpl::createAuthenticationConfig(IAuthenticationConfig** /*con
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Server types do not support authentication");
 }
 
-ErrCode ServerTypeImpl::getSupportedAuthenticationMethods(IDict** /*authenticationMethods*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Server types do not support authentication");
-}
-
 ErrCode INTERFACE_FUNC ServerTypeImpl::serialize(ISerializer* serializer)
 {
     OPENDAQ_PARAM_NOT_NULL(serializer);

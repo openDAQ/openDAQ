@@ -31,8 +31,3 @@ daqErrCode daqComponentTypePrivate_serializeWithoutDefaultConfig(daqComponentTyp
 {
     return reinterpret_cast<daq::IComponentTypePrivate*>(self)->serializeWithoutDefaultConfig(reinterpret_cast<daq::ISerializer*>(serializer));
 }
-
-daqErrCode daqComponentTypePrivate_getSupportedAuthenticationMethods(daqComponentTypePrivate* self, daqDict** authenticationMethods)
-{
-    return reinterpret_cast<daq::IComponentTypePrivate*>(self)->getSupportedAuthenticationMethods(reinterpret_cast<daq::IDict**>(authenticationMethods));
-}

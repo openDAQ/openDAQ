@@ -66,7 +66,6 @@ public:
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
     ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) override;
-    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
 private:
     static DictPtr<IString, IBaseObject> createFields(const StructTypePtr& type,
@@ -202,7 +201,10 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createAuthenticationConfi
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (this->supportedAuthenticationMethods.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This component type supports no authentication method");
+    {
+        *config = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
 
     return daqTry([&]()
     {
@@ -217,15 +219,6 @@ inline ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::setModuleInfo(IMod
 {
     this->moduleInfo = info;
 
-    return OPENDAQ_SUCCESS;
-}
-
-template <class Intf, class... Interfaces>
-ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getSupportedAuthenticationMethods(IDict** authenticationMethods)
-{
-    OPENDAQ_PARAM_NOT_NULL(authenticationMethods);
-
-    *authenticationMethods = this->supportedAuthenticationMethods.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -215,11 +215,10 @@ TEST_F(OpenDaqFactoriesTest, AddAuthenticationMethodAppendsInOrderAndDefaultsFir
                                     .addAuthenticationMethod(userNamePassword)
                                     .build();
 
-    const auto methods = componentType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods();
-    ASSERT_EQ(methods.getKeyList(), List<IString>(StandardAnonymousId, StandardUserNamePasswordId));
+    const auto authConfig = componentType.createAuthenticationConfig();
+    ASSERT_EQ(authConfig.getAuthenticationMethods().getKeyList(), List<IString>(StandardAnonymousId, StandardUserNamePasswordId));
 
     // The first one added is the one a built `IAuthenticationConfig` starts out selected on.
-    const auto authConfig = componentType.createAuthenticationConfig();
     ASSERT_EQ(authConfig.getSelectedAuthenticationMethod().getId(), StandardAnonymousId);
 }
 
@@ -316,11 +315,9 @@ TEST_F(OpenDaqFactoriesTest, StreamingWithLinkedDeviceTypeRedirects)
                                     .setLinkedDeviceType(deviceType)
                                     .build();
 
-    const auto streamingMethods = streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods();
-    const auto deviceMethods = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods();
-    ASSERT_EQ(streamingMethods.getKeyList(), deviceMethods.getKeyList());
-
     const auto streamingAuthConfig = streamingType.createAuthenticationConfig();
+    ASSERT_EQ(streamingAuthConfig.getAuthenticationMethods().getKeyList(),
+              deviceType.createAuthenticationConfig().getAuthenticationMethods().getKeyList());
     ASSERT_EQ(streamingAuthConfig.getSelectedAuthenticationMethod().getId(), StandardAnonymousId);
 
     ASSERT_EQ(streamingType.createDefaultConfig().getPropertyValue("foo"), "bar");
@@ -331,7 +328,6 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeDoesNotImplementAuthentication)
     const auto serverType = ServerTypeBuilder().setId("Id").setName("Name").setDescription("Desc").build();
 
     ASSERT_THROW(serverType.createAuthenticationConfig(), NotImplementedException);
-    ASSERT_THROW(serverType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods(), NotImplementedException);
 }
 
 TEST_F(OpenDaqFactoriesTest, FunctionBlockTypeDoesNotImplementAuthentication)
@@ -339,18 +335,13 @@ TEST_F(OpenDaqFactoriesTest, FunctionBlockTypeDoesNotImplementAuthentication)
     const auto fbType = FunctionBlockTypeBuilder().setId("Id").setName("Name").setDescription("Desc").build();
 
     ASSERT_THROW(fbType.createAuthenticationConfig(), NotImplementedException);
-    ASSERT_THROW(fbType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods(), NotImplementedException);
 }
 
 TEST_F(OpenDaqFactoriesTest, DeviceTypeWithNoMethodsAddedDoesNotSupportAuthentication)
 {
     const auto deviceType = DeviceTypeBuilder().setId("Id").setName("Name").setDescription("Desc").setConnectionStringPrefix("daq.prefix").build();
 
-    ASSERT_THROW(deviceType.createAuthenticationConfig(), NotSupportedException);
-
-    DictPtr<IString, IAuthenticationMethod> methods;
-    ASSERT_NO_THROW(methods = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods());
-    ASSERT_TRUE(methods.getCount() == 0);
+    ASSERT_FALSE(deviceType.createAuthenticationConfig().assigned());
 }
 
 TEST_F(OpenDaqFactoriesTest, StreamingTypeTransportOptions)

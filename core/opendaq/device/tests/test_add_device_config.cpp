@@ -430,6 +430,15 @@ TEST_F(AddDeviceConfigTest, WireFormBelowVersion4IsLegacy)
     ASSERT_EQ(serializeWithVersion3(config), serializeWithVersion3(toLegacyAddDeviceConfig(config)));
 }
 
+TEST_F(AddDeviceConfigTest, NoAuthenticationConfigWithoutAuthenticationMethods)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+    ASSERT_FALSE(config.getAuthenticationConfig().assigned());
+    ASSERT_FALSE(config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig().assigned());
+    ASSERT_FALSE(AddStreamingConfig(createStreamingType("a")).getAuthenticationConfig().assigned());
+}
+
 TEST_F(AddDeviceConfigTest, StandaloneStreamingConfig)
 {
     const auto streamingType = createStreamingType("a", "dev");

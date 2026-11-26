@@ -7,7 +7,6 @@
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/server_capability_config.h>
 #include <opendaq/device_info_internal.h>
-#include <opendaq/component_type_private.h>
 #include <opendaq/streaming_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <fmt/format.h>
@@ -63,9 +62,7 @@ DeviceInfoPtr CredentialDemoDeviceImpl::CreateDeviceInfo(const DictPtr<IString, 
     auto capability = ServerCapability("CredentialDemo", "Credential Demo", ProtocolType::Configuration)
                            .setPrefix(Prefix)
                            .setConnectionString(connectionString);
-    DictPtr<IString, IAuthenticationMethod> methods;
-    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&methods));
-    for (const auto& [id, method] : methods)
+    for (const auto& [id, method] : deviceType.createAuthenticationConfig().getAuthenticationMethods())
         capability.addAuthenticationMethod(id);
     devInfo.asPtr<IDeviceInfoInternal>(true).addServerCapability(capability);
 
@@ -76,9 +73,7 @@ DeviceInfoPtr CredentialDemoDeviceImpl::CreateDeviceInfo(const DictPtr<IString, 
     auto streamingCapability = ServerCapability("CredentialDemoStreaming", "Credential Demo Streaming", ProtocolType::Streaming)
                                     .setPrefix(CredentialDemoStreamingImpl::Prefix)
                                     .setConnectionString(streamingConnectionString);
-    methods = nullptr;
-    checkErrorInfo(streamingType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&methods));
-    for (const auto& [id, method] : methods)
+    for (const auto& [id, method] : streamingType.createAuthenticationConfig().getAuthenticationMethods())
         streamingCapability.addAuthenticationMethod(id);
     devInfo.asPtr<IDeviceInfoInternal>(true).addServerCapability(streamingCapability);
 

@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <opendaq/authentication_config_ptr.h>
 #include <opendaq/authentication_method_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 
 using AuthenticationConfigTest = testing::Test;
 
@@ -136,6 +139,44 @@ TEST_F(AuthenticationConfigTest, GenericPropertyObjectAccess)
     ASSERT_EQ(config.getSuppliedCredential(), credentials);
 
     ASSERT_THROW(config.asPtr<IPropertyObject>().setPropertyValue("SuppliedCredential", Dict<IString, IString>({{"UserName", "john"}})), InvalidParameterException);
+}
+
+TEST_F(AuthenticationConfigTest, Clone)
+{
+    const auto methods = AnonymousAndUserNamePasswordMethods();
+    const AuthenticationConfigPtr config = MakeAuthenticationConfig(methods);
+    config.setAuthenticationMethod(StandardUserNamePasswordId);
+    const auto credentials = Dict<IString, IString>({{"UserName", "john"}, {"Password", "secret"}});
+    config.setSuppliedCredential(credentials);
+
+    const AuthenticationConfigPtr cloned = config.asPtr<IPropertyObjectInternal>().clone().asPtr<IAuthenticationConfig>();
+    ASSERT_NE(cloned.getObject(), config.getObject());
+    ASSERT_EQ(cloned.getAuthenticationMethods(), methods);
+    ASSERT_EQ(cloned.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
+    ASSERT_EQ(cloned.getSuppliedCredential(), credentials);
+
+    // The clone validates and resets the supplied credential as the original does
+    ASSERT_THROW(cloned.setSuppliedCredential(Dict<IString, IString>({{"UserName", "john"}})), InvalidParameterException);
+    cloned.setAuthenticationMethod(StandardAnonymousId);
+    ASSERT_EQ(cloned.getSuppliedCredential().getCount(), 0u);
+
+    // Changing the clone leaves the original as it was
+    ASSERT_EQ(config.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
+    ASSERT_EQ(config.getSuppliedCredential(), credentials);
+}
+
+TEST_F(AuthenticationConfigTest, CloneAsChildPropertyObject)
+{
+    const AuthenticationConfigPtr config = MakeAuthenticationConfig(AnonymousAndUserNamePasswordMethods());
+    auto parent = PropertyObject();
+    parent.addProperty(ObjectProperty("AuthenticationConfig", config));
+    const AuthenticationConfigPtr child = parent.getPropertyValue("AuthenticationConfig");
+    child.setAuthenticationMethod(StandardUserNamePasswordId);
+
+    const PropertyObjectPtr clonedParent = parent.asPtr<IPropertyObjectInternal>().clone();
+    const AuthenticationConfigPtr clonedChild = clonedParent.getPropertyValue("AuthenticationConfig").asPtr<IAuthenticationConfig>();
+    ASSERT_NE(clonedChild.getObject(), child.getObject());
+    ASSERT_EQ(clonedChild.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
 }
 
 TEST_F(AuthenticationConfigTest, SerializeDeserialize)

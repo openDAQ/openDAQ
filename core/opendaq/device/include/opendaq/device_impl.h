@@ -146,6 +146,10 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC isLockedInternal(Bool* locked) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
+    ErrCode INTERFACE_FUNC setDeviceCredentials(IDict* credentials) override;
+    ErrCode INTERFACE_FUNC getDeviceCredentials(IDict** credentials) override;
+    ErrCode INTERFACE_FUNC setStreamingCredentials(IDict* credentials) override;
+    ErrCode INTERFACE_FUNC getStreamingCredentials(IDict** credentials) override;
 
     // IDeviceNetworkConfig
     ErrCode INTERFACE_FUNC submitNetworkConfiguration(IString* ifaceName, IPropertyObject* config) override;
@@ -324,6 +328,8 @@ private:
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
+    DictPtr<IString, IString> deviceCredentials;
+    DictPtr<IString, IString> streamingCredentials;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -457,6 +463,42 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
 {
     return this->setComponentConfig(config);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceCredentials(IDict* credentials)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    deviceCredentials = credentials;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceCredentials(IDict** credentials)
+{
+    OPENDAQ_PARAM_NOT_NULL(credentials);
+
+    auto lock = this->getRecursiveConfigLock2();
+    *credentials = deviceCredentials.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setStreamingCredentials(IDict* credentials)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    streamingCredentials = credentials;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getStreamingCredentials(IDict** credentials)
+{
+    OPENDAQ_PARAM_NOT_NULL(credentials);
+
+    auto lock = this->getRecursiveConfigLock2();
+    *credentials = streamingCredentials.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -2369,10 +2411,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         // FIXME: DeviceUpdateOptions could hold the whole IAddDeviceConfig, open for editing, instead of only its authentication config
         const auto addDeviceConfig = deviceConfig.template asPtrOrNull<IAddDeviceConfig>(true);
-        DictPtr<IString, IAuthenticationMethod> authenticationMethods;
-        if (addDeviceConfig.assigned())
-            checkErrorInfo(addDeviceConfig.getDeviceType().template asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&authenticationMethods));
-        if (authenticationMethods.assigned() && authenticationMethods.getCount() > 0 && options.assigned())
+        const auto addDeviceAuthenticationConfig = addDeviceConfig.assigned() ? addDeviceConfig.getAuthenticationConfig() : nullptr;
+        if (addDeviceAuthenticationConfig.assigned() && options.assigned())
         {
             // The saved authentication method is already selected by binding the saved config. A caller may have changed it
             // or/and called `setSuppliedCredential` on the one parsed onto the matching DeviceUpdateOptions node, to
@@ -2380,7 +2420,6 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             const AuthenticationConfigPtr authenticationConfig = options.getAuthenticationConfig();
             if (authenticationConfig.assigned())
             {
-                const auto addDeviceAuthenticationConfig = addDeviceConfig.getAuthenticationConfig();
                 addDeviceAuthenticationConfig.setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod().getId());
                 addDeviceAuthenticationConfig.setSuppliedCredential(authenticationConfig.getSuppliedCredential());
             }

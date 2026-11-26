@@ -4,7 +4,6 @@
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
 #include <opendaq/authentication_method_factory.h>
-#include <opendaq/component_type_private_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_selection_utils.h>
@@ -265,8 +264,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
     const auto deviceEntry = detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig);
     detail::translateTypeConfig(config.getTypeConfig(), deviceEntry, general);
-    if (deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
-        applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
+    applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
     selectLegacyTransportOption(config);
     if (const Int port = detail::portSetIn(deviceEntry, config.getTypeConfig(), config.getAvailableTransportOptions().getCount() > 0);
         port != -1)
@@ -276,8 +274,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     {
         const auto streamingEntry = detail::sectionOf(streamingSection, typeId);
         detail::translateTypeConfig(streamingConfig.getTypeConfig(), streamingEntry, general);
-        if (streamingConfig.getStreamingType().asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
-            applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
+        applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
         selectLegacyTransportOption(streamingConfig);
         const bool streamingHasOptions = streamingConfig.getAvailableTransportOptions().getCount() > 0;
         if (const Int port = detail::portSetIn(streamingEntry, streamingConfig.getTypeConfig(), streamingHasOptions); port != -1)

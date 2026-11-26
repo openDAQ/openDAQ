@@ -47,7 +47,6 @@ public:
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
 
     // IComponentTypePrivate
-    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -127,11 +126,6 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPt
 }
 
 inline ErrCode FunctionBlockTypeImpl::createAuthenticationConfig(IAuthenticationConfig** /*config*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support authentication");
-}
-
-inline ErrCode FunctionBlockTypeImpl::getSupportedAuthenticationMethods(IDict** /*authenticationMethods*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support authentication");
 }

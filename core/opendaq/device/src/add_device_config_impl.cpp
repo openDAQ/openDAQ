@@ -10,7 +10,6 @@
 #include <coreobjects/property_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
-#include <opendaq/component_type_private_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -79,17 +78,6 @@ DictPtr<Int, IString> addressTypeNames()
         names.set(static_cast<Int>(type), getAddressTypeName(type));
     return names;
 }
-
-// Copies the supplied credential - which are never serialized - between the authentication configs of two add-device/add-streaming configs
-void copySuppliedCredential(const PropertyObjectPtr& from, const PropertyObjectPtr& to)
-{
-    if (!from.assigned() || !to.assigned() || !from.hasProperty(AuthenticationConfig) || !to.hasProperty(AuthenticationConfig))
-        return;
-
-    const AuthenticationConfigPtr source = from.getPropertyValue(AuthenticationConfig);
-    const AuthenticationConfigPtr target = to.getPropertyValue(AuthenticationConfig);
-    target.setSuppliedCredential(source.getSuppliedCredential());
-}
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
@@ -131,8 +119,8 @@ void AddDeviceConfigImpl::addConfigProperties(const DictPtr<IString, IStreamingT
     add_config::AddTransportSelectionProperties(objPtr, this->transportOptions);
 
     // DISCARD PORT: before the early return, as on AEC_mix, so that a type without streamings keeps its login
-    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
-        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
+    if (const auto authenticationConfig = deviceType.createAuthenticationConfig(); authenticationConfig.assigned())
+        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, authenticationConfig));
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
@@ -211,10 +199,12 @@ ErrCode AddDeviceConfigImpl::getAuthenticationConfig(IAuthenticationConfig** con
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This device type supports no authentication method");
-
-    return daqTry([&] { *config = objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
+    return daqTry([&]
+    {
+        *config = objPtr.hasProperty(add_device_config::AuthenticationConfig)
+                      ? objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach()
+                      : nullptr;
+    });
 }
 
 ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
@@ -247,12 +237,6 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
             config = BindSaved(saved, deviceTypes, streamingTypes, scanOnAddDefault, objPtr.asPtr<IAddDeviceConfig>());
         };
         JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
-        // The round trip drops the supplied credentials, so they are carried over directly
-        add_device_config::copySuppliedCredential(objPtr, config);
-        const auto options = objPtr.asPtr<IAddDeviceConfig>().getStreamingOptions();
-        const auto boundOptions = config.getStreamingOptions();
-        if (options.assigned() && boundOptions.assigned())
-            add_device_config::copySuppliedCredential(options.getStreamingConfig(), boundOptions.getStreamingConfig());
 
         *bound = config.detach();
     });

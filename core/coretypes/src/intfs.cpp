@@ -2,6 +2,7 @@
 #include <coretypes/customalloc.h>
 #include <mutex>
 #include <cstring>
+#include <vector>
 #include <fmt/core.h>
 
 using namespace daq;
@@ -29,13 +30,18 @@ using namespace daq;
         static bool isObjectTrackingEnabled = true;
         return isObjectTrackingEnabled;
     }
+
+    // Set while this thread holds the mutex to print, so tracking calls from toString use the set without locking
+    static thread_local bool isPrintingTrackedObjects = false;
 #endif
 
 extern "C"
 PUBLIC_EXPORT void daqTrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::unique_lock<std::mutex> lock(getObjectsMutex(), std::defer_lock);
+    if (!isPrintingTrackedObjects)
+        lock.lock();
     if (getIsObjectTrackingEnabled()) getObjects().insert(obj);
 #endif
 }
@@ -44,7 +50,9 @@ extern "C"
 PUBLIC_EXPORT void daqUntrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::unique_lock<std::mutex> lock(getObjectsMutex(), std::defer_lock);
+    if (!isPrintingTrackedObjects)
+        lock.lock();
     const auto it = getObjects().find(obj);
     if (it != getObjects().end())
         getObjects().erase(it);
@@ -67,8 +75,14 @@ PUBLIC_EXPORT void daqPrintTrackedObjects()
 {
 #ifndef NDEBUG
     std::lock_guard<std::mutex> lock(getObjectsMutex());
-    for (auto obj : getObjects())
+    const std::vector<IBaseObject*> snapshot(getObjects().begin(), getObjects().end());
+    isPrintingTrackedObjects = true;
+    Finally resetPrinting([] { isPrintingTrackedObjects = false; });
+    for (auto obj : snapshot)
     {
+        // Destroyed by the toString of an object printed before it
+        if (getObjects().count(obj) == 0)
+            continue;
         assert(obj != nullptr);
         std::string description;
         try

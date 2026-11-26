@@ -617,11 +617,7 @@ public:
     }
 };
 
-// Hangs on debug: self-deadlock in the debug object-tracking infra — stringifying a tracked
-// EvalValue inside daqPrintTrackedObjects re-enters the same non-recursive mutex via
-// daqTrackObject. Not specific to this test; any test leaving such an object alive at
-// OnTestEnd can trigger it.
-TEST_F_UNSTABLE_SKIPPED(FunctionBlockTest, SetDomainDescriptorUnderLock)
+TEST_F(FunctionBlockTest, SetDomainDescriptorUnderLock)
 {
     const auto logger = daq::Logger();
     auto context = daq::Context(daq::Scheduler(logger), logger, daq::TypeManager(), nullptr, nullptr);
@@ -646,6 +642,9 @@ TEST_F_UNSTABLE_SKIPPED(FunctionBlockTest, SetDomainDescriptorUnderLock)
 
     for (int i = 0; i < 10; ++i)
         fb.setPropertyValue("ConnectIp", i);
+
+    // Connecting notifies the input port on the scheduler, whose queued work holds the connection until it runs
+    context.getScheduler().waitAll();
 }
 
 TEST_F(FunctionBlockTest, DefaultFolderLockingStrategy)

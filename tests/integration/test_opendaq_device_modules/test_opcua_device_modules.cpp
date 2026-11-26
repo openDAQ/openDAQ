@@ -397,43 +397,39 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    const auto capability = test_helpers::discoverCapability(
+        client,
+        path,
+        "OpenDAQOPCUA",
+        [&](const ServerCapabilityPtr& listed)
+        { return test_helpers::firstAddressesHaveReachability(listed, expectedReachability, checkIPv6); });
+    ASSERT_TRUE(capability.assigned()) << "Device not found";
+
+    bool hasIPv4 = false;
+    bool hasIPv6 = false;
+    int cnt = 0;
+    for (const auto& addressInfo : capability.getAddressInfo())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+        ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+        if (addressInfo.getType() == "IPv4")
         {
-            if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                break;
-            
-            if (capability.getProtocolName() != "OpenDAQOPCUA")
-                continue;
-
-            bool hasIPv4 = false;
-            bool hasIPv6 = false;
-            int cnt = 0;
-            for (const auto& addressInfo : capability.getAddressInfo())
-            {
-                ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
-                ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
-                if (addressInfo.getType() == "IPv4")
-                {
-                    hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
-                }
-                else if (addressInfo.getType() == "IPv6")
-                {
-                    hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
-                }
-
-                if (hasIPv4 && (hasIPv6 || !checkIPv6))
-                    return;
-
-                cnt++;
-            }
+            hasIPv4 = true;
+            ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
         }
+        else if (addressInfo.getType() == "IPv6")
+        {
+            hasIPv6 = true;
+            ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
+        }
+
+        if (hasIPv4 && (hasIPv6 || !checkIPv6))
+            return;
+
+        cnt++;
     }
 
-    ASSERT_TRUE(false) << "Device not found";
+    ASSERT_TRUE(false) << "Device lists no IPv4 address, or no IPv6 address while IPv6 is enabled";
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)

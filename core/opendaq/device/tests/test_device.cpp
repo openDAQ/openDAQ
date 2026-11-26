@@ -30,7 +30,11 @@
 #include "testutils/testutils.h"
 
 #include <atomic>
+#include <chrono>
+#include <functional>
+#include <future>
 #include <string>
+#include <thread>
 #include <vector>
 
 using DeviceTest = testing::Test;
@@ -357,6 +361,64 @@ TEST_F(DeviceTest, Remove)
     ASSERT_THROW(device.getDomain(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getInputsOutputsFolder(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
+}
+
+// A server that calls back when it is destroyed
+class DestructorHookSrvImpl final : public daq::Server
+{
+public:
+    DestructorHookSrvImpl(const daq::ContextPtr& ctx, const daq::DevicePtr& rootDev, std::function<void()> onDestroyed)
+        : daq::Server("MockServerId", nullptr, rootDev, ctx)
+        , onDestroyed(std::move(onDestroyed))
+    {
+    }
+
+    ~DestructorHookSrvImpl() override
+    {
+        onDestroyed();
+    }
+
+private:
+    std::function<void()> onDestroyed;
+};
+
+class ServerHoldingDevice final : public daq::Device
+{
+public:
+    ServerHoldingDevice(const daq::ContextPtr& ctx, std::function<void()> onServerDestroyed)
+        : daq::Device(ctx, nullptr, "dev")
+    {
+        servers.addItem(daq::createWithImplementation<daq::IServer, DestructorHookSrvImpl>(
+            ctx, this->template borrowPtr<daq::DevicePtr>(), std::move(onServerDestroyed)));
+    }
+};
+
+// The destructor of a server can wait for a thread of its own that needs the lock of the device
+TEST_F(DeviceTest, ServersOfARemovedDeviceAreDestroyedAfterItsLockIsReleased)
+{
+    daq::DevicePtr device;
+    std::thread otherThread;
+    std::promise<void> lockTaken;
+    bool destroyed = false;
+    bool lockFree = false;
+
+    device = daq::createWithImplementation<daq::IDevice, ServerHoldingDevice>(daq::NullContext(), [&]
+    {
+        destroyed = true;
+        // taken on another thread, as the thread that removes the device may take the lock again
+        otherThread = std::thread{[&]
+        {
+            device.asPtr<daq::IPropertyObjectInternal>().getRecursiveLockGuard();
+            lockTaken.set_value();
+        }};
+        lockFree = lockTaken.get_future().wait_for(std::chrono::seconds(2)) == std::future_status::ready;
+    });
+
+    device.remove();
+    ASSERT_TRUE(destroyed) << "the server outlived the removal of its device, so nothing was tested";
+    otherThread.join();
+
+    ASSERT_TRUE(lockFree) << "the server was destroyed while the lock of its device was held";
 }
 
 TEST_F(DeviceTest, SerializeAndDeserialize)

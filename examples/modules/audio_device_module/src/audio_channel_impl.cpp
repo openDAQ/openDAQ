@@ -38,12 +38,13 @@ void AudioChannelImpl::reset()
     samplesGenerated = 0;
 }
 
+// No device lock: configure and reset run only while the stream is stopped, and stopping waits for this callback to return
 void AudioChannelImpl::generatePackets(const void* data, size_t sampleCount)
 {
     try
     {
-        auto lock = getAcquisitionLock2();
-        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sampleCount, samplesGenerated);
+        const uint64_t offset = samplesGenerated;
+        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sampleCount, offset);
         auto dataPacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), sampleCount);
 
         auto packetData = dataPacket.getRawData();
@@ -63,7 +64,6 @@ void AudioChannelImpl::generatePackets(const void* data, size_t sampleCount)
 
 uint64_t AudioChannelImpl::getSamplesGenerated()
 {
-    auto lock = getAcquisitionLock2();
     return samplesGenerated;
 }
 

@@ -46,6 +46,20 @@ DECLARE_OPENDAQ_INTERFACE(IMutex, IBaseObject)
      * @brief Unlocks the mutex.
      */
     virtual ErrCode INTERFACE_FUNC unlock() = 0;
+
+    /*!
+     * @brief Locks the mutex, unless the calling thread already holds it through `lockRecursive`; blocking call.
+     *
+     * Every call is paired with an `unlockRecursive` call on the same thread. A thread that holds the mutex
+     * through `lock` or `tryLock` must not call it, as it then waits for itself.
+     */
+    virtual ErrCode INTERFACE_FUNC lockRecursive() = 0;
+
+    /*!
+     * @brief Releases one `lockRecursive` call of the calling thread and unlocks the mutex with the last one.
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the calling thread does not hold the mutex through `lockRecursive`.
+     */
+    virtual ErrCode INTERFACE_FUNC unlockRecursive() = 0;
 };
 
 /*!@}*/

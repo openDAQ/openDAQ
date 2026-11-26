@@ -50,7 +50,6 @@
 #include <set>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
-#include <coreobjects/property_object_core.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
 #include <coreobjects/property_object_utils.h>
@@ -230,6 +229,8 @@ protected:
      * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
      * that is called during a property value read/write event to prevent deadlocks. The lock behaves
      * similarly to a lock guard created with recursive mutex.
+     *
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
     
@@ -238,14 +239,14 @@ protected:
      * a module implementation. The lock is not recursive in comparison to the config lock and should
      * be used with caution to prevent deadlocks.
      *
-     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     std::lock_guard<std::mutex> getAcquisitionLock();
     
     /**
      * Gets a unique lock wrapping the object's mutex.
      *
-     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     std::unique_lock<std::mutex> getUniqueLock();
 
@@ -254,7 +255,7 @@ protected:
      * that is called during a property value read/write event to prevent deadlocks. The lock behaves
      * similarly to a lock guard created with recursive mutex.
      *
-     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     LockGuardPtr getRecursiveConfigLock2();
     
@@ -263,14 +264,14 @@ protected:
      * a module implementation. The lock is not recursive in comparison to the config lock and should
      * be used with caution to prevent deadlocks.
      *
-     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     std::lock_guard<MutexPtr> getAcquisitionLock2();
     
     /**
      * Gets a unique lock wrapping the object's mutex.
      *
-     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     * Locks the mutex of the mutex owner if the locking strategy is set to `InheritLock`.
      */
     std::unique_lock<MutexPtr> getUniqueLock2();
     
@@ -283,10 +284,11 @@ protected:
     TypeManagerPtr getTypeManager();
     CloneParameters getCloneParameters();
 
-    void setMutex(const MutexPtr& mutex);
-    void setLockOwner(const PropertyObjectInternalPtr& owner);
-    // The mutex the object's lock guards lock: the lock owner's when inheriting, as the owner may have been attached later
-    MutexPtr getLockedMutex();
+    // Sets the mutex every lock getter locks from the strategy and the mutex owner, then updates the children that inherit it
+    // Not thread-safe: called when the strategy or the owner changes, before other threads use the object
+    virtual ErrCode updateMutex();
+    // Updates the mutex of a child that inherits it, or forwards its children past it; a child with its own lock is left as is
+    static ErrCode updateChildMutex(const BaseObjectPtr& child);
     // True when obj locks the same mutex, so holding this object's lock also covers obj
     bool sharesLock(const BaseObjectPtr& obj);
     void internalDispose(bool) override;
@@ -321,12 +323,11 @@ protected:
     ErrCode addCoreProperty(IProperty* property);
 
 private:
-    ObjectPtr<IPropertyObjectCore> propObjCore;
-
-    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
+    // The object's own mutex, locked while the object does not inherit one
+    MutexPtr ownMutex;
+    // Mutex that every lock getter locks: ownMutex, or the mutex owner's when inheriting. Those getters should
     // be used instead of locking this mutex directly unless a different type of lock is needed.
     MutexPtr sync;
-    WeakRefPtr<IPropertyObjectInternal> lockOwner;
     std::mutex* getLocalMutex();
     LockingStrategy lockingStrategy;
 
@@ -488,7 +489,8 @@ using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
 template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
     : coreEventMuted(true)
-    , sync(Mutex())
+    , ownMutex(Mutex())
+    , sync(ownMutex)
     // A nested property object is part of its owner's state and is guarded by the owner's lock; components set OwnLock
     , lockingStrategy(LockingStrategy::InheritLock)
     , className(nullptr)
@@ -499,9 +501,7 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
-    propObjCore = PropertyObjectCore_Create();
 
-    setLockOwner(owner);
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
@@ -588,34 +588,50 @@ typename GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::CloneParame
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setMutex(const MutexPtr& mutex)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateMutex()
 {
-    this->sync = mutex;
-}
-
-template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockOwner(const PropertyObjectInternalPtr& owner)
-{
-    this->lockOwner = owner;
-}
-
-template <typename PropObjInterface, typename ... Interfaces>
-MutexPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockedMutex()
-{
-    if (lockingStrategy == LockingStrategy::InheritLock)
+    return daqTry([this]() -> ErrCode
     {
-        if (const auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr; lockOwnerPtr.assigned())
-            return lockOwnerPtr.getMutex();
-    }
+        // ForwardOwnerLockOwn forwards only getMutexOwner, so only an inheriting object with a parent locks another object's mutex
+        if (lockingStrategy != LockingStrategy::InheritLock || !getPropertyObjectParent().assigned())
+        {
+            sync = ownMutex;
+        }
+        else
+        {
+            PropertyObjectInternalPtr mutexOwner;
+            OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&mutexOwner));
+            MutexPtr mutex;
+            OPENDAQ_RETURN_IF_FAILED(mutexOwner->getMutex(&mutex));
+            sync = std::move(mutex);
+        }
 
-    return sync;
+        for (const auto& [_, value] : propValues)
+            OPENDAQ_RETURN_IF_FAILED(updateChildMutex(value));
+
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateChildMutex(const BaseObjectPtr& child)
+{
+    const auto childInternal = child.assigned() ? child.asPtrOrNull<IPropertyObjectInternal>(true) : nullptr;
+    if (!childInternal.assigned())
+        return OPENDAQ_SUCCESS;
+
+    LockingStrategy strategy;
+    OPENDAQ_RETURN_IF_FAILED(childInternal->getLockingStrategy(&strategy));
+
+    // Setting the strategy the child already has updates its mutex from its own parent chain, then its children's
+    return childInternal->setLockingStrategy(strategy);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::sharesLock(const BaseObjectPtr& obj)
 {
     const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>(true);
-    return objInternal.assigned() && objInternal.getMutex().getObject() == getLockedMutex().getObject();
+    return objInternal.assigned() && objInternal.getMutex().getObject() == sync.getObject();
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2884,11 +2900,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUpdatingI
 template <typename PropObjInterface, typename ... Interfaces>
 std::mutex* GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLocalMutex()
 {
-    if (this->lockingStrategy == LockingStrategy::InheritLock)
-    {
-        DAQ_THROW_EXCEPTION(daq::InvalidStateException, "Can't acquire local mutex if locking strategy is set to inherit");
-    }
-
     MutexImpl* mutexImpl = dynamic_cast<MutexImpl*>(this->sync.getObject());
     return &mutexImpl->mutex;
 }
@@ -3230,31 +3241,36 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
-    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
-    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return lockOwnerPtr->getLockGuard(lockGuard);
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
 
-    return propObjCore->getLockGuard(lockGuard, sync);
+    return createObject<ILockGuard, LockGuardImpl, MutexPtr>(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
-    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
 
-    return propObjCore->getRecursiveLockGuard(lockGuard, sync);
+    return createObject<ILockGuard, RecursiveLockGuardImpl, MutexPtr>(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingStrategy(LockingStrategy strategy)
 {
-    if (this->owner.assigned() && this->owner.getRef().assigned())
+    // An owned object keeps its strategy; setting the one it has updates its mutex, which the update of its owner relies on
+    if (strategy != lockingStrategy && this->owner.assigned() && this->owner.getRef().assigned())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Locking strategy can not be changed after owner is already assigned!");
+
+    // An object that keeps its own lock is the mutex owner of everything below it, so nothing there changes
+    if (strategy == LockingStrategy::OwnLock && lockingStrategy == LockingStrategy::OwnLock)
+        return OPENDAQ_SUCCESS;
 
     this->lockingStrategy = strategy;
     IntegerPtr strategyIntPtr = static_cast<Int>(lockingStrategy);
+
+    // A component has its parent from construction, so it locks its mutex owner's mutex before an instance enables its core events
+    const ErrCode errCode = updateMutex();
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set the mutex of the object or of its children, the object is probably corrupt");
     return OPENDAQ_SUCCESS;
 }
 
@@ -3272,9 +3288,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getMutex(IMu
 {
     OPENDAQ_PARAM_NOT_NULL(mutex);
 
-    const ErrCode errCode = daqTry([&] { *mutex = getLockedMutex().detach(); });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+    *mutex = sync.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -3639,21 +3654,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
     if (getPropertyObjectParent() == newOwner)
         return OPENDAQ_IGNORED;
 
+    const auto oldParent = getPropertyObjectParent();
     this->owner = newOwner;
+
+    // A detached object keeps its mutex, as other threads may still lock it; a component's mutex follows its parent, not its owner
+    const bool parentChanged = getPropertyObjectParent().getObject() != oldParent.getObject();
+    if (newOwner != nullptr && parentChanged && lockingStrategy != LockingStrategy::OwnLock)
+        OPENDAQ_RETURN_IF_FAILED(updateMutex());
 
     PermissionManagerPtr parentManager;
     if (newOwner != nullptr)
     {
         auto newOwnerPtr = PropertyObjectPtr::Borrow(newOwner);
         parentManager = newOwnerPtr.getPermissionManager();
-        
-        if (lockingStrategy == LockingStrategy::InheritLock)
-        {
-            PropertyObjectInternalPtr lockOwnerPtr;
-            OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&lockOwnerPtr));
-            setLockOwner(lockOwnerPtr);
-            setMutex(lockOwnerPtr.getMutex());
-        }
     }
 
     this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);

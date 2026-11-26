@@ -72,9 +72,6 @@ public:
                   const StringPtr& className = nullptr,
                   const StringPtr& name = nullptr);
 
-    // IPropertyObjectInternal
-    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
-
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
@@ -283,23 +280,6 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         this->parentActive = parent.getActive();
         this->active = this->localActive && this->parentActive;
     }
-}
-
-template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger()
-{
-    LockingStrategy ls;
-    OPENDAQ_RETURN_IF_FAILED(this->getLockingStrategy(&ls));
-    if (ls == LockingStrategy::InheritLock)
-    {
-        PropertyObjectInternalPtr lockOwnerPtr;
-        OPENDAQ_RETURN_IF_FAILED(this->getMutexOwner(&lockOwnerPtr));
-
-        this->setLockOwner(lockOwnerPtr);
-        this->setMutex(lockOwnerPtr.getMutex());
-    }
-
-    return Super::enableCoreEventTrigger();
 }
 
 template <class Intf, class ... Intfs>

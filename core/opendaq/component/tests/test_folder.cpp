@@ -7,8 +7,13 @@
 #include <opendaq/io_folder_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_factory.h>
+#include <opendaq/component_impl.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/function_block_impl.h>
+#include <opendaq/function_block_type_factory.h>
 #include <opendaq/tags_private_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <thread>
 
 using namespace testing;
 
@@ -321,6 +326,260 @@ TEST_F(FolderTest, InheritedLocking1)
 
     ASSERT_EQ(folderInternal, componentInternal.getMutexOwner());
     ASSERT_EQ(folderInternal, objInternal1.getMutexOwner());
+}
+
+// Tried from another thread, as try_lock on a std::mutex the calling thread holds is undefined
+// A joined thread frees its thread-locals before the test ends; a std::async pool thread outlives it and trips the memcheck listener
+static bool isLockedElsewhere(const daq::MutexPtr& mutex)
+{
+    bool locked = true;
+    std::thread thread([&mutex, &locked]
+    {
+        locked = !mutex.tryLock();
+        if (!locked)
+            mutex.unlock();
+    });
+    thread.join();
+    return locked;
+}
+
+TEST_F(FolderTest, InheritedLockingWithoutCoreEvents)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+    const auto folderInternal = folder.asPtr<IPropertyObjectInternal>();
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folderInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    folder.addItem(folder1);
+
+    const auto component = daq::Component(ctx, folder1, "component");
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    componentInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+
+    const auto mutex = folderInternal.getMutex();
+    ASSERT_EQ(mutex, folderInternal1.getMutex());
+    ASSERT_EQ(mutex, componentInternal.getMutex());
+    ASSERT_EQ(folderInternal, componentInternal.getMutexOwner());
+
+    const auto lockGuard = componentInternal.getLockGuard();
+    ASSERT_TRUE(isLockedElsewhere(mutex));
+}
+
+class AcquisitionLockComponentImpl : public daq::ComponentImpl<>
+{
+public:
+    using ComponentImpl::ComponentImpl;
+
+    bool acquisitionLockHolds(const daq::MutexPtr& mutex)
+    {
+        auto lock = this->getAcquisitionLock2();
+        return isLockedElsewhere(mutex);
+    }
+};
+
+TEST_F(FolderTest, InheritedLockingAfterParentStartsInheriting)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folder.addItem(folder1);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(folderInternal1.getMutex()));
+
+    folderInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, component.asPtr<IPropertyObjectInternal>().getMutex());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
+TEST_F(FolderTest, InheritedLockingAfterParentStartsForwarding)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folder.addItem(folder1);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+
+    // The folder keeps its own mutex, but its children now resolve their lock past it
+    const auto folderMutex1 = folderInternal1.getMutex();
+    folderInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    ASSERT_EQ(folderMutex1, folderInternal1.getMutex());
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, component.asPtr<IPropertyObjectInternal>().getMutex());
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
+TEST_F(FolderTest, InheritedLockingOfComponentObjectProperty)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folder.addItem(folder1);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+    const auto child = PropertyObject();
+    child.addProperty(ObjectProperty("Inner", PropertyObject()));
+    component.addProperty(ObjectProperty("Child", child));
+    const auto childInternal = component.getPropertyValue("Child").asPtr<IPropertyObjectInternal>();
+    const auto innerInternal = component.getPropertyValue("Child.Inner").asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(childInternal.getMutex(), folderInternal1.getMutex());
+    ASSERT_EQ(innerInternal.getMutex(), folderInternal1.getMutex());
+
+    // The component's object property and the object inside it resolve past the forwarding folder together with the component
+    folderInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(childInternal.getMutex(), mutex);
+    ASSERT_EQ(innerInternal.getMutex(), mutex);
+
+    {
+        const auto lockGuard = childInternal.getLockGuard();
+        ASSERT_TRUE(isLockedElsewhere(mutex));
+    }
+
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
+class AcquisitionLockPropertyObjectImpl : public daq::PropertyObjectImpl
+{
+public:
+    bool acquisitionLockHolds(const daq::MutexPtr& mutex)
+    {
+        auto lock = this->getAcquisitionLock2();
+        return isLockedElsewhere(mutex);
+    }
+};
+
+TEST_F(FolderTest, InheritedLockingOfObjectPropertyAddedBeforeComponentInherits)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto component = daq::Component(ctx, folder, "component");
+    folder.addItem(component);
+
+    // Set through the protected setter, as a default value is cloned into a plain property object
+    const auto child = daq::createWithImplementation<daq::IPropertyObject, AcquisitionLockPropertyObjectImpl>();
+    component.addProperty(ObjectProperty("Child", PropertyObject()));
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", child);
+
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    componentInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    componentInternal.enableCoreEventTrigger();
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, componentInternal.getMutex());
+    ASSERT_EQ(mutex, child.asPtr<IPropertyObjectInternal>().getMutex());
+
+    const auto childImpl = dynamic_cast<AcquisitionLockPropertyObjectImpl*>(child.getObject());
+    ASSERT_TRUE(childImpl->acquisitionLockHolds(mutex));
+}
+
+TEST_F(FolderTest, InheritedLockingTwoLevelsBelowStrategyChange)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder1");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folder.addItem(folder1);
+
+    // Forwarding, like the default folders of devices and function blocks
+    const auto folder2 = daq::Folder(ctx, folder1, "folder2");
+    folder2.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    folder1.addItem(folder2);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder2, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder2.addItem(component);
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(folderInternal1.getMutex()));
+
+    folderInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, component.asPtr<IPropertyObjectInternal>().getMutex());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
+TEST_F(FolderTest, OwnLockAfterInheritingLocksOwnMutex)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder1");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folderInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    folder.addItem(folder1);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+
+    const auto inheritedMutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(inheritedMutex, folderInternal1.getMutex());
+
+    folderInternal1.setLockingStrategy(LockingStrategy::OwnLock);
+
+    const auto ownMutex = folderInternal1.getMutex();
+    ASSERT_NE(inheritedMutex, ownMutex);
+    ASSERT_EQ(ownMutex, component.asPtr<IPropertyObjectInternal>().getMutex());
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(ownMutex));
+}
+
+class LockTestFunctionBlockImpl : public daq::FunctionBlock
+{
+public:
+    LockTestFunctionBlockImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::FunctionBlock(daq::FunctionBlockType("LockTest", "LockTest", ""), ctx, parent, localId)
+    {
+        allowNonDefaultComponents = true;
+        const auto child = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, thisPtr<daq::ComponentPtr>(), "child");
+        child.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+        component = addExistingComponent(child);
+    }
+
+    daq::ComponentPtr component;
+};
+
+TEST_F(FolderTest, InheritedLockingInSignalContainerAfterItStartsInheriting)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, LockTestFunctionBlockImpl>(ctx, folder, "fb");
+    folder.addItem(fb);
+    const auto fbImpl = dynamic_cast<LockTestFunctionBlockImpl*>(fb.getObject());
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(fbImpl->component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(fb.asPtr<IPropertyObjectInternal>().getMutex()));
+
+    fb.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, fbImpl->component.asPtr<IPropertyObjectInternal>().getMutex());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
 }
 
 TEST_F(FolderTest, InheritedLocking2)

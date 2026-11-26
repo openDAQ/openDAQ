@@ -70,6 +70,8 @@ public:
 protected:
     tsl::ordered_map<std::string, ComponentPtr> items;
 
+    ErrCode updateMutex() override;
+
     void removed() override;
 
     virtual bool addItemInternal(const ComponentPtr& component);
@@ -327,6 +329,17 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::updateMutex()
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::updateMutex());
+
+    for (const auto& [_, item] : items)
+        OPENDAQ_RETURN_IF_FAILED(this->updateChildMutex(item));
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

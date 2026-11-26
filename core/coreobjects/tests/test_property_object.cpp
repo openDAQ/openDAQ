@@ -15,6 +15,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/mutex_factory.h>
 #include <coretypes/listobject_factory.h>
 #include <atomic>
 #include <chrono>
@@ -2875,6 +2876,102 @@ TEST_F(PropertyObjectTest, InheritedLocking2)
 
     ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
     ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
+}
+
+// Tried from another thread, as try_lock on a std::mutex the calling thread holds is undefined
+static bool isLockedElsewhere(const MutexPtr& mutex)
+{
+    bool locked = true;
+    std::thread thread([&mutex, &locked]
+    {
+        locked = !mutex.tryLock();
+        if (!locked)
+            mutex.unlock();
+    });
+    thread.join();
+    return locked;
+}
+
+TEST_F(PropertyObjectTest, MutexRecursiveLock)
+{
+    const auto mutex = Mutex();
+    mutex.lockRecursive();
+    mutex.lockRecursive();
+    ASSERT_TRUE(isLockedElsewhere(mutex));
+
+    mutex.unlockRecursive();
+    ASSERT_TRUE(isLockedElsewhere(mutex));
+
+    mutex.unlockRecursive();
+    ASSERT_FALSE(isLockedElsewhere(mutex));
+    ASSERT_THROW(mutex.unlockRecursive(), InvalidStateException);
+}
+
+static void expectLocksMutex(const PropertyObjectPtr& obj, const MutexPtr& mutex)
+{
+    const auto objInternal = obj.asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(objInternal.getMutex(), mutex);
+
+    {
+        const auto lockGuard = objInternal.getLockGuard();
+        ASSERT_TRUE(isLockedElsewhere(mutex));
+    }
+
+    const auto lockGuard = objInternal.getRecursiveLockGuard();
+    ASSERT_TRUE(isLockedElsewhere(mutex));
+}
+
+TEST_F(PropertyObjectTest, OwnedObjectKeepsItsStrategy)
+{
+    const auto root = PropertyObject();
+    const auto a = PropertyObject();
+    a.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::OwnLock);
+    root.addProperty(ObjectProperty("A", a));
+
+    const PropertyObjectPtr objA = root.getPropertyValue("A");
+    objA.addProperty(ObjectProperty("B", PropertyObject()));
+    const PropertyObjectPtr objB = objA.getPropertyValue("B");
+    objB.addProperty(ObjectProperty("C", PropertyObject()));
+    const PropertyObjectPtr objC = objB.getPropertyValue("C");
+
+    const auto internalA = objA.asPtr<IPropertyObjectInternal>();
+    const auto mutexA = internalA.getMutex();
+    ASSERT_NE(mutexA, root.asPtr<IPropertyObjectInternal>().getMutex());
+    expectLocksMutex(objB, mutexA);
+    expectLocksMutex(objC, mutexA);
+
+    // An owned object keeps its strategy; setting the one it has updates its mutex
+    ASSERT_THROW(internalA.setLockingStrategy(LockingStrategy::InheritLock), InvalidOperationException);
+    ASSERT_NO_THROW(objB.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock));
+    expectLocksMutex(objA, mutexA);
+    expectLocksMutex(objB, mutexA);
+    expectLocksMutex(objC, mutexA);
+
+    // Re-entry is tracked by the shared mutex, so the guards of different objects nest on one thread
+    {
+        const auto guardA = internalA.getRecursiveLockGuard();
+        const auto guardC = objC.asPtr<IPropertyObjectInternal>().getRecursiveLockGuard();
+        objC.addProperty(StringProperty("Value", "Default"));
+        ASSERT_EQ(objC.getPropertyValue("Value"), "Default");
+    }
+}
+
+TEST_F(PropertyObjectTest, DetachedObjectKeepsItsMutex)
+{
+    const auto root = PropertyObject();
+    root.addProperty(ObjectProperty("A", PropertyObject()));
+    const PropertyObjectPtr objA = root.getPropertyValue("A");
+    objA.addProperty(ObjectProperty("B", PropertyObject()));
+    const PropertyObjectPtr objB = objA.getPropertyValue("B");
+
+    const auto rootMutex = root.asPtr<IPropertyObjectInternal>().getMutex();
+    expectLocksMutex(objA, rootMutex);
+    expectLocksMutex(objB, rootMutex);
+
+    // Other threads may still lock a detached object, so it and the objects below it keep the shared mutex
+    objA.asPtr<IOwnable>().setOwner(nullptr);
+    expectLocksMutex(objA, rootMutex);
+    expectLocksMutex(objB, rootMutex);
 }
 
 TEST_F(PropertyObjectTest, CloneKeepsLockingStrategy)

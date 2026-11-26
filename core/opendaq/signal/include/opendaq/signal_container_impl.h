@@ -56,6 +56,8 @@ protected:
 
     std::vector<ComponentPtr> components;
     std::unordered_set<std::string> defaultComponents;
+
+    ErrCode updateMutex() override;
     bool allowNonDefaultComponents;
 
     LoggerComponentPtr signalContainerLoggerComponent;
@@ -208,6 +210,17 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateMutex()
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::updateMutex());
+
+    for (const auto& component : this->components)
+        OPENDAQ_RETURN_IF_FAILED(this->updateChildMutex(component));
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>

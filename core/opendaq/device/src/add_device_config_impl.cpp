@@ -7,6 +7,7 @@
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <opendaq/authentication_config_ptr.h>
+#include <opendaq/authentication_method_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -147,6 +148,18 @@ ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
     });
 }
 
+// A bound config doesn't keep the deprecated credential properties of a type that takes the credential through its
+// authentication config. A type without one still reads them from its type config.
+static void clearLegacyCredentials(const PropertyObjectPtr& typeConfig, const AuthenticationConfigPtr& authenticationConfig)
+{
+    if (!authenticationConfig.assigned() || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
+        return;
+
+    for (const auto name : {"Username", "Password"})
+        if (typeConfig.hasProperty(name))
+            typeConfig.clearPropertyValue(name);
+}
+
 ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound)
 {
     OPENDAQ_PARAM_NOT_NULL(bound);
@@ -164,6 +177,11 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
             config = Bind(saved, deviceTypes, streamingTypes, scanOnAddDefault);
         };
         JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
+
+        clearLegacyCredentials(config.getTypeConfig(), config.getAuthenticationConfig());
+        if (const auto options = config.getStreamingOptions(); options.assigned())
+            for (const auto& [_, streamingConfig] : options.getAvailableStreamingConfigs())
+                clearLegacyCredentials(streamingConfig.getTypeConfig(), streamingConfig.getAuthenticationConfig());
 
         *bound = config.detach();
     });

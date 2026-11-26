@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/add_device_config_private_ptr.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/authentication_method_factory.h>
@@ -464,25 +465,30 @@ TEST_F(AddDeviceConfigLegacyTest, AdapterDropsStreamingSection)
     ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 1);
 }
 
+// The Add streaming config translated from a legacy config, a plain type config or null is created for the given
+// Streaming type.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigIsCreatedForTheStreamingType)
 {
-    const auto streamingType = streamingTypes.get(LtId);
+    const auto streamingType = streamingTypes.get(OtherId);
 
     ASSERT_EQ(fromLegacyAddStreamingConfig(createLegacyConfig(), streamingType).getStreamingType(), streamingType);
     ASSERT_EQ(fromLegacyAddStreamingConfig(createTypeConfig(), streamingType).getStreamingType(), streamingType);
     ASSERT_EQ(fromLegacyAddStreamingConfig(nullptr, streamingType).getStreamingType(), streamingType);
 }
 
+// A null config translates into an Add streaming config with the default type config of the Streaming type.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigOfNullHasDefaultTypeConfig)
 {
-    const auto config = fromLegacyAddStreamingConfig(nullptr, streamingTypes.get(LtId));
+    const auto config = fromLegacyAddStreamingConfig(nullptr, streamingTypes.get(OtherId));
 
     ASSERT_EQ(serialize(config.getTypeConfig()), serialize(createTypeConfig()));
 }
 
+// A config that isn't a legacy one - missing any of the Device, Streaming or General sections, or a plain type config
+// with changed values and extra properties - becomes the type config of the Add streaming config as it is.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigTakesOtherConfigsAsTypeConfig)
 {
-    const auto streamingType = streamingTypes.get(LtId);
+    const auto streamingType = streamingTypes.get(OtherId);
     for (const auto name : {"Device", "Streaming", "General"})
     {
         const auto config = createLegacyConfig();
@@ -525,14 +531,20 @@ TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutEntryTakesGeneralCredent
     ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId)).getTypeConfig()), serialize(expected));
 }
 
+// A Streaming type without authentication methods gives an Add streaming config without an authentication config,
+// even when the legacy config has credential properties.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutAuthenticationMethodsHasNoAuthenticationConfig)
 {
     const auto legacy = createLegacyConfig();
-    section(legacy, "General").setPropertyValue("Username", "user");
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
 
-    ASSERT_FALSE(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId)).getAuthenticationConfig().assigned());
+    ASSERT_FALSE(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(OtherId)).getAuthenticationConfig().assigned());
 }
 
+// The General Username/Password of a legacy config are supplied as the UserNamePassword credential of the Add streaming
+// config's authentication config, for a Streaming type with authentication methods.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesLegacyCredentials)
 {
     const auto legacy = createLegacyConfig();
@@ -540,82 +552,103 @@ TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesLegacyCredentials)
     general.setPropertyValue("Username", "user");
     general.setPropertyValue("Password", "pw");
 
-    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId));
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(OtherId));
 
     assertCredential(config.getAuthenticationConfig(), credential("user", "pw"));
 }
 
+// The Username/Password of the type's Streaming entry (legacy) take precedence over the General ones when translated to the
+// supplied UserNamePassword credential.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesEntryCredentials)
 {
     const auto legacy = createLegacyConfig();
     const auto general = section(legacy, "General");
     general.setPropertyValue("Username", "user");
     general.setPropertyValue("Password", "pw");
-    const auto entry = typeSection(legacy, "Streaming", LtId);
-    entry.setPropertyValue("Username", "ltuser");
-    entry.setPropertyValue("Password", "ltpw");
+    const auto entry = typeSection(legacy, "Streaming", OtherId);
+    entry.setPropertyValue("Username", "streaminguser");
+    entry.setPropertyValue("Password", "streamingpw");
 
-    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId));
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(OtherId));
 
-    assertCredential(config.getAuthenticationConfig(), credential("ltuser", "ltpw"));
+    assertCredential(config.getAuthenticationConfig(), credential("streaminguser", "streamingpw"));
 }
 
+// The Username/Password properties of a standalone type config are translated as the UserNamePassword method's supplied credentials.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesTypeConfigCredentials)
 {
     const auto typeConfig = createTypeConfig();
     typeConfig.setPropertyValue("Username", "user");
     typeConfig.setPropertyValue("Password", "pw");
 
-    const auto config = fromLegacyAddStreamingConfig(typeConfig, createAuthenticatedStreamingType(LtId));
+    const auto config = fromLegacyAddStreamingConfig(typeConfig, createAuthenticatedStreamingType(OtherId));
 
     assertCredential(config.getAuthenticationConfig(), credential("user", "pw"));
 }
 
+// Without a Username - a password alone, or a null config - no credential is supplied and the default method stays
+// selected.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutUsernameSuppliesNoCredentials)
 {
     const auto legacy = createLegacyConfig();
     section(legacy, "General").setPropertyValue("Password", "pw");
 
-    assertNoCredential(fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId)).getAuthenticationConfig());
-    assertNoCredential(fromLegacyAddStreamingConfig(nullptr, createAuthenticatedStreamingType(LtId)).getAuthenticationConfig());
+    assertNoCredential(fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(OtherId)).getAuthenticationConfig());
+    assertNoCredential(fromLegacyAddStreamingConfig(nullptr, createAuthenticatedStreamingType(OtherId)).getAuthenticationConfig());
 }
 
+// A Streaming type without the UserNamePassword method supported translates no credential from the legacy Username/Password properties.
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutUserNamePasswordMethodSuppliesNoCredentials)
 {
     const auto legacy = createLegacyConfig();
-    section(legacy, "General").setPropertyValue("Username", "user");
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
 
-    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId, false));
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(OtherId, false));
 
     assertNoCredential(config.getAuthenticationConfig());
 }
 
+// Legacy device config translation supplies the credentials to the authentication configs of the device and of each
+// streaming type - the Username/Password props of a type entry override the General ones, a type without them takes General.
 TEST_F(AddDeviceConfigLegacyTest, DeviceConfigSuppliesLegacyCredentials)
 {
     const auto legacy = createLegacyConfig();
     const auto general = section(legacy, "General");
     general.setPropertyValue("Username", "user");
     general.setPropertyValue("Password", "pw");
-    typeSection(legacy, "Device", "dev").setPropertyValue("Username", "devuser");
-    typeSection(legacy, "Streaming", LtId).setPropertyValue("Username", "ltuser");
+    const auto deviceEntry = typeSection(legacy, "Device", "dev");
+    deviceEntry.setPropertyValue("Username", "devuser");
+    deviceEntry.setPropertyValue("Password", "devpw");
+    const auto streamingEntry = typeSection(legacy, "Streaming", OtherId);
+    streamingEntry.setPropertyValue("Username", "streaminguser");
+    streamingEntry.setPropertyValue("Password", "streamingpw");
 
-    const auto authenticatedTypes =
-        Dict<IString, IStreamingType>({{NativeId, createAuthenticatedStreamingType(NativeId)}, {LtId, createAuthenticatedStreamingType(LtId)}});
+    const auto authenticatedTypes = Dict<IString, IStreamingType>(
+        {{NativeId, createAuthenticatedStreamingType(NativeId)}, {OtherId, createAuthenticatedStreamingType(OtherId)}});
     const auto config = fromLegacyAddDeviceConfig(legacy, createAuthenticatedDeviceType(), authenticatedTypes, True, loggerComponent);
     const auto streamingConfigs = config.getStreamingOptions().getAvailableStreamingConfigs();
 
-    assertCredential(config.getAuthenticationConfig(), credential("devuser", "pw"));
+    assertCredential(config.getAuthenticationConfig(), credential("devuser", "devpw"));
     assertCredential(streamingConfigs.get(NativeId).getAuthenticationConfig(), credential("user", "pw"));
-    assertCredential(streamingConfigs.get(LtId).getAuthenticationConfig(), credential("ltuser", "pw"));
+    assertCredential(streamingConfigs.get(OtherId).getAuthenticationConfig(), credential("streaminguser", "streamingpw"));
 }
 
+// Legacy device config translation without a Username - Passwords alone, in General and the type entries - supplies no
+// credential to the device or streaming authentication configs.
 TEST_F(AddDeviceConfigLegacyTest, DeviceConfigWithoutUsernameSuppliesNoCredentials)
 {
-    const auto authenticatedTypes = Dict<IString, IStreamingType>({{LtId, createAuthenticatedStreamingType(LtId)}});
-    const auto config = fromLegacyAddDeviceConfig(createLegacyConfig(), createAuthenticatedDeviceType(), authenticatedTypes, True, loggerComponent);
+    const auto legacy = createLegacyConfig();
+    section(legacy, "General").setPropertyValue("Password", "pw");
+    typeSection(legacy, "Device", "dev").setPropertyValue("Password", "devpw");
+    typeSection(legacy, "Streaming", OtherId).setPropertyValue("Password", "streamingpw");
+
+    const auto authenticatedTypes = Dict<IString, IStreamingType>({{OtherId, createAuthenticatedStreamingType(OtherId)}});
+    const auto config = fromLegacyAddDeviceConfig(legacy, createAuthenticatedDeviceType(), authenticatedTypes, True, loggerComponent);
 
     assertNoCredential(config.getAuthenticationConfig());
-    assertNoCredential(config.getStreamingOptions().getAvailableStreamingConfigs().get(LtId).getAuthenticationConfig());
+    assertNoCredential(config.getStreamingOptions().getAvailableStreamingConfigs().get(OtherId).getAuthenticationConfig());
 }
 
 TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)
@@ -629,6 +662,87 @@ TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)
     ASSERT_FALSE(connects(DeviceKind::Mirrored));
     ASSERT_FALSE(connects(DeviceKind::Unspecified));
     ASSERT_TRUE(connects(DeviceKind::Adapter));
+}
+
+// New -> old translation writes the credential supplied for the selected UserNamePassword method of each authentication
+// config into the deprecated Username/Password of its type entry - the device one into its Device entry, the streaming one
+// into its Streaming entry - while General keeps its empty defaults.
+TEST_F(AddDeviceConfigLegacyTest, ToLegacySetsCredentialProperties)
+{
+    const auto authenticatedTypes = Dict<IString, IStreamingType>({{OtherId, createAuthenticatedStreamingType(OtherId)}});
+    const auto config = AddDeviceConfig(createAuthenticatedDeviceType(), authenticatedTypes, True);
+    config.getAuthenticationConfig().setAuthenticationMethod(StandardUserNamePasswordId);
+    config.getAuthenticationConfig().setSuppliedCredential(credential("user", "pw"));
+    const auto streamingAuthentication = config.getStreamingOptions().getAvailableStreamingConfigs().get(OtherId).getAuthenticationConfig();
+    streamingAuthentication.setAuthenticationMethod(StandardUserNamePasswordId);
+    streamingAuthentication.setSuppliedCredential(credential("streaminguser", "streamingpw"));
+
+    const auto legacy = toLegacyAddDeviceConfig(config);
+
+    const auto deviceEntry = typeSection(legacy, "Device", "dev");
+    ASSERT_EQ(deviceEntry.getPropertyValue("Username"), "user");
+    ASSERT_EQ(deviceEntry.getPropertyValue("Password"), "pw");
+    const auto streamingEntry = typeSection(legacy, "Streaming", OtherId);
+    ASSERT_EQ(streamingEntry.getPropertyValue("Username"), "streaminguser");
+    ASSERT_EQ(streamingEntry.getPropertyValue("Password"), "streamingpw");
+    ASSERT_EQ(section(legacy, "General").getPropertyValue("Username"), "");
+    ASSERT_EQ(section(legacy, "General").getPropertyValue("Password"), "");
+}
+
+// Bind drops the credentials supplied on the authentication configs and prunes the deprecated Username/Password properties
+// (typically set by mistake) of the device and streaming type configs whose authentication config has the UserNamePassword
+// method, as their credential is supplied through the authentication config.
+TEST_F(AddDeviceConfigLegacyTest, BindClearsCredsAndPropsOfAuthenticatedTypes)
+{
+    const auto deviceType = createAuthenticatedDeviceType();
+    const auto authenticatedTypes = Dict<IString, IStreamingType>({{OtherId, createAuthenticatedStreamingType(OtherId)}});
+    const auto config = AddDeviceConfig(deviceType, authenticatedTypes, True);
+    config.getTypeConfig().setPropertyValue("Username", "user");
+    config.getTypeConfig().setPropertyValue("Password", "pw");
+    config.getAuthenticationConfig().setAuthenticationMethod(StandardUserNamePasswordId);
+    config.getAuthenticationConfig().setSuppliedCredential(credential("user", "pw"));
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType(OtherId);
+    const auto streamingConfig = options.getStreamingConfig();
+    streamingConfig.getTypeConfig().setPropertyValue("Username", "streaminguser");
+    streamingConfig.getTypeConfig().setPropertyValue("Password", "streamingpw");
+    streamingConfig.getAuthenticationConfig().setAuthenticationMethod(StandardUserNamePasswordId);
+    streamingConfig.getAuthenticationConfig().setSuppliedCredential(credential("streaminguser", "streamingpw"));
+
+    const auto bound = config.asPtr<IAddDeviceConfigPrivate>().bind(Dict<IString, IDeviceType>({{"dev", deviceType}}), authenticatedTypes);
+
+    const auto boundTypeConfig = bound.getTypeConfig();
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Username"), "");
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Password"), "");
+    ASSERT_EQ(bound.getAuthenticationConfig().getSuppliedCredential().getCount(), 0u);
+    const auto boundStreamingConfig = bound.getStreamingOptions().getStreamingConfig();
+    ASSERT_EQ(boundStreamingConfig.getTypeConfig().getPropertyValue("Username"), "");
+    ASSERT_EQ(boundStreamingConfig.getTypeConfig().getPropertyValue("Password"), "");
+    ASSERT_EQ(boundStreamingConfig.getAuthenticationConfig().getSuppliedCredential().getCount(), 0u);
+}
+
+// Bind keeps the Username/Password properties of device and streaming types without authentication methods supported via modern API,
+// as corresponding modules still read the credential from the type config properties.
+TEST_F(AddDeviceConfigLegacyTest, BindKeepsCredPropsOfTypesWithoutModernAuth)
+{
+    const auto deviceType = createDeviceType();
+    const auto config = AddDeviceConfig(deviceType, streamingTypes, True);
+    config.getTypeConfig().setPropertyValue("Username", "user");
+    config.getTypeConfig().setPropertyValue("Password", "pw");
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType(OtherId);
+    const auto streamingTypeConfig = options.getStreamingConfig().getTypeConfig();
+    streamingTypeConfig.setPropertyValue("Username", "streaminguser");
+    streamingTypeConfig.setPropertyValue("Password", "streamingpw");
+
+    const auto bound = config.asPtr<IAddDeviceConfigPrivate>().bind(Dict<IString, IDeviceType>({{"dev", deviceType}}), streamingTypes);
+
+    const auto boundTypeConfig = bound.getTypeConfig();
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Username"), "user");
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Password"), "pw");
+    const auto boundStreamingTypeConfig = bound.getStreamingOptions().getStreamingConfig().getTypeConfig();
+    ASSERT_EQ(boundStreamingTypeConfig.getPropertyValue("Username"), "streaminguser");
+    ASSERT_EQ(boundStreamingTypeConfig.getPropertyValue("Password"), "streamingpw");
 }
 
 END_NAMESPACE_OPENDAQ

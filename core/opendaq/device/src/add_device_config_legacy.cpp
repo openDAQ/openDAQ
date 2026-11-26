@@ -123,6 +123,23 @@ static void applyLegacyCredentials(const AuthenticationConfigPtr& authentication
     authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
 }
 
+static PropertyObjectPtr toLegacyTypeConfig(const PropertyObjectPtr& typeConfig, const AuthenticationConfigPtr& authenticationConfig)
+{
+    const PropertyObjectPtr legacyTypeConfig = typeConfig.asPtr<IPropertyObjectInternal>().clone();
+    if (!authenticationConfig.assigned() || authenticationConfig.getSelectedAuthenticationMethod().getId() != StandardUserNamePasswordId)
+        return legacyTypeConfig;
+
+    const auto credential = authenticationConfig.getSuppliedCredential();
+    if (credential.getCount() == 0)
+        return legacyTypeConfig;
+
+    if (legacyTypeConfig.hasProperty(LegacyAddDeviceConfig::Username) && credential.hasKey("UserName"))
+        legacyTypeConfig.setPropertyValue(LegacyAddDeviceConfig::Username, credential.get("UserName"));
+    if (legacyTypeConfig.hasProperty(LegacyAddDeviceConfig::Password) && credential.hasKey("Password"))
+        legacyTypeConfig.setPropertyValue(LegacyAddDeviceConfig::Password, credential.get("Password"));
+    return legacyTypeConfig;
+}
+
 }
 
 PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
@@ -277,13 +294,9 @@ AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& conf
 
 PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
 {
-    const auto cloneTypeConfig = [](const PropertyObjectPtr& typeConfig) -> PropertyObjectPtr
-    {
-        return typeConfig.asPtr<IPropertyObjectInternal>().clone();
-    };
-
     auto deviceSection = PropertyObject();
-    deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), cloneTypeConfig(config.getTypeConfig())));
+    deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(),
+                                             detail::toLegacyTypeConfig(config.getTypeConfig(), config.getAuthenticationConfig())));
 
     auto streamingSection = PropertyObject();
     auto general = createLegacyGeneralConfig(config.getScanOnAdd());
@@ -295,7 +308,8 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     if (options.assigned())
     {
         for (const auto& [typeId, streamingConfig] : options.getAvailableStreamingConfigs())
-            streamingSection.addProperty(ObjectProperty(typeId, cloneTypeConfig(streamingConfig.getTypeConfig())));
+            streamingSection.addProperty(
+                ObjectProperty(typeId, detail::toLegacyTypeConfig(streamingConfig.getTypeConfig(), streamingConfig.getAuthenticationConfig())));
 
         const auto selected = options.getStreamingConfig();
         if (selected.assigned())

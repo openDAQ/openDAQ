@@ -121,9 +121,11 @@ PUBLIC_EXPORT AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyO
  *
  * The `Device` section holds a copy of the type config, keyed by the Device type ID.
  * The `Streaming` section holds a copy of each listed streaming config.
+ * The copies hold the values of their type configs.
+ * The deprecated `Username` and `Password` of a copy instead hold the credential supplied for the selected `UserNamePassword`
+ * method of its authentication config, when there is one.
  * The `General` section holds every legacy key.
  * Its `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` hold their defaults.
- * The type configs hold their values.
  * `PrimaryAddressType` is `IPv4` or `IPv6`, never blank.
  * `AllowedStreamingProtocols` is empty.
  * A selected Streaming type gives a `PrioritizedStreamingProtocols` list with only its ID.

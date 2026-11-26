@@ -26,7 +26,6 @@ static const char* AuthenticationConfig = "AuthenticationConfig";
 static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
 static const char* PropValuesKey = "propValues";
-static const char* AvailableTransportOptionsKey = "availableTransportOptions";
 static const char* SelectedTransportOptionKey = "selectedTransportOption";
 
 // The options of `options` that the type lists as well.
@@ -84,29 +83,28 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                                          const DictPtr<IString, IStreamingType>& streamingTypes,
                                          const ListPtr<IServerCapability>& capabilities,
                                          Bool scanOnAdd)
-    : AddDeviceConfigImpl(deviceType,
-                          add_device_config::announcedTransportOptions(
-                              capabilities, deviceType.getConnectionStringPrefix(), deviceType.getAvailableTransportOptions()),
-                          Partial())
+    : AddDeviceConfigImpl(deviceType, Partial())
 {
     const auto streamingOptions = [&capabilities](const StreamingTypePtr& streamingType)
     {
         return add_device_config::announcedTransportOptions(
             capabilities, streamingType.getConnectionStringPrefix(), streamingType.getAvailableTransportOptions());
     };
-    addConfigProperties(streamingTypes, streamingOptions, scanOnAdd);
+    addConfigProperties(add_device_config::announcedTransportOptions(
+                            capabilities, deviceType.getConnectionStringPrefix(), deviceType.getAvailableTransportOptions()),
+                        streamingTypes,
+                        streamingOptions,
+                        scanOnAdd);
 }
 
-AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
-                                         const DictPtr<IString, ITransportOption>& transportOptions,
-                                         Partial)
+AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial)
     : Super()
     , deviceType(deviceType)
-    , transportOptions(FrozenClone(transportOptions.assigned() ? transportOptions : Dict<IString, ITransportOption>()))
 {
 }
 
-void AddDeviceConfigImpl::addConfigProperties(const DictPtr<IString, IStreamingType>& streamingTypes,
+void AddDeviceConfigImpl::addConfigProperties(const DictPtr<IString, ITransportOption>& transportOptions,
+                                              const DictPtr<IString, IStreamingType>& streamingTypes,
                                               const StreamingTransportOptions& streamingOptions,
                                               Bool scanOnAdd)
 {
@@ -116,7 +114,7 @@ void AddDeviceConfigImpl::addConfigProperties(const DictPtr<IString, IStreamingT
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    add_config::AddTransportSelectionProperties(objPtr, this->transportOptions);
+    add_config::AddTransportSelectionProperties(objPtr, transportOptions);
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
@@ -210,8 +208,9 @@ ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
     return daqTry([&]
     {
         auto lock = getRecursiveConfigLock2();
-        auto obj = createWithImplementation<IPropertyObject, AddDeviceConfigImpl>(deviceType, transportOptions, Partial());
+        auto obj = createWithImplementation<IPropertyObject, AddDeviceConfigImpl>(deviceType, Partial());
         dynamic_cast<AddDeviceConfigImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
+        add_config::FreezeAvailableTransportOptions(obj);
         *cloned = obj.detach();
     });
 }
@@ -272,14 +271,7 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
             [&factoryCallback](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& /*className*/)
         {
             const DeviceTypePtr deviceType = serialized.readObject(add_device_config::DeviceTypeKey, context, factoryCallback);
-
-            const DictPtr<IString, ITransportOption> options =
-                serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
-                    ? DictPtr<IString, ITransportOption>(
-                          serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback).asPtr<IDict>())
-                    : Dict<IString, ITransportOption>();
-
-            return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, options, Partial());
+            return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, Partial());
         };
 
         *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback, createConfig).detach();
@@ -342,8 +334,9 @@ AddDeviceConfigPtr AddDeviceConfigImpl::BindSaved(const SerializedObjectPtr& sav
         const auto deviceOptions =
             source.assigned() ? add_device_config::knownTransportOptions(source.getAvailableTransportOptions(), typeOptions) : typeOptions;
 
-        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, deviceOptions, Partial());
-        dynamic_cast<AddDeviceConfigImpl*>(config.getObject())->addConfigProperties(selectedStreamingType, streamingOptions, scanOnAdd);
+        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, Partial());
+        dynamic_cast<AddDeviceConfigImpl*>(config.getObject())
+            ->addConfigProperties(deviceOptions, selectedStreamingType, streamingOptions, scanOnAdd);
         checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
         return config;
     }
@@ -364,29 +357,36 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
         {
             serializerPtr.key(add_device_config::DeviceTypeKey);
             deviceType.asPtr<ISerializable>().serialize(serializerPtr);
-
-            // The options may be the ones the server of the device announces, which the Device type does not list
-            if (transportOptions.getCount() > 0)
-            {
-                serializerPtr.key(add_device_config::AvailableTransportOptionsKey);
-                transportOptions.serialize(serializerPtr);
-            }
-
             return;
         }
 
         serializerPtr.key(add_device_config::DeviceTypeIdKey);
         serializerPtr.writeString(deviceType.getId());
 
-        // A property value equal to the default is not saved, and the first option is the default.
-        // Without this key the first option of the server would become the first option of the type on load.
-        if (transportOptions.getCount() > 0)
+        // The base class does not save a value equal to the default, and the default is the first option of this config.
+        // A load creates the config from the type, whose first option may be another one.
+        // So the selection is always saved, under its own key.
+        if (add_config::HasTransportOptions(objPtr))
         {
             const StringPtr selected = objPtr.getPropertyValue(TransportOptionConfigProperty);
             serializerPtr.key(add_device_config::SelectedTransportOptionKey);
             serializerPtr.writeString(selected);
         }
     });
+}
+
+ErrCode AddDeviceConfigImpl::serializePropertyValue(const StringPtr& name,
+                                                    const ObjectPtr<IBaseObject>& value,
+                                                    ISerializer* serializer,
+                                                    bool forUpdate)
+{
+    // The saved form leaves out two properties:
+    // - AvailableTransportOptions: a load takes the options from the type, a bind from the source config;
+    // - TransportOption: the selection is saved under its own key (see serializeCustomValues).
+    if (forUpdate && (name == add_config::AvailableTransportOptionsProperty || name == TransportOptionConfigProperty))
+        return OPENDAQ_SUCCESS;
+
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
 }
 
 ErrCode AddDeviceConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
@@ -399,27 +399,26 @@ ErrCode AddDeviceConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject*
     return daqTry([&]
     {
         const auto saved = SerializedObjectPtr::Borrow(obj);
-        if (saved.hasKey(add_device_config::SelectedTransportOptionKey) && deviceType.getAvailableTransportOptions().getCount() > 0)
+        // A selection that the loaded config does not list fails the load, also for a type without options.
+        // The device must not change its transport silently.
+        if (saved.hasKey(add_device_config::SelectedTransportOptionKey))
             checkErrorInfo(setTransportOption(saved.readString(add_device_config::SelectedTransportOptionKey)));
     });
 }
 
 ErrCode AddDeviceConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
-    OPENDAQ_PARAM_NOT_NULL(transportOptions);
-
-    *transportOptions = this->transportOptions.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return add_config::GetAvailableTransportOptions(objPtr, transportOptions);
 }
 
 ErrCode AddDeviceConfigImpl::setTransportOption(IString* id)
 {
-    return add_config::SetTransportOption(objPtr, transportOptions, id);
+    return add_config::SetTransportOption(objPtr, id);
 }
 
 ErrCode AddDeviceConfigImpl::getSelectedTransportOption(ITransportOption** transportOption)
 {
-    return add_config::GetSelectedTransportOption(objPtr, transportOptions, transportOption);
+    return add_config::GetSelectedTransportOption(objPtr, transportOption);
 }
 
 ErrCode AddDeviceConfigImpl::setPort(Int port)
@@ -429,7 +428,7 @@ ErrCode AddDeviceConfigImpl::setPort(Int port)
 
 ErrCode AddDeviceConfigImpl::getPort(Int* port)
 {
-    return add_config::GetPort(objPtr, transportOptions, port);
+    return add_config::GetPort(objPtr, port);
 }
 
 bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)

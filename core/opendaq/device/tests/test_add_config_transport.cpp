@@ -77,6 +77,11 @@ protected:
         return config.asPtr<IPropertyObject>();
     }
 
+    static PropertyObjectPtr OptionsObject(const BaseObjectPtr& config)
+    {
+        return Properties(config).getPropertyValue("AvailableTransportOptions");
+    }
+
     static AddDeviceConfigPtr Bind(const AddDeviceConfigPtr& config, const DeviceTypePtr& deviceType = CreateDeviceType())
     {
         const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", deviceType}});
@@ -288,7 +293,13 @@ TEST_F(AddConfigTransportTest, WithoutTransportOptions)
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
     ASSERT_THROW(config.setTransportOption("plain"), NotFoundException);
     ASSERT_FALSE(config.getSelectedTransportOption().assigned());
-    ASSERT_FALSE(Properties(config).hasProperty("TransportOption"));
+
+    // The config has the same properties as for a type with options, with nothing to select
+    const auto properties = Properties(config);
+    ASSERT_EQ(properties.getPropertyValue("TransportOption"), "");
+    ASSERT_EQ(properties.getProperty("TransportOption").getSelectionValues(), List<IString>());
+    ASSERT_ANY_THROW(properties.setPropertyValue("TransportOption", "plain"));
+    ASSERT_EQ(OptionsObject(config).getAllProperties().getCount(), 0u);
 
     // The port works without options: a module that does not use them gets it in the connection string
     ASSERT_EQ(config.getPort(), -1);
@@ -323,6 +334,82 @@ TEST_F(AddConfigTransportTest, Clone)
     // The clone is a copy
     clonedConfig.setPort(9001);
     ASSERT_EQ(config.getPort(), 9000);
+}
+
+// The options are the AvailableTransportOptions child object. Neither it nor the dictionary of the getter can be changed.
+TEST_F(AddConfigTransportTest, OptionsAreReadOnlyProperties)
+{
+    const auto config = ServerConfig(TlsFirstServerOptions());
+
+    for (const auto& selecting : {Properties(config), Properties(config.getStreamingOptions().getStreamingConfig())})
+    {
+        const auto options = OptionsObject(selecting);
+        ASSERT_TRUE(options.isFrozen());
+        const PropertyObjectPtr tls = options.getPropertyValue("tls");
+        ASSERT_EQ(tls.getPropertyValue("Id"), "tls");
+        ASSERT_EQ(tls.getPropertyValue("Port"), 7500);
+        ASSERT_EQ(tls.getPropertySelectionValue("SecurityMode"), "Encrypted");
+
+        ASSERT_THROW(selecting.setPropertyValue("AvailableTransportOptions.tls.Port", 9000), FrozenException);
+        ASSERT_THROW(tls.setPropertyValue("Port", 9000), AccessDeniedException);
+        ASSERT_THROW(selecting.setPropertyValue("AvailableTransportOptions", PropertyObject()), AccessDeniedException);
+        ASSERT_EQ(tls.getPropertyValue("Port"), 7500);
+    }
+
+    ASSERT_THROW(config.getAvailableTransportOptions().set("wss", TestTransportOption("wss", 7443)), FrozenException);
+    ExpectOptions(config.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
+}
+
+// A clone, a full serialization and a bind each give a config whose options object is frozen again
+TEST_F(AddConfigTransportTest, OptionsStayFrozen)
+{
+    const auto config = ServerConfig(TlsFirstServerOptions());
+
+    const auto serializer = JsonSerializer();
+    config.serialize(serializer);
+    const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
+    const auto cloned = config.asPtr<IPropertyObjectInternal>().clone().asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
+
+    for (const auto& copy : {cloned, deserialized, BindToPlainFirstTypes(config)})
+    {
+        ASSERT_TRUE(OptionsObject(copy).isFrozen());
+        ASSERT_TRUE(OptionsObject(copy.getStreamingOptions().getStreamingConfig()).isFrozen());
+        ExpectOptions(copy.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
+    }
+}
+
+// The saved form holds the selection under its own key, without the options and without the TransportOption value
+TEST_F(AddConfigTransportTest, SavedFormLeavesOutOptions)
+{
+    const auto config = ServerConfig(TlsFirstServerOptions());
+    config.setTransportOption("plain");
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("plain");
+
+    const auto saved = SavedForm(config);
+    ASSERT_EQ(saved.find("AvailableTransportOptions"), std::string::npos);
+    ASSERT_EQ(saved.find(R"("TransportOption")"), std::string::npos);
+    ASSERT_NE(saved.find(R"("selectedTransportOption":"plain")"), std::string::npos);
+}
+
+// A load takes the options from the type even when a saved form holds option values
+TEST_F(AddConfigTransportTest, LoadIgnoresOptionsInSavedForm)
+{
+    const auto config = PlainFirstConfig();
+    config.setTransportOption("tls");
+    std::string saved = SavedForm(config);
+
+    const std::string propValues = R"("propValues":{)";
+    const auto pos = saved.find(propValues);
+    ASSERT_NE(pos, std::string::npos);
+    saved.insert(pos + propValues.size(),
+                 R"("AvailableTransportOptions":{"__type":"PropertyObject","propValues":)"
+                 R"({"tls":{"__type":"PropertyObject","propValues":{"Port":9999}}}},)");
+
+    const auto loaded = Load(saved, CreateDeviceType(PlainFirstOptions()));
+
+    ASSERT_EQ(loaded.getAvailableTransportOptions().get("tls").getPort(), 7421);
+    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getPort(), 7421);
 }
 
 // The saved form keeps the selection and the port set; a bound config selects among the options of the loaded type
@@ -437,14 +524,26 @@ TEST_F(AddConfigTransportTest, LoadRejectsFirstOptionTheTypeDoesNotList)
     ASSERT_THROW(Load(saved, CreateDeviceType(), CreateStreamingType(tlsOnly)), InvalidValueException);
 }
 
-// A type without options has nothing to select
-TEST_F(AddConfigTransportTest, LoadIgnoresSelectionForTypeWithoutOptions)
+// A saved selection fails the load of a type without options, as it does for a type that does not list the option
+TEST_F(AddConfigTransportTest, LoadRejectsSelectionForTypeWithoutOptions)
 {
     const auto noOptions = TransportOptionsById({});
-    const auto loaded = Load(SavedForm(PlainFirstConfig()), CreateDeviceType(noOptions), CreateStreamingType(noOptions));
+    for (const auto& selected : {"plain", "tls"})
+    {
+        const auto config = PlainFirstConfig();
+        config.setTransportOption(selected);
+        config.getStreamingOptions().getStreamingConfig().setTransportOption(selected);
+        const auto saved = SavedForm(config);
 
-    ASSERT_FALSE(loaded.getSelectedTransportOption().assigned());
-    ASSERT_FALSE(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().assigned());
+        ASSERT_THROW(Load(saved, CreateDeviceType(noOptions)), InvalidValueException) << selected;
+        ASSERT_THROW(Load(saved, CreateDeviceType(), CreateStreamingType(noOptions)), InvalidValueException) << selected;
+    }
+
+    // A config saved without options holds no selection
+    const auto withoutOptions =
+        AddDeviceConfig(CreateDeviceType(noOptions), Dict<IString, IStreamingType>({{"str", CreateStreamingType(noOptions)}}), nullptr, True);
+    withoutOptions.getStreamingOptions().setStreamingType("str");
+    ASSERT_NO_THROW(Load(SavedForm(withoutOptions), CreateDeviceType(noOptions), CreateStreamingType(noOptions)));
 }
 
 TEST_F(AddConfigTransportTest, BindKeepsServerOptions)
@@ -571,6 +670,8 @@ TEST_F(AddConfigTransportTest, AddStreamingConfig)
     const auto withoutOptions = AddStreamingConfig(CreateStreamingType(TransportOptionsById({})));
     ASSERT_THROW(withoutOptions.setTransportOption("plain"), NotFoundException);
     ASSERT_FALSE(withoutOptions.getSelectedTransportOption().assigned());
+    ASSERT_EQ(Properties(withoutOptions).getPropertyValue("TransportOption"), "");
+    ASSERT_EQ(OptionsObject(withoutOptions).getAllProperties().getCount(), 0u);
     ASSERT_EQ(withoutOptions.getPort(), -1);
     withoutOptions.setPort(9000);
     ASSERT_EQ(withoutOptions.getPort(), 9000);

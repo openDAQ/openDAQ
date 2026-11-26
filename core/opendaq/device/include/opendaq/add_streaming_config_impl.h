@@ -40,7 +40,7 @@ public:
     // Lists the transport options the server of a device announces instead of the ones of the type, unless they are
     // not assigned
     AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const DictPtr<IString, ITransportOption>& transportOptions);
-    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
+    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial);
 
     ErrCode INTERFACE_FUNC getStreamingType(IStreamingType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
@@ -62,11 +62,13 @@ public:
 
 protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
+    ErrCode serializePropertyValue(const StringPtr& name,
+                                   const ObjectPtr<IBaseObject>& value,
+                                   ISerializer* serializer,
+                                   bool forUpdate) override;
 
 private:
     StreamingTypePtr streamingType;
-    // The options the server of the device announces, else the Streaming type's
-    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

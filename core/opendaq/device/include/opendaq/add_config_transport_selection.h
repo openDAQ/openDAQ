@@ -17,10 +17,12 @@
 #pragma once
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
 #include <coretypes/exceptions.h>
 #include <opendaq/container_utils.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_ptr.h>
+#include <opendaq/transport_options_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,52 +30,88 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace add_config
 {
 
-// Adds the selected transport option, for a type with options, and the port set, -1 while none is set
-inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
-{
-    if (options.getCount() > 0)
-    {
-        const TransportOptionPtr firstOption = FirstValue(options);
-        config.addProperty(
-            StringPropertyBuilder(TransportOptionConfigProperty, firstOption.getId()).setSelectionValues(options.getKeyList()).build());
-    }
+inline constexpr const char* AvailableTransportOptionsProperty = "AvailableTransportOptions";
 
-    config.addProperty(IntPropertyBuilder(PortConfigProperty, -1).setMinValue(-1).build());
+inline void FreezeAvailableTransportOptions(const PropertyObjectPtr& config)
+{
+    config.getPropertyValue(AvailableTransportOptionsProperty).freeze();
 }
 
-inline ErrCode SetTransportOption(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options, IString* id)
+inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
+{
+    const TransportOptionPtr firstOption = FirstValue(options);
+    const StringPtr firstId = firstOption.assigned() ? firstOption.getId() : String("");
+    config.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, firstId).setSelectionValues(options.getKeyList()).build());
+    config.addProperty(IntPropertyBuilder(PortConfigProperty, -1).setMinValue(-1).build());
+    config.addProperty(ObjectProperty(AvailableTransportOptionsProperty, PropertyObject()));
+    config.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(AvailableTransportOptionsProperty, TransportOptionsObject(options));
+    FreezeAvailableTransportOptions(config);
+}
+
+inline ListPtr<IString> TransportOptionIds(const PropertyObjectPtr& config)
+{
+    return config.getProperty(TransportOptionConfigProperty).getSelectionValues().asPtr<IList, ListPtr<IString>>();
+}
+
+inline bool HasTransportOptions(const PropertyObjectPtr& config)
+{
+    return TransportOptionIds(config).getCount() > 0;
+}
+
+// Builds only the selected option. Unassigned for a config without options.
+inline TransportOptionPtr ReadSelectedTransportOption(const PropertyObjectPtr& config)
+{
+    if (!HasTransportOptions(config))
+        return nullptr;
+
+    const StringPtr selected = config.getPropertyValue(TransportOptionConfigProperty);
+    const PropertyObjectPtr options = config.getPropertyValue(AvailableTransportOptionsProperty);
+    for (const auto& prop : options.getAllProperties())
+    {
+        const PropertyObjectPtr option = options.getPropertyValue(prop.getName());
+        if (option.getPropertyValue("Id") == selected)
+            return TransportOptionFromObject(option);
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, R"(The selected transport option "{}" is not available)", selected);
+}
+
+inline ErrCode GetAvailableTransportOptions(const PropertyObjectPtr& config, IDict** transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    // A new dictionary on each call, frozen so that a change to it fails instead of being lost
+    return daqTry([&]
+    {
+        auto options = TransportOptionsFromObject(config.getPropertyValue(AvailableTransportOptionsProperty));
+        options.freeze();
+        *transportOptions = options.detach();
+    });
+}
+
+inline ErrCode SetTransportOption(const PropertyObjectPtr& config, IString* id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
     return daqTry([&]
     {
         const StringPtr idStr = id;
-        if (!options.hasKey(idStr))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", idStr));
+        for (const auto& optionId : TransportOptionIds(config))
+        {
+            // A port set stays: it overrides the port of whichever option is selected
+            if (optionId == idStr)
+                return config->setPropertyValue(String(TransportOptionConfigProperty), idStr);
+        }
 
-        // A port set stays: it overrides the port of whichever option is selected
-        return config->setPropertyValue(String(TransportOptionConfigProperty), idStr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", idStr));
     });
 }
 
-inline ErrCode GetSelectedTransportOption(const PropertyObjectPtr& config,
-                                          const DictPtr<IString, ITransportOption>& options,
-                                          ITransportOption** transportOption)
+inline ErrCode GetSelectedTransportOption(const PropertyObjectPtr& config, ITransportOption** transportOption)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOption);
 
-    if (options.getCount() == 0)
-    {
-        *transportOption = nullptr;
-        return OPENDAQ_SUCCESS;
-    }
-
-    // The property only takes the ids of the options
-    return daqTry([&]
-    {
-        const StringPtr selected = config.getPropertyValue(TransportOptionConfigProperty);
-        *transportOption = options.get(selected).detach();
-    });
+    return daqTry([&] { *transportOption = ReadSelectedTransportOption(config).detach(); });
 }
 
 inline ErrCode SetPort(const PropertyObjectPtr& config, Int port)
@@ -88,7 +126,7 @@ inline ErrCode SetPort(const PropertyObjectPtr& config, Int port)
     return config->setPropertyValue(String(PortConfigProperty), Integer(port));
 }
 
-inline ErrCode GetPort(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options, Int* port)
+inline ErrCode GetPort(const PropertyObjectPtr& config, Int* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
@@ -96,14 +134,8 @@ inline ErrCode GetPort(const PropertyObjectPtr& config, const DictPtr<IString, I
     {
         // A port set is used whichever option is selected; -1 means none is set
         const Int portSet = config.getPropertyValue(PortConfigProperty);
-        if (portSet != -1 || options.getCount() == 0)
-        {
-            *port = portSet;
-            return;
-        }
-
-        const StringPtr selected = config.getPropertyValue(TransportOptionConfigProperty);
-        *port = options.get(selected).getPort();
+        const TransportOptionPtr selected = portSet == -1 ? ReadSelectedTransportOption(config) : nullptr;
+        *port = selected.assigned() ? selected.getPort() : portSet;
     });
 }
 

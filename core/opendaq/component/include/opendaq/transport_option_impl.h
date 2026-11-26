@@ -28,7 +28,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 // An immutable transport option, serialized as a tagged object with its security mode as a string. A server capability
-// does not hold it as it is: it keeps each option as a plain Property object, which any peer reads.
+// and the add configs do not hold it as it is: they keep each option as a plain Property object, which any peer reads.
 class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
 {
 public:

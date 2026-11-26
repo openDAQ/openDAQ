@@ -43,7 +43,7 @@ public:
                         const DictPtr<IString, IStreamingType>& streamingTypes,
                         const ListPtr<IServerCapability>& capabilities,
                         Bool scanOnAdd);
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
+    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
@@ -77,6 +77,10 @@ public:
 
 protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
+    ErrCode serializePropertyValue(const StringPtr& name,
+                                   const ObjectPtr<IBaseObject>& value,
+                                   ISerializer* serializer,
+                                   bool forUpdate) override;
 
 private:
     using StreamingTransportOptions = std::function<DictPtr<IString, ITransportOption>(const StreamingTypePtr&)>;
@@ -91,12 +95,12 @@ private:
                                         Bool scanOnAdd,
                                         const AddDeviceConfigPtr& source);
 
-    void addConfigProperties(const DictPtr<IString, IStreamingType>& streamingTypes,
+    void addConfigProperties(const DictPtr<IString, ITransportOption>& transportOptions,
+                             const DictPtr<IString, IStreamingType>& streamingTypes,
                              const StreamingTransportOptions& streamingOptions,
                              Bool scanOnAdd);
 
     DeviceTypePtr deviceType;
-    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

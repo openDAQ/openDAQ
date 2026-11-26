@@ -214,6 +214,20 @@ TEST_F(ServerCapabilityTest, TransportOptionsKeptAsPlainPropertyObjects)
     ASSERT_EQ(tls.getPropertyValue("CertificateRequired"), true);
 }
 
+// An option changes only through the methods of the capability
+TEST_F(ServerCapabilityTest, TransportOptionPropertiesAreReadOnly)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted)}));
+
+    ASSERT_THROW(capability.setPropertyValue("AvailableTransportOptions.tls.Port", 9000), AccessDeniedException);
+    ASSERT_THROW(capability.setPropertyValue("AvailableTransportOptions.tls.SecurityMode", static_cast<Int>(SecurityMode::None)),
+                 AccessDeniedException);
+    ASSERT_EQ(capability.getAvailableTransportOptions().get("tls").getPort(), 7421);
+    ASSERT_EQ(capability.getAvailableTransportOptions().get("tls").getSecurityMode(), SecurityMode::Encrypted);
+}
+
 TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
 {
     ServerCapabilityConfigPtr capability =

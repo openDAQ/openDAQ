@@ -40,7 +40,6 @@ static constexpr const char* CONST_NATIVE_TRANSPORT_WSS = "wss";
 static constexpr const char* CONST_NATIVE_TRANSPORT_WSS_MTLS = "wss-mtls";
 
 static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
-static constexpr const char* CONST_NATIVE_TLS_SERVICE_NAME = "_opendaq-streaming-native-tls._tcp.local.";
 static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";
 
 static constexpr const char* PROPERTY_ENABLE_PORT_SERVER = "EnablePort";

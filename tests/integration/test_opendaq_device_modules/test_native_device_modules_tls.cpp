@@ -707,6 +707,26 @@ TEST_F(NativeTlsTest, ReconnectsOverTls)
     ASSERT_TRUE(waitForConnectionStatus(device, "ConfigurationStatus", "Connected"));
 }
 
+// The server announces all its channels as one mDNS service at the port of its first option, here the TLS one
+TEST_F(NativeTlsTest, TlsOnlyServerIsDiscoveredAtTlsPort)
+{
+    const std::string path = "/test/native_tls/discovery_tls_only/";
+    auto server = createDiscoverableServerInstance(path, /*plainPortEnabled*/ false);
+    auto client = createClientInstance();
+
+    const auto found = discoverNativeCapabilities(client, path, {PlainConfigId, PlainStreamingId});
+    ASSERT_EQ(found.count(PlainConfigId), 1u);
+    ASSERT_EQ(found.count(PlainStreamingId), 1u);
+
+    for (const auto& [id, capability] : found)
+    {
+        ASSERT_EQ(test_helpers::capabilityPort(capability), TlsPort) << id;
+
+        const std::string connectionString = capability.getConnectionString().toStdString();
+        ASSERT_NE(connectionString.find(":" + std::to_string(TlsPort)), std::string::npos) << id << " " << connectionString;
+    }
+}
+
 // The discovery tests below are disabled: the client reads only the plaintext mDNS service, and the
 // server does not announce its options there yet.
 TEST_F(NativeTlsTest, DISABLED_DiscoveringServerWithBothListeners)

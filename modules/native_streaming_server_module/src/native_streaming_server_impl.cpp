@@ -688,41 +688,30 @@ PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const Propert
     return defConfig;
 }
 
-ListPtr<IPropertyObject> NativeStreamingServerImpl::getDiscoveryConfigs()
+// One service for all channels. Its port is the port of the first option, like the port of the capabilities:
+// clients which know no options connect there.
+PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 {
-    const auto makeRecord = [this](const char* serviceName, const char* portProperty, const char* configCapabilityId)
+    const char* portProperty = plainChannelEnabled ? PROPERTY_PORT_SERVER : PROPERTY_TLS_PORT_SERVER;
+
+    auto discoveryConfig = PropertyObject();
+    discoveryConfig.addProperty(StringProperty("ServiceName", CONST_NATIVE_SERVICE_NAME));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", CONST_NATIVE_SERVICE_CAPABILITY));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue(PROPERTY_PATH_SERVER)));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue(portProperty)));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
+
+    if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
     {
-        auto discoveryConfig = PropertyObject();
-        discoveryConfig.addProperty(StringProperty("ServiceName", serviceName));
-        discoveryConfig.addProperty(StringProperty("ServiceCap", CONST_NATIVE_SERVICE_CAPABILITY));
-        discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue(PROPERTY_PATH_SERVER)));
-        discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue(portProperty)));
-        discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
-
-        if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
+        const DeviceInfoPtr info = rootDevice.getInfo();
+        if (info.assigned() && info.hasServerCapability(CONST_NATIVE_CONFIG_ID))
         {
-            const DeviceInfoPtr info = rootDevice.getInfo();
-            if (info.assigned() && info.hasServerCapability(configCapabilityId))
-            {
-                ServerCapabilityPtr serverCapabilityConfig = info.getServerCapability(configCapabilityId);
-                discoveryConfig.addProperty(ListProperty(
-                    "AuthenticationMethods", serverCapabilityConfig.getAuthenticationMethods()));
-            }
+            ServerCapabilityPtr serverCapabilityConfig = info.getServerCapability(CONST_NATIVE_CONFIG_ID);
+            discoveryConfig.addProperty(ListProperty(
+                "AuthenticationMethods", serverCapabilityConfig.getAuthenticationMethods()));
         }
-        return discoveryConfig;
-    };
-
-    auto discoveryConfigs = List<IPropertyObject>();
-
-    if (plainChannelEnabled)
-        discoveryConfigs.pushBack(makeRecord(CONST_NATIVE_SERVICE_NAME, PROPERTY_PORT_SERVER, CONST_NATIVE_CONFIG_ID));
-
-#if NATIVE_STREAMING_ENABLE_TLS
-    if (tlsChannelEnabled)
-        discoveryConfigs.pushBack(makeRecord(CONST_NATIVE_TLS_SERVICE_NAME, PROPERTY_TLS_PORT_SERVER, CONST_NATIVE_CONFIG_ID));
-#endif
-
-    return discoveryConfigs;
+    }
+    return discoveryConfig;
 }
 
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)

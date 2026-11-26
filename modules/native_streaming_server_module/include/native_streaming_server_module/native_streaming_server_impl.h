@@ -47,7 +47,7 @@ protected:
     using ConfigServerPtr = std::shared_ptr<config_protocol::ConfigProtocolServer>;
     using PacketStreamingClientPtr = std::shared_ptr<packet_streaming::PacketStreamingClient>;
 
-    ListPtr<IPropertyObject> getDiscoveryConfigs() override;
+    PropertyObjectPtr getDiscoveryConfig() override;
     void onStopServer() override;
     StreamingPtr onGetStreaming() override;
     void prepareServerHandler();

@@ -6,6 +6,7 @@
 #include <websocket_streaming_server_module/module_dll.h>
 
 #include "opendaq/mock/mock_device_module.h"
+#include "opendaq/mock/mock_physical_device.h"
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
 
@@ -18,6 +19,11 @@
 using ModulesDeviceDiscoveryTest = testing::Test;
 
 using namespace daq;
+
+static MockPhysicalDeviceImpl* mockRootDevice(const InstancePtr& instance)
+{
+    return dynamic_cast<MockPhysicalDeviceImpl*>(instance.getRootDevice().getObject());
+}
 
 TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
 {
@@ -56,11 +62,8 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
     mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
 
-    mockDeviceConfig
-        .asPtrOrNull<IPropertyObjectProtected>(true)
-        .setProtectedPropertyValue("onSubmitConfig", modifyIpConfigCallback);
-
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
+    mockRootDevice(serverInstance)->setOnSubmitNetworkConfig(modifyIpConfigCallback);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     for (const auto& server : serverInstance.getServers())
@@ -174,12 +177,10 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
 
-    auto protectedMockDeviceConfig = mockDeviceConfig.asPtrOrNull<IPropertyObjectProtected>(true);
-
-    protectedMockDeviceConfig.setProtectedPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
-    protectedMockDeviceConfig.setProtectedPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
-
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
+    const auto mockDevice = mockRootDevice(serverInstance);
+    mockDevice->setOnSubmitNetworkConfig(Procedure([](StringPtr, PropertyObjectPtr) {}));
+    mockDevice->setOnRetrieveNetworkConfig(retrieveIpConfigCallback);
 
     addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();

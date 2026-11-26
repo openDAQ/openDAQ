@@ -38,6 +38,8 @@ public:
     bool allowAddDevicesFromModules() override;
 
     void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain);
+    void setOnSubmitNetworkConfig(const ProcedurePtr& callback);
+    void setOnRetrieveNetworkConfig(const FunctionPtr& callback);
 
 protected:
     void startAcq();

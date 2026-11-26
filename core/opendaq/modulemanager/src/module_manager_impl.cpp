@@ -899,22 +899,10 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
     };
 
-    // Binding drops the credentials supplied on the user-provided config, so they are cached before. The device credentials are
-    // used to connect, the streaming ones are kept by the created device.
-    DictPtr<IString, IString> deviceCredentials;
-    DictPtr<IString, IString> streamingCredentials;
-    if (inputAddDeviceConfig.assigned())
-    {
-        deviceCredentials = GetSuppliedCredential(inputAddDeviceConfig);
-        const auto options = inputAddDeviceConfig.getStreamingOptions();
-        if (options.assigned() && options.getStreamingConfig().assigned())
-            streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
-    }
-
     const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
     {
         if (inputAddDeviceConfig.assigned())
-            return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+            return inputAddDeviceConfig;
 
         const auto deviceType = selectDeviceType();
         if (inputConfig.assigned())
@@ -922,7 +910,17 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
     };
 
-    const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+    const AddDeviceConfigPtr unboundAddDeviceConfig = toAddDeviceConfig();
+
+    // Binding drops the supplied credentials, so they are cached before. The device credentials are used to connect,
+    // the streaming ones are kept by the created device.
+    const DictPtr<IString, IString> deviceCredentials = GetSuppliedCredential(unboundAddDeviceConfig);
+    DictPtr<IString, IString> streamingCredentials;
+    if (const auto options = unboundAddDeviceConfig.getStreamingOptions(); options.assigned() && options.getStreamingConfig().assigned())
+        streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
+
+    const AddDeviceConfigPtr addDeviceConfig =
+        unboundAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
 
     // Check the device type and resolve the address
     const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr

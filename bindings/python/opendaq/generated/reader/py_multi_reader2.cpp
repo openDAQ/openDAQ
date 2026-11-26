@@ -1155,7 +1155,8 @@ void wrapMultiReader2(pybind11::module_ m)
         [](daq::IMultiReader2Params* object, const py::object& options)
         { daq::MultiReader2ParamsPtr::Borrow(object).setAdditionalOptions(toOptions(options)); },
         "A dict overriding the built-in limits, or None for the defaults: SyncLimitSeconds (3), CriticalLimitSeconds (5), "
-        "CriticalLimitBytes (100 MB) and TotalLimitBytes (1000 MB). A time limit of 0 is not enforced.");
+        "CriticalLimitBytes (100 MB) and TotalLimitBytes (1000 MB). A time limit of 0 is not enforced. A stalled input "
+        "rejoins within a third of SyncLimitSeconds.");
 
     // Input status
 

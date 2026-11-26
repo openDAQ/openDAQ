@@ -38,10 +38,11 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The reader keeps no clock: its limits are counted in each input's own data. An input with nothing queued while the
  * others have sent more than 3 s past its newest sample is reported as not synchronized by the next read, and it rejoins
- * once its own samples come within 1 s of the others'. An input whose first sample lies more than 3 s past the main
- * input's newest is reported the same way. A consumer that reads too slowly loses data: once an input queues more than
- * 5 s of its data or 100 MB, or all inputs together more than 1 GB, every input's queued data is dropped, and the next
- * status reports the loss.
+ * once its own samples come within a third of that, 1 s, of the others'. An input whose first sample lies more than 3 s
+ * past the main input's newest is reported the same way. A consumer that reads too slowly loses data: once an input
+ * queues more than 5 s of its data or 100 MB, or all inputs together more than 1 GB, every input's queued data is
+ * dropped, and the next status reports the loss. These are the defaults; IMultiReader2Params::setAdditionalOptions
+ * changes them.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {

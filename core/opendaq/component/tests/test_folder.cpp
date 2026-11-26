@@ -12,6 +12,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/tags_private_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
 #include <thread>
 
 using namespace testing;
@@ -453,6 +454,41 @@ TEST_F(FolderTest, InheritedLockingOfComponentObjectProperty)
 
     const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
     ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
+class AcquisitionLockPropertyObjectImpl : public daq::PropertyObjectImpl
+{
+public:
+    bool acquisitionLockHolds(const daq::MutexPtr& mutex)
+    {
+        auto lock = this->getAcquisitionLock2();
+        return isLockedElsewhere(mutex);
+    }
+};
+
+TEST_F(FolderTest, InheritedLockingOfObjectPropertyAddedBeforeComponentInherits)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto component = daq::Component(ctx, folder, "component");
+    folder.addItem(component);
+
+    // Set through the protected setter, as a default value is cloned into a plain property object
+    const auto child = daq::createWithImplementation<daq::IPropertyObject, AcquisitionLockPropertyObjectImpl>();
+    component.addProperty(ObjectProperty("Child", PropertyObject()));
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", child);
+
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    componentInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    componentInternal.enableCoreEventTrigger();
+
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(mutex, componentInternal.getMutex());
+    ASSERT_EQ(mutex, child.asPtr<IPropertyObjectInternal>().getMutex());
+
+    const auto childImpl = dynamic_cast<AcquisitionLockPropertyObjectImpl*>(child.getObject());
+    ASSERT_TRUE(childImpl->acquisitionLockHolds(mutex));
 }
 
 TEST_F(FolderTest, InheritedLockingTwoLevelsBelowStrategyChange)

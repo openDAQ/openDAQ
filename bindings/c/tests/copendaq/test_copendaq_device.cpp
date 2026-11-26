@@ -313,10 +313,9 @@ TEST_F(COpendaqDeviceTest, TransportOption)
     static_assert(daqSecurityModeSigned == static_cast<int>(daq::SecurityMode::Signed));
     static_assert(daqSecurityModeEncrypted == static_cast<int>(daq::SecurityMode::Encrypted));
 
-    const daq::StringPtr id = "tls";
+    const auto builder = daq::TransportOptionBuilder("tls").setPort(7422).setSecurityMode(daq::SecurityMode::Encrypted).setCertificateRequired(True);
     daqTransportOption* option = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOption(&option, (daqString*) id.getObject(), 7422, daqSecurityModeEncrypted, True),
-              DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOption_createTransportOptionFromBuilder(&option, (daqTransportOptionBuilder*) builder.getObject()), DAQ_SUCCESS);
     const auto optionPtr = daq::TransportOptionPtr::Adopt((daq::ITransportOption*) option);
 
     daqString* optionId = nullptr;
@@ -336,9 +335,43 @@ TEST_F(COpendaqDeviceTest, TransportOption)
     ASSERT_TRUE(required);
 }
 
+TEST_F(COpendaqDeviceTest, TransportOptionBuilder)
+{
+    const daq::StringPtr id = "tls";
+    daqTransportOptionBuilder* builder = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilder(&builder, (daqString*) id.getObject()), DAQ_SUCCESS);
+    const auto builderPtr = daq::TransportOptionBuilderPtr::Adopt((daq::ITransportOptionBuilder*) builder);
+
+    daqString* builderId = nullptr;
+    daqTransportOptionBuilder_getId(builder, &builderId);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) builderId), "tls");
+
+    ASSERT_EQ(daqTransportOptionBuilder_setPort(builder, 7422), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_setSecurityMode(builder, daqSecurityModeEncrypted), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_setCertificateRequired(builder, True), DAQ_SUCCESS);
+
+    daqInt builderPort = 0;
+    daqTransportOptionBuilder_getPort(builder, &builderPort);
+    ASSERT_EQ(builderPort, 7422);
+
+    daqTransportOption* built = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_build(builder, &built), DAQ_SUCCESS);
+    const auto builtPtr = daq::TransportOptionPtr::Adopt((daq::ITransportOption*) built);
+    ASSERT_EQ(builtPtr.getId(), "tls");
+    ASSERT_EQ(builtPtr.getPort(), 7422);
+    ASSERT_EQ(builtPtr.getSecurityMode(), daq::SecurityMode::Encrypted);
+    ASSERT_TRUE(builtPtr.getCertificateRequired());
+
+    daqTransportOptionBuilder* copy = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilderFromExisting(&copy, built), DAQ_SUCCESS);
+    const auto copyPtr = daq::TransportOptionBuilderPtr::Adopt((daq::ITransportOptionBuilder*) copy);
+    ASSERT_EQ(copyPtr.getId(), "tls");
+    ASSERT_EQ(copyPtr.getSecurityMode(), daq::SecurityMode::Encrypted);
+}
+
 TEST_F(COpendaqDeviceTest, ComponentTypeTransportOptions)
 {
-    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOption("tls", 7422)}});
+    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}});
     const daq::StringPtr id = "dev";
 
     daqComponentTypeBuilder* builder = nullptr;
@@ -372,9 +405,9 @@ TEST_F(COpendaqDeviceTest, ServerCapabilityTransportOptions)
         &capability, (daqString*) protocolId.getObject(), (daqString*) protocolId.getObject(), daqProtocolTypeConfiguration);
     const auto capabilityPtr = daq::ServerCapabilityConfigPtr::Adopt((daq::IServerCapabilityConfig*) capability);
 
-    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOption("tls", 7422)}});
+    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}});
     ASSERT_EQ(daqServerCapabilityConfig_setAvailableTransportOptions(capability, (daqDict*) options.getObject()), DAQ_SUCCESS);
-    const auto plain = daq::TransportOption("plain", 7420);
+    const auto plain = daq::TransportOptionBuilder("plain").setPort(7420).build();
     ASSERT_EQ(daqServerCapabilityConfig_addAvailableTransportOption(capability, (daqTransportOption*) plain.getObject()), DAQ_SUCCESS);
 
     daqServerCapability* readable = nullptr;
@@ -388,7 +421,7 @@ TEST_F(COpendaqDeviceTest, ServerCapabilityTransportOptions)
 TEST_F(COpendaqDeviceTest, AddConfigTransportOption)
 {
     const auto options = daq::Dict<daq::IString, daq::ITransportOption>(
-        {{"tls", daq::TransportOption("tls", 7422)}, {"plain", daq::TransportOption("plain", 7420)}});
+        {{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}, {"plain", daq::TransportOptionBuilder("plain").setPort(7420).build()}});
     const auto deviceType = daq::DeviceTypeBuilder()
                                 .setId("dev")
                                 .setConnectionStringPrefix("dev")

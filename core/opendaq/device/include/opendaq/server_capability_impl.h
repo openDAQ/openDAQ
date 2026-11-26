@@ -420,7 +420,7 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
         {
             // replacing the value of a key keeps its place
             const Int newPort = IntegerPtr::Borrow(port);
-            options.set(first.getId(), TransportOption(first.getId(), newPort, first.getSecurityMode(), first.getCertificateRequired()));
+            options.set(first.getId(), TransportOptionBuilderCopy(first).setPort(newPort).build());
             OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
         }
 
@@ -574,7 +574,11 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(
     const Int port = obj.getPropertyValue("Port");
     const Int securityMode = obj.getPropertyValue("SecurityMode");
     const Bool certificateRequired = obj.getPropertyValue("CertificateRequired");
-    return TransportOption(id, port, static_cast<SecurityMode>(securityMode), certificateRequired);
+    return TransportOptionBuilder(id)
+        .setPort(port)
+        .setSecurityMode(static_cast<SecurityMode>(securityMode))
+        .setCertificateRequired(certificateRequired)
+        .build();
 }
 
 // The plain Property object an option is kept as

@@ -359,7 +359,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeTransportOptions)
                                       .setId("Id")
                                       .setConnectionStringPrefix("Prefix")
                                       .setAvailableTransportOptions(TransportOptionsById(
-                                          {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
+                                          {TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}))
                                       .build();
 
     ASSERT_EQ(type.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
@@ -376,7 +376,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
             .setDescription("Desc")
             .setConnectionStringPrefix("Prefix")
             .setAvailableTransportOptions(TransportOptionsById(
-                {TransportOption("wss", 7443, SecurityMode::Encrypted), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
+                {TestTransportOption("wss", 7443, SecurityMode::Encrypted), TestTransportOption("tls", 7421, SecurityMode::Encrypted)}))
             .build();
 
     const auto serializer = JsonSerializer();
@@ -402,7 +402,7 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeTransportOptions)
     const ServerTypePtr type = ServerTypeBuilder()
                                    .setId("Id")
                                    .setAvailableTransportOptions(TransportOptionsById(
-                                       {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
+                                       {TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}))
                                    .build();
 
     ASSERT_EQ(type.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
@@ -417,7 +417,7 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
                                    .setName("Name")
                                    .setDescription("Desc")
                                    .setAvailableTransportOptions(TransportOptionsById(
-                                       {TransportOption("https", 443, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
+                                       {TestTransportOption("https", 443, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}))
                                    .build();
 
     const auto serializer = JsonSerializer();
@@ -438,7 +438,7 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
 
 TEST_F(OpenDaqFactoriesTest, FBTypeHasNoTransportOptions)
 {
-    const auto options = TransportOptionsById({TransportOption("plain", 7420)});
+    const auto options = TransportOptionsById({TestTransportOption("plain", 7420)});
 
     ASSERT_THROW(FunctionBlockTypeBuilder().setAvailableTransportOptions(options), NotSupportedException);
     ASSERT_THROW(DeviceTypeBuilder().setTypeSort(ComponentTypeSort::Undefined).setAvailableTransportOptions(options),
@@ -455,7 +455,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigHasNoTransportSelection)
         StreamingTypeBuilder()
             .setId("Id")
             .setConnectionStringPrefix("Prefix")
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421)}))
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420), TestTransportOption("tls", 7421)}))
             .build();
     ASSERT_FALSE(type.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_FALSE(type.createDefaultConfig().hasProperty(PortConfigProperty));
@@ -467,13 +467,13 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigHasNoTransportSelection)
                                          .setId("DeviceId")
                                          .setConnectionStringPrefix("daq.device")
                                          .setDefaultConfig(moduleConfig)
-                                         .setAvailableTransportOptions(TransportOptionsById({TransportOption("tls", 7421)}))
+                                         .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421)}))
                                          .build();
     const StreamingTypePtr linkedType = StreamingTypeBuilder()
                                             .setId("Id")
                                             .setConnectionStringPrefix("Prefix")
                                             .setLinkedDeviceType(deviceType)
-                                            .setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420)}))
+                                            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420)}))
                                             .build();
 
     const PropertyObjectPtr config = linkedType.createDefaultConfig();
@@ -484,7 +484,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigHasNoTransportSelection)
 TEST_F(OpenDaqFactoriesTest, ServerTypeDefaultConfigHasNoTransportSelection)
 {
     const ServerTypePtr type =
-        ServerTypeBuilder().setId("Id").setAvailableTransportOptions(TransportOptionsById({TransportOption("plain", 7420)})).build();
+        ServerTypeBuilder().setId("Id").setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420)})).build();
 
     const PropertyObjectPtr config = type.createDefaultConfig();
     ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));

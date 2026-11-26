@@ -25,7 +25,7 @@ class AddConfigTransportTest : public testing::Test
 protected:
     static DictPtr<IString, ITransportOption> TypeOptions()
     {
-        return TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)});
+        return TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)});
     }
 
     // A Mirrored Device type whose module declares a port of its own in the default config
@@ -111,7 +111,7 @@ protected:
 
     static DictPtr<IString, ITransportOption> PlainFirstOptions()
     {
-        return TransportOptionsById({TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)});
+        return TransportOptionsById({TestTransportOption("plain", 7420), TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
     }
 
     // A config with a selected Streaming type, whose types both list plain first
@@ -152,7 +152,7 @@ protected:
 
     static DictPtr<IString, ITransportOption> TlsFirstServerOptions()
     {
-        return TransportOptionsById({TransportOption("tls", 7500, SecurityMode::Encrypted), TransportOption("plain", 7510)});
+        return TransportOptionsById({TestTransportOption("tls", 7500, SecurityMode::Encrypted), TestTransportOption("plain", 7510)});
     }
 
     static AddDeviceConfigPtr BindToPlainFirstTypes(const AddDeviceConfigPtr& config)
@@ -361,7 +361,7 @@ TEST_F(AddConfigTransportTest, BindRejectsUnknownSelection)
     const auto config = CreateConfig();
     config.setTransportOption("plain");
 
-    ASSERT_THROW(Bind(config, CreateDeviceType(TransportOptionsById({TransportOption("wss", 7414), TransportOption("tls", 7421)}))),
+    ASSERT_THROW(Bind(config, CreateDeviceType(TransportOptionsById({TestTransportOption("wss", 7414), TestTransportOption("tls", 7421)}))),
                  InvalidValueException);
 }
 
@@ -431,7 +431,7 @@ TEST_F(AddConfigTransportTest, LoadWithoutSavedSelection)
 TEST_F(AddConfigTransportTest, LoadRejectsFirstOptionTheTypeDoesNotList)
 {
     const auto saved = SavedForm(PlainFirstConfig());
-    const auto tlsOnly = TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted)});
+    const auto tlsOnly = TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
 
     ASSERT_THROW(Load(saved, CreateDeviceType(tlsOnly)), InvalidValueException);
     ASSERT_THROW(Load(saved, CreateDeviceType(), CreateStreamingType(tlsOnly)), InvalidValueException);
@@ -478,7 +478,7 @@ TEST_F(AddConfigTransportTest, BindKeepsServerOptionThatIsNotFirst)
 // A server with TLS only: the bound config must not get the plain option of the type
 TEST_F(AddConfigTransportTest, BindKeepsTlsOnlyServer)
 {
-    const auto tlsOnly = TransportOptionsById({TransportOption("tls", 7500, SecurityMode::Encrypted)});
+    const auto tlsOnly = TransportOptionsById({TestTransportOption("tls", 7500, SecurityMode::Encrypted)});
     const auto bound = BindToPlainFirstTypes(ServerConfig(tlsOnly));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});
@@ -512,7 +512,7 @@ TEST_F(AddConfigTransportTest, BindTwiceKeepsServerOptions)
 
 TEST_F(AddConfigTransportTest, BindDropsOptionsTheTypeDoesNotList)
 {
-    const auto tlsOnlyType = TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted)});
+    const auto tlsOnlyType = TransportOptionsById({TestTransportOption("tls", 7421, SecurityMode::Encrypted)});
     const auto bound = Bind(ServerConfig(TlsFirstServerOptions()), CreateDeviceType(tlsOnlyType));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});

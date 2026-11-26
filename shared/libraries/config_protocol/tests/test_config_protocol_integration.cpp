@@ -20,21 +20,155 @@
 #include <opendaq/exceptions.h>
 #include <testutils/testutils.h>
 #include <opendaq/recorder_ptr.h>
+#include <opendaq/module_impl.h>
+#include <opendaq/module_manager_ptr.h>
+#include <opendaq/module_manager_factory.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/streaming_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 using namespace daq;
 using namespace config_protocol;
 using namespace testing;
 using namespace std::placeholders;
 
+class StreamingTypesModule : public Module
+{
+public:
+    explicit StreamingTypesModule(const ContextPtr& ctx)
+        : Module("Streaming types", VersionInfo(1, 0, 0), ctx, "StreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("Host", "localhost"));
+        const auto deviceType = DeviceTypeBuilder()
+                                    .setId("mock_mirrored")
+                                    .setName("Mock mirrored")
+                                    .setConnectionStringPrefix("daqmirrored")
+                                    .setDeviceKind(DeviceKind::Mirrored)
+                                    .setDefaultConfig(config)
+                                    .build();
+        return Dict<IString, IDeviceType>({{"mock_mirrored", deviceType}});
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        const auto streamingB =
+            StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
+        const auto streamingC =
+            StreamingTypeBuilder().setId("mock_streaming_c").setName("Mock streaming C").setConnectionStringPrefix("daqmockc").build();
+        return Dict<IString, IStreamingType>({{"mock_streaming_b", streamingB}, {"mock_streaming_c", streamingC}});
+    }
+};
+
+class ClientStreamingTypesModule : public Module
+{
+public:
+    explicit ClientStreamingTypesModule(const ContextPtr& ctx)
+        : Module("Client streaming types", VersionInfo(1, 0, 0), ctx, "ClientStreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        const auto streamingB =
+            StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
+        return Dict<IString, IStreamingType>({{"mock_streaming_b", streamingB}});
+    }
+};
+
+class NewerServerDeviceImpl : public Device
+{
+public:
+    NewerServerDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+        : Device(ctx, parent, localId)
+    {
+    }
+
+    AddDeviceConfigPtr onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix) override
+    {
+        const auto addNewField = [](const PropertyObjectPtr& obj)
+        {
+            obj.addProperty(IntProperty("NewField", 1));
+            obj.setPropertyValue("NewField", 2);
+        };
+
+        const auto addNewFieldWithTypeConfig = [&addNewField](const PropertyObjectPtr& obj)
+        {
+            addNewField(obj);
+            addNewField(obj.getPropertyValue("TypeConfig"));
+        };
+
+        const PropertyObjectPtr config = Device::onCreateAddDeviceConfig(info, prefix);
+        config.removeProperty("PrimaryAddressType");
+        addNewFieldWithTypeConfig(config);
+
+        const PropertyObjectPtr options = config.getPropertyValue("Streaming");
+        addNewField(options);
+        addNewFieldWithTypeConfig(options.getPropertyValue("mock_streaming_b"));
+        options.removeProperty("StreamingType");
+        options.addProperty(StringPropertyBuilder("StreamingType", "None")
+                                .setSelectionValues(List<IString>("None", "mock_streaming_c", "mock_streaming_b", "new_streaming"))
+                                .build());
+        options.setPropertyValue("StreamingType", "new_streaming");
+
+        const auto serializer = JsonSerializer();
+        config.serialize(serializer);
+        std::string json = serializer.getOutput();
+        const std::string optionsType = R"("__type":"AddStreamingOptions",)";
+        json.insert(json.find(optionsType) + optionsType.size(), R"("trimExceptions":["new_streaming"],)");
+        return JsonDeserializer().deserialize(json, nullptr, nullptr).asPtr<IAddDeviceConfig>();
+    }
+
+    PropertyObjectPtr uploadedConfig;
+    StringPtr loadedConfig;
+
+protected:
+    bool allowAddDevicesFromModules() override
+    {
+        return true;
+    }
+
+    DevicePtr onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& config) override
+    {
+        uploadedConfig = config;
+        const auto device = createWithImplementation<IDevice, Device>(context, devices, "added");
+        device.asPtr<IComponentPrivate>().setComponentConfig(config);
+        devices.addItem(device);
+        return device;
+    }
+
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override
+    {
+        if (obj.hasKey("Dev"))
+            for (const auto& [_, savedDevice] : getSerializedItems(obj.readSerializedObject("Dev")))
+                if (savedDevice.hasKey("ComponentConfig"))
+                    loadedConfig = savedDevice.readSerializedObject("ComponentConfig").toJson();
+
+        Device::updateObject(obj, context);
+    }
+};
+
 class ConfigProtocolIntegrationTest : public Test
 {
 public:
     void SetUp() override
     {
-        auto anonymousUser = User("", "");
-
         serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+        clientContext = NullContext();
+        connectClient();
+    }
+
+    void connectClient(uint16_t protocolVersion = GetLatestConfigProtocolVersion())
+    {
+        auto anonymousUser = User("", "");
+
         server = std::make_unique<ConfigProtocolServer>(
             serverDevice,
             std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1),
@@ -42,7 +176,6 @@ public:
             ClientType::Control,
             test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
-        clientContext = NullContext();
         client =
             std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
                 clientContext,
@@ -52,8 +185,13 @@ public:
                 nullptr,
                 nullptr
             );
-        clientDevice = client->connect();
+        clientDevice = client->connect(nullptr, protocolVersion);
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    }
+
+    static AddDeviceConfigPtr createAddDeviceConfigForPrefix(const StringPtr& prefix)
+    {
+        return AddDeviceConfig(DeviceTypeBuilder().setId(prefix).setName(prefix).setConnectionStringPrefix(prefix).build(), nullptr, False);
     }
 
     static StringPtr serializeComponent(const ComponentPtr& component)
@@ -64,6 +202,85 @@ public:
         return str;
     }
     
+    static DeviceInfoPtr createMirroredDeviceInfo()
+    {
+        const auto info = DeviceInfo("daqmirrored://device");
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockc"));
+        infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::Streaming).setPrefix("daqmockb"));
+        infoInternal.addServerCapability(ServerCapability("m", "m", ProtocolType::Configuration).setPrefix("daqmirrored"));
+        return info;
+    }
+
+    NewerServerDeviceImpl* addNewerServerDevice() const
+    {
+        const ModuleManagerPtr manager = serverDevice.getContext().getModuleManager();
+        manager.addModule(createWithImplementation<IModule, StreamingTypesModule>(NullContext()));
+
+        const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
+        const auto device = createWithImplementation<IDevice, NewerServerDeviceImpl>(serverDevice.getContext(), devicesFolder, "newer");
+        devicesFolder.addItem(device);
+        return dynamic_cast<NewerServerDeviceImpl*>(device.getObject());
+    }
+
+    DevicePtr getClientNewerDevice() const
+    {
+        const FolderPtr devicesFolder = clientDevice.getItem("Dev");
+        return devicesFolder.getItem("newer");
+    }
+
+    static void expectNewField(const PropertyObjectPtr& obj)
+    {
+        ASSERT_EQ(obj.getProperty("NewField").getDefaultValue(), 1);
+        ASSERT_EQ(obj.getPropertyValue("NewField"), 2);
+    }
+
+    static void expectNewFieldWithTypeConfig(const PropertyObjectPtr& obj)
+    {
+        expectNewField(obj);
+        expectNewField(obj.getPropertyValue("TypeConfig"));
+    }
+
+    static void expectNewerServerConfig(const PropertyObjectPtr& config)
+    {
+        ASSERT_TRUE(config.assigned());
+        ASSERT_FALSE(config.hasProperty("PrimaryAddressType"));
+        ASSERT_EQ(config.getPropertyValue("TypeConfig.Host"), "remote");
+        expectNewFieldWithTypeConfig(config);
+
+        const PropertyObjectPtr options = config.getPropertyValue("Streaming");
+        expectNewField(options);
+        ASSERT_EQ(options.getPropertyValue("StreamingType"), "mock_streaming_b");
+        ASSERT_EQ(options.getProperty("StreamingType").getSelectionValues(), List<IString>("None", "mock_streaming_b", "new_streaming"));
+        ASSERT_EQ(options.asPtr<IAddStreamingOptions>().getAvailableStreamingConfigs().getKeyList(),
+                  List<IString>("mock_streaming_b", "new_streaming"));
+        expectNewFieldWithTypeConfig(options.getPropertyValue("mock_streaming_b"));
+    }
+
+    static void expectNewerServerSavedValues(const StringPtr& json)
+    {
+        ASSERT_TRUE(json.assigned());
+        const auto valuesOf = [](const SerializedObjectPtr& saved, const std::string& name)
+        {
+            return saved.readSerializedObject(name).readSerializedObject("propValues");
+        };
+        const auto expectValuesWithTypeConfig = [&valuesOf](const SerializedObjectPtr& values)
+        {
+            ASSERT_EQ(values.readInt("NewField"), 2);
+            ASSERT_EQ(valuesOf(values, "TypeConfig").readInt("NewField"), 2);
+        };
+        const auto expectValues = [&](const SerializedObjectPtr& saved)
+        {
+            const auto values = saved.readSerializedObject("propValues");
+            expectValuesWithTypeConfig(values);
+
+            const auto options = valuesOf(values, "Streaming");
+            ASSERT_EQ(options.readString("StreamingType"), "mock_streaming_b");
+            ASSERT_EQ(options.readInt("NewField"), 2);
+            expectValuesWithTypeConfig(valuesOf(options, "mock_streaming_b"));
+        };
+        JsonDeserializer().callCustomProc(expectValues, json);
+    }
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
@@ -874,7 +1091,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     auto availableDevicesServer = serverDevice.getAvailableDevices();
     auto availableDevicesClient = clientDevice.getAvailableDevices();
 
-    ASSERT_EQ(availableDevicesClient.getCount(), 3u);
+    ASSERT_EQ(availableDevicesClient.getCount(), 4u);
 
     auto c = availableDevicesClient[2];
     auto s = availableDevicesServer[2];
@@ -888,6 +1105,10 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
     ASSERT_EQ(c.getDeviceType().getId(), "mockAvailableDev");
     ASSERT_EQ(c.getDeviceType().getConnectionStringPrefix(), s.getDeviceType().getConnectionStringPrefix());
+
+    c.addProperty(StringProperty("Note", ""));
+    c.setPropertyValue("Note", "lab");
+    ASSERT_EQ(c.getPropertyValue("Note"), "lab");
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
@@ -1024,9 +1245,96 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     ASSERT_EQ(s.getDeviceKind(), DeviceKind::Mirrored);
 }
 
-TEST_F(ConfigProtocolIntegrationTest, CreateAddConfigNotImplemented)
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfig)
 {
-    ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("daq://mock")), NotImplementedException);
+    const ModuleManagerPtr manager = serverDevice.getContext().getModuleManager();
+    manager.addModule(createWithImplementation<IModule, StreamingTypesModule>(NullContext()));
+
+    const auto info = createMirroredDeviceInfo();
+
+    const auto serverConfig = serverDevice.createAddDeviceConfig(info, "daqmirrored");
+    const auto clientConfig = clientDevice.createAddDeviceConfig(info, "daqmirrored");
+
+    const auto serverOptions = serverConfig.getStreamingOptions();
+    const auto clientOptions = clientConfig.getStreamingOptions();
+    ASSERT_EQ(clientConfig.getDeviceType().getId(), serverConfig.getDeviceType().getId());
+    ASSERT_EQ(clientOptions.getAvailableStreamingConfigs().getKeyList(), serverOptions.getAvailableStreamingConfigs().getKeyList());
+    ASSERT_EQ(clientOptions.getStreamingType(), serverOptions.getStreamingType());
+    ASSERT_FALSE(clientConfig.getTypeConfig().supportsInterface<IConfigClientObject>());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigOnOldServer)
+{
+    const ModuleManagerPtr serverManager = serverDevice.getContext().getModuleManager();
+    serverManager.addModule(createWithImplementation<IModule, StreamingTypesModule>(NullContext()));
+
+    clientContext = Context(nullptr, Logger(), TypeManager(), ModuleManager("[[none]]"));
+    const ModuleManagerPtr clientManager = clientContext.getModuleManager();
+    clientManager.addModule(createWithImplementation<IModule, ClientStreamingTypesModule>(NullContext()));
+    connectClient(25);
+
+    const auto config = clientDevice.createAddDeviceConfig(createMirroredDeviceInfo(), "daqmirrored");
+    ASSERT_EQ(config.getDeviceType().getId(), "mock_mirrored");
+    ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("mock_streaming_b"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, CreateAddDeviceConfigErrorsReachClient)
+{
+    ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("unknown://device")), NotFoundException);
+    ASSERT_THROW(clientDevice.getDevices()[0].createAddDeviceConfig(DeviceInfo("unknown://device")), NotSupportedException);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceResolvesDaqConnectionStringOnOldServer)
+{
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+    connectClient(25);
+
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart?Opt=1", createAddDeviceConfigForPrefix("daqmockx")), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "mock://test?Opt=1");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesResolvesDaqConnectionStringsOnOldServer)
+{
+    connectClient(25);
+
+    const auto config = createAddDeviceConfigForPrefix("daqmockx");
+    const auto connectionArgs =
+        Dict<IString, IPropertyObject>({{"mock://test", nullptr}, {"daq://Testing_smart", config}, {"daq://Testing_missing", config}});
+    auto errCodes = Dict<IString, IInteger>();
+    auto errorInfos = Dict<IString, IErrorInfo>();
+    DictPtr<IString, IDevice> devices;
+    ASSERT_EQ(clientDevice->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
+
+    ASSERT_TRUE(devices.get("mock://test").assigned());
+    ASSERT_EQ(errCodes.get("mock://test"), OPENDAQ_SUCCESS);
+    ASSERT_FALSE(errorInfos.get("mock://test").assigned());
+
+    ASSERT_FALSE(devices.get("daq://Testing_smart").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_smart"), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_TRUE(errorInfos.get("daq://Testing_smart").assigned());
+
+    ASSERT_FALSE(devices.get("daq://Testing_missing").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_missing"), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_TRUE(errorInfos.get("daq://Testing_missing").assigned());
+
+    const auto unresolvedArgs = Dict<IString, IPropertyObject>({{"daq://Testing_missing", config}});
+    ASSERT_EQ(clientDevice->addDevices(&devices, unresolvedArgs, errCodes, errorInfos), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo();
+    ASSERT_FALSE(devices.get("daq://Testing_missing").assigned());
+    ASSERT_EQ(errCodes.get("daq://Testing_missing"), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceSendsDaqConnectionStringUnchanged)
+{
+    const auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart", createAddDeviceConfigForPrefix("daqmockx")), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "daq://Testing_smart");
+
+    connectClient(25);
+    mock->lastAddDeviceConnectionString = nullptr;
+    ASSERT_THROW(clientDevice.addDevice("daq://Testing_smart"), NotFoundException);
+    ASSERT_EQ(mock->lastAddDeviceConnectionString, "daq://Testing_smart");
 }
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
@@ -1104,6 +1412,62 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
     ASSERT_TRUE(fbComponentConfig.assigned());
     ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
     ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ClientDeviceHasAddDeviceConfigOfServerDevice)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
+    const auto s1 = StreamingTypeBuilder().setId("s1").setName("s1").setConnectionStringPrefix("s1").build();
+    const auto s2 = StreamingTypeBuilder().setId("s2").setName("s2").setConnectionStringPrefix("s2").build();
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"s1", s1}, {"s2", s2}});
+    const auto addConfig = AddDeviceConfig(deviceType, streamingTypes, False);
+    addConfig.getStreamingOptions().setStreamingType("s1");
+
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    serverSubDevice.asPtr<IDevicePrivate>().setAsRoot();
+    serverSubDevice.asPtr<IComponentPrivate>().setComponentConfig(addConfig);
+
+    connectClient(26);
+    const auto config = clientDevice.getDevices()[0].getAddDeviceConfig();
+    ASSERT_TRUE(config.assigned());
+    ASSERT_EQ(config.getDeviceType().getId(), "dev");
+    ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getStreamingType().getId(), "s1");
+
+    connectClient(25);
+    ASSERT_FALSE(clientDevice.getDevices()[0].getAddDeviceConfig().assigned());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceConfigOfNewerServerSurvivesRoundTrip)
+{
+    const auto serverNewer = addNewerServerDevice();
+    const auto clientNewer = getClientNewerDevice();
+
+    const auto config = clientNewer.createAddDeviceConfig(createMirroredDeviceInfo(), "daqmirrored");
+    const auto options = config.getStreamingOptions();
+    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(),
+              List<IString>("None", "mock_streaming_c", "mock_streaming_b", "new_streaming"));
+    ASSERT_EQ(options.getStreamingType(), "new_streaming");
+    ASSERT_FALSE(options.getStreamingConfig().assigned());
+    options.setStreamingType("mock_streaming_b");
+    config.getTypeConfig().setPropertyValue("Host", "remote");
+    clientNewer.addDevice("daqmirrored://device", config);
+
+    const AddDeviceConfigPtr uploaded = serverNewer->uploadedConfig;
+    expectNewerServerConfig(uploaded);
+
+    const auto setup = clientDevice.saveConfiguration();
+    clientContext = NullContext();
+    connectClient();
+    clientDevice.loadConfiguration(setup);
+    expectNewerServerSavedValues(serverNewer->loadedConfig);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDeviceConfigOfNewerServerFailsTypedAccessorsOfRemovedField)
+{
+    addNewerServerDevice();
+    const auto config = getClientNewerDevice().createAddDeviceConfig(createMirroredDeviceInfo(), "daqmirrored");
+
+    ASSERT_THROW(config.getPrimaryAddressType(), NotFoundException);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)

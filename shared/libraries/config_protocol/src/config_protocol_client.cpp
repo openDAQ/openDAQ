@@ -280,7 +280,7 @@ uint64_t ConfigProtocolClientComm::getTicksSinceOrigin(const std::string& global
 
 ListPtr<IDeviceInfo> ConfigProtocolClientComm::getAvailableDevices(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetAvailableDevices", 4));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetAvailableDevices", 4));
 }
 
 DictPtr<IString, IDeviceType> ConfigProtocolClientComm::getAvailableDeviceTypes(const std::string& globalId)
@@ -384,14 +384,28 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
 
 PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetComponentConfig", 13));
 }
 
 PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std::string& globalId)
 {
     if (getProtocolVersion() < 19)
         return PropertyObject();
-    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
+}
+
+AddDeviceConfigPtr ConfigProtocolClientComm::createAddDeviceConfig(const std::string& globalId,
+                                                                   const DeviceInfoPtr& info,
+                                                                   const StringPtr& prefix)
+{
+    const auto command = ClientCommand("CreateAddDeviceConfig", 26);
+    requireMinServerVersion(command);
+
+    const auto params = Dict<IString, IBaseObject>(
+        {{"ComponentGlobalId", String(globalId)}, {"Info", info}, {"Prefix", prefix.assigned() ? prefix : String("")}});
+    auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
+    const auto reply = sendRequestCallback(request);
+    return parseRpcOrRejectReplyLocal(reply.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
@@ -475,16 +489,20 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
     return obj;
 }
 
+SerializerPtr ConfigProtocolClientComm::createSerializer() const
+{
+    if (getProtocolVersion() < 10)
+        return JsonSerializerWithVersion(1);
+    if (getProtocolVersion() < 26)
+        return JsonSerializerWithVersion(2);
+    return JsonSerializerWithVersion(4);
+}
+
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
 
-    SerializerPtr serializer;
-    if (getProtocolVersion() < 10)
-        serializer = JsonSerializerWithVersion(1);
-    else
-        serializer = JsonSerializerWithVersion(2);
-
+    const auto serializer = createSerializer();
     obj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -549,6 +567,26 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
         throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
     }
 
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReplyLocal(const StringPtr& jsonReply)
+{
+    ParamsDictPtr reply;
+    try
+    {
+        reply = JsonDeserializer().deserialize(jsonReply, daqContext.getTypeManager());
+    }
+    catch (const std::exception& e)
+    {
+        throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
+    }
+
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::getRpcReturnValue(const ParamsDictPtr& reply)
+{
     if (!reply.hasKey("ErrorCode"))
         throw ConfigProtocolException("Invalid reply");
 
@@ -700,12 +738,7 @@ bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGloba
 
 StringPtr ConfigProtocolClientComm::getSerializedSignal(const SignalPtr& signal)
 {
-    SerializerPtr serializer;
-    if (getProtocolVersion() < 10)
-        serializer = JsonSerializerWithVersion(1);
-    else
-        serializer = JsonSerializerWithVersion(2);
-
+    const auto serializer = createSerializer();
     signal.serialize(serializer);
     return serializer.getOutput();
 }
@@ -870,6 +903,16 @@ StringPtr ConfigProtocolClientComm::requestSerializedRootDevice()
 {
     auto params = Dict<IString, IBaseObject>();
     return sendComponentCommandInternal(ClientCommand("GetSerializedRootDevice"), params, nullptr);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandLocal(const StringPtr& globalId, const ClientCommand& command)
+{
+    requireMinServerVersion(command);
+
+    const auto params = Dict<IString, IBaseObject>({{"ComponentGlobalId", globalId}});
+    auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
+    const auto reply = sendRequestCallback(request);
+    return parseRpcOrRejectReplyLocal(reply.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendCommand(const ClientCommand& command, const ParamsDictPtr& params)

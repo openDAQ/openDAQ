@@ -129,6 +129,7 @@ public:
 
     PropertyObjectPtr getComponentConfig(const std::string& globalId);
     PropertyObjectPtr getDefaultAddDeviceConfig(const std::string& globalId);
+    AddDeviceConfigPtr createAddDeviceConfig(const std::string& globalId, const DeviceInfoPtr& info, const StringPtr& prefix);
 
     void startRecording(const std::string& globalId);
     void stopRecording(const std::string& globalId);
@@ -164,6 +165,7 @@ public:
                                         const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
+    SerializerPtr createSerializer() const;
 
 private:
     ContextPtr daqContext;
@@ -191,6 +193,8 @@ private:
     BaseObjectPtr parseRpcOrRejectReply(const StringPtr& jsonReply,
                                         const ComponentDeserializeContextPtr& context = nullptr,
                                         bool isGetRootDeviceReply = false);
+    BaseObjectPtr parseRpcOrRejectReplyLocal(const StringPtr& jsonReply);
+    static BaseObjectPtr getRpcReturnValue(const ParamsDictPtr& reply);
     uint64_t generateId();
 
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId,
@@ -204,6 +208,7 @@ private:
                                                const ParamsDictPtr& params,
                                                const ComponentPtr& parentComponent = nullptr,
                                                bool isGetRootDeviceCommand = false);
+    BaseObjectPtr sendComponentCommandLocal(const StringPtr& globalId, const ClientCommand& command);
     BaseObjectPtr sendCommand(const ClientCommand& command, const ParamsDictPtr& params = nullptr);
     void sendNoReplyCommand(const ClientCommand& command, const ParamsDictPtr& params = nullptr);
 
@@ -446,12 +451,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
     StringPtr serializedClientRootDevice;
     if (restoreLocalConfig)
     {
-        SerializerPtr serializer;
-        if (getProtocolVersion() < 10)
-            serializer = JsonSerializerWithVersion(1);
-        else
-            serializer = JsonSerializerWithVersion(2);
-
+        const auto serializer = clientComm->createSerializer();
         rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
         serializedClientRootDevice = serializer.getOutput();
     }

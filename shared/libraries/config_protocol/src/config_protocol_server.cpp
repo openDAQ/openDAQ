@@ -177,6 +177,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
     addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
     addHandler<DevicePtr>("GetDefaultAddDeviceConfig", &ConfigServerDevice::getDefaultAddDeviceConfig);
+    addHandler<DevicePtr>("CreateAddDeviceConfig", &ConfigServerDevice::createAddDeviceConfig);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
     addHandler<SignalPtr>("GetLastValueWithTimestamp", &ConfigServerSignal::getLastValueWithTimestamp);

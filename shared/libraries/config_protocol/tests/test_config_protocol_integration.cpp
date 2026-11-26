@@ -1099,6 +1099,13 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
     ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DefaultAddDeviceConfigIsLocal)
+{
+    const auto config = clientDevice.createDefaultAddDeviceConfig();
+    config.setPropertyValue("General.AutomaticallyConnectStreaming", false);
+    ASSERT_FALSE(config.getPropertyValue("General.AutomaticallyConnectStreaming"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
 {
     // This test reproduces a bug where SetPropertyValue("PropertyObject.Property") 

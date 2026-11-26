@@ -384,14 +384,14 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
 
 PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
+    return sendLocalComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
 }
 
 PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std::string& globalId)
 {
     if (getProtocolVersion() < 19)
         return PropertyObject();
-    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
+    return sendLocalComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
 }
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
@@ -549,6 +549,26 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
         throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
     }
 
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::parseLocalRpcOrRejectReply(const StringPtr& jsonReply)
+{
+    ParamsDictPtr reply;
+    try
+    {
+        reply = JsonDeserializer().deserialize(jsonReply, daqContext.getTypeManager());
+    }
+    catch (const std::exception& e)
+    {
+        throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
+    }
+
+    return getRpcReturnValue(reply);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::getRpcReturnValue(const ParamsDictPtr& reply)
+{
     if (!reply.hasKey("ErrorCode"))
         throw ConfigProtocolException("Invalid reply");
 
@@ -1057,6 +1077,16 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
 
     const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent);
     return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext, isGetRootDeviceCommand);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::sendLocalComponentCommand(const StringPtr& globalId, const ClientCommand& command)
+{
+    requireMinServerVersion(command);
+
+    const auto params = Dict<IString, IBaseObject>({{"ComponentGlobalId", globalId}});
+    auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
+    const auto reply = sendRequestCallback(request);
+    return parseLocalRpcOrRejectReply(reply.parseRpcRequestOrReply());
 }
 
 template <class Interface, class F>

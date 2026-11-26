@@ -362,4 +362,15 @@ inline BaseObjectPtr ConfigServerDevice::createAddDeviceConfig(const RpcContext&
     return device.createAddDeviceConfig(info, prefix);
 }
 
+inline BaseObjectPtr ConfigServerDevice::createAddDeviceConfig(const RpcContext& context,
+                                                               const DevicePtr& device,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const DeviceInfoPtr info = params.get("Info");
+    const StringPtr prefix = params.get("Prefix");
+    return device.createAddDeviceConfig(info, prefix);
+}
+
 }

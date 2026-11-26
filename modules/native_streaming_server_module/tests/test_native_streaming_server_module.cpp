@@ -110,16 +110,6 @@ private:
     uint16_t port = 0;
 };
 
-// a port which was free a moment ago, for a test which needs to name the same one twice
-static uint16_t FindFreePort()
-{
-    using boost::asio::ip::tcp;
-
-    boost::asio::io_context ioContext;
-    tcp::acceptor acceptor(ioContext, tcp::endpoint(tcp::v4(), 0));
-    return acceptor.local_endpoint().port();
-}
-
 TEST_F(NativeStreamingServerModuleTest, CreateModule)
 {
     IModule* module = nullptr;
@@ -326,6 +316,16 @@ TEST_F(NativeStreamingServerModuleTest, RefusesPortInUse)
 }
 
 #if NATIVE_STREAMING_ENABLE_TLS
+
+// a port which was free a moment ago, for a test which needs to name the same one twice
+static uint16_t FindFreePort()
+{
+    using boost::asio::ip::tcp;
+
+    boost::asio::io_context ioContext;
+    tcp::acceptor acceptor(ioContext, tcp::endpoint(tcp::v4(), 0));
+    return acceptor.local_endpoint().port();
+}
 
 // a secret which fails to load is found only when the listener opens, after the threads have started
 TEST_F(NativeStreamingServerModuleTest, RefusesTlsWithUnreadableCertificate)

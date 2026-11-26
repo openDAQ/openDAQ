@@ -10,14 +10,7 @@ ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard, IM
 
     // Prevent access violation when lock is obtained during destruction.
     auto objRef = this->refCount ? this->borrowPtr<ObjectPtr<IPropertyObjectCore>>() : nullptr;
-    // read outside the mutex; relaxed is sufficient because a thread only matches an id it
-    // wrote itself (sequenced on its own thread), and other threads' ids never compare equal
-    const auto ownerThread = externalCallThreadId.load(std::memory_order_relaxed);
-    if (ownerThread != std::thread::id() && ownerThread == std::this_thread::get_id())
-        return createObject<ILockGuard, RecursiveLockGuardImpl<NullMutex>, IPropertyObjectCore*, NullMutex, std::atomic<std::thread::id>*, int*>
-            (lockGuard, objRef, nullSync, &externalCallThreadId, &externalCallDepth);
-    return createObject<ILockGuard, RecursiveLockGuardImpl<MutexPtr>, IPropertyObjectCore*, MutexPtr, std::atomic<std::thread::id>*, int*>
-        (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
+    return createObject<ILockGuard, RecursiveLockGuardImpl, IPropertyObjectCore*, MutexPtr>(lockGuard, objRef, sync);
 }
 
 ErrCode PropertyObjectCoreImpl::getLockGuard(ILockGuard** lockGuard, IMutex* sync)
@@ -37,30 +30,21 @@ LockGuardImpl::LockGuardImpl(IPropertyObjectCore* owner, MutexPtr lock)
 {
 }
 
-template <typename TMutex>
-RecursiveLockGuardImpl<TMutex>::RecursiveLockGuardImpl(IPropertyObjectCore* owner, const TMutex& lock, std::atomic<std::thread::id>* threadId, int* depth)
+RecursiveLockGuardImpl::RecursiveLockGuardImpl(IPropertyObjectCore* owner, MutexPtr lock)
         : owner(owner)
-        , id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lockGuard(std::lock_guard(mutex))
+        , mutex(std::move(lock))
 {
-    assert(this->id != nullptr);
-    assert(this->depth != nullptr);
-    id->store(std::this_thread::get_id(), std::memory_order_relaxed);  // under the mutex
-    ++(*this->depth);
+    checkErrorInfo(mutex->lockRecursive());
 }
 
-template <typename TMutex>
-RecursiveLockGuardImpl<TMutex>::~RecursiveLockGuardImpl()
+RecursiveLockGuardImpl::~RecursiveLockGuardImpl()
 {
-    --(*depth);
-    if (*depth == 0)
-        id->store(std::thread::id(), std::memory_order_relaxed);  // under the mutex
+    // Fails only for a guard released on a thread other than the one that took it; a destructor cannot report it
+    const ErrCode errCode = mutex->unlockRecursive();
+    assert(OPENDAQ_SUCCEEDED(errCode));
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
 }
-
-template class RecursiveLockGuardImpl<MutexPtr>;
-template class RecursiveLockGuardImpl<NullMutex>;
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyObjectCore)
 

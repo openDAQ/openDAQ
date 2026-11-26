@@ -71,13 +71,18 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      *  @brief Gets a lock guard that locks the object's mutex. The mutex is wrapped to be recursive,
      *  allowing for multiple locks to be instantiated on the same thread. Fails if a non-recursive lock
      *  was already created on this thread.
+     *
+     *  Re-entry is tracked by the mutex, so a thread that holds the recursive lock guard of any object
+     *  sharing the mutex can take this one as well.
      */
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
 
     /*!
-     * @brief Sets the locking strategy of the object. A property object sets it before it gets an owner.
-     * A component sets it while it is constructed, before its core events are enabled and before other
-     * threads use it; its child components that inherit a lock then switch to the lock the new strategy resolves to.
+     * @brief Sets the locking strategy of the object and the mutex that all its lock guards lock: its own
+     * mutex with `OwnLock` and `ForwardOwnerLockOwn`, the mutex of its mutex owner with `InheritLock`.
+     * The nested property objects and child components that inherit their lock switch to the mutex the
+     * new strategy resolves to. Set it before other threads use the object or the objects below it, as a
+     * thread that holds the previous mutex does not exclude a thread that locks the new one.
      *
      * Property objects default to `InheritLock`, so an object stored in an object-type property shares the
      * lock of the object that holds it. Components default to `OwnLock`. A clone keeps the strategy of its source.
@@ -88,7 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) = 0;
     /*!
-     * @brief Gets the object's mutex. Returns the mutex of the closest `OwnLock` strategy ancestor
+     * @brief Gets the mutex that all the object's lock guards lock. Returns the mutex of the mutex owner
      * if using the `InheritLock` strategy.
      */
     virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) = 0;

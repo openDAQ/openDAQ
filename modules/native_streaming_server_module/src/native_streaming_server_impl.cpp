@@ -15,6 +15,7 @@
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <boost/asio/post.hpp>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/thread_name.h>
 
@@ -351,7 +352,14 @@ void NativeStreamingServerImpl::prepareServerHandler()
 
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
-            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
+            // Destroyed on the processing thread: its destructor waits for core event handlers, and the last reference may be dropped by a thread that holds component locks while it sends an event
+            const auto processingContext = processingIOContextPtr;
+            auto configServer = std::shared_ptr<ConfigProtocolServer>(
+                new ConfigProtocolServer(rootDevice, sendConfigPacketCb, user, connectionType, this->signals),
+                [processingContext](ConfigProtocolServer* server)
+                {
+                    boost::asio::post(*processingContext, [owned = std::unique_ptr<ConfigProtocolServer>(server)]() {});
+                });
             processConfigRequestCb =
                 [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
             {

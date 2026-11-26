@@ -5846,5 +5846,62 @@ TEST_F(NativeDeviceModulesTest, DeviceInfoBatchedUpdateOnServer)
     serverInfo.setPropertyValue("CustomInfo", "written");
     ASSERT_TRUE(test_helpers::waitFor([&] { return clientInfo.getPropertyValue("CustomInfo") == "written"; }));
 }
+
+// A client disconnecting while server threads send core events must not leave those threads waiting for each other
+TEST_F(NativeDeviceModulesTest, ClientDisconnectWhileServerSendsCoreEvents)
+{
+    auto server = CreateServerInstance();
+
+    // Components with mutexes of their own, so that several threads are inside the event callback at once
+    const std::vector<ComponentPtr> components{server.getRootDevice(), server.getDevices()[0], server.getFunctionBlocks()[0]};
+    for (const auto& component : components)
+        component.addProperty(IntProperty("Counter", 0));
+
+    // Shared with the writers, so that writers stuck in a deadlock can be detached instead of hanging the test
+    struct State
+    {
+        std::atomic<bool> stop{false};
+        std::atomic<Int> writes{0};
+    };
+    const auto state = std::make_shared<State>();
+    std::vector<std::thread> writers;
+    for (size_t i = 0; i < components.size() * 2; ++i)
+    {
+        writers.emplace_back(
+            [state, component = components[i % components.size()]]
+            {
+                while (!state->stop)
+                    component.setPropertyValue("Counter", ++state->writes);
+            });
+    }
+
+    std::string error;
+    try
+    {
+        for (int i = 0; i < 20; ++i)
+        {
+            auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, 5000);
+            client.removeDevice(client.getDevices()[0]);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        error = e.what();
+    }
+
+    const Int before = state->writes;
+    const bool progressing = test_helpers::waitFor([&] { return state->writes > before + 100; });
+    state->stop = true;
+    for (auto& writer : writers)
+    {
+        if (progressing)
+            writer.join();
+        else
+            writer.detach();
+    }
+
+    ASSERT_TRUE(error.empty()) << error;
+    ASSERT_TRUE(progressing);
+}
 }
 // namespace test_native_device_modules

@@ -58,6 +58,7 @@
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix the property type that a client reports for properties with `onSelectionValuesRead` listeners.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Fix a hang when a native streaming client is destroyed: its transport thread is drained instead of stopped, and a connection attempt still in flight is closed (libNativeStreaming v1.0.23), so removing a device that is connecting or reconnecting to a host that does not answer no longer blocks.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) The native inactivity timeout runs from the moment connection activity monitoring starts, so a peer that never sends anything after connecting is timed out like any other silent peer. Before, the timeout started with the first received frame.
+- [#1415](https://github.com/openDAQ/openDAQ/pull/1415) Fix a deadlock of the native server when a client disconnects while server threads send core events: the client's configuration server is destroyed on the processing thread.
 
 ## Misc
 

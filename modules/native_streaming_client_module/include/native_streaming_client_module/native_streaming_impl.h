@@ -85,7 +85,6 @@ protected:
     void requestStreamingOnReconnection();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
-    const StringPtr transport;
 
     // pseudo device callbacks
     ProcedurePtr onDeviceSignalAvailableCallback;

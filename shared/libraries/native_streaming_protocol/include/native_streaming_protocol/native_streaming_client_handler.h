@@ -297,9 +297,6 @@ public:
 
     void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
 
-    /// @brief the name of the transport the client connects over ("plain" or "tls")
-    const std::string& getTransport() const;
-
 protected:
     void startTransportOperations();
     void stopTransportOperations();
@@ -316,7 +313,6 @@ protected:
     LoggerComponentPtr loggerComponent;
     std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;
     bool toDeviceStreamingEnabled;
-    const std::string transport;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

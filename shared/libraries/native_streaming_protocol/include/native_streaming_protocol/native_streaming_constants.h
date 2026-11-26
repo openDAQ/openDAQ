@@ -32,11 +32,12 @@ static constexpr const char* CONST_NATIVE_CONFIG_PREFIX = "daq.nd";
 static constexpr const char* CONST_NATIVE_STREAMING_ID = "OpenDAQNativeStreaming";
 static constexpr const char* CONST_NATIVE_CONFIG_ID = "OpenDAQNativeConfiguration";
 
-// Names of the available transports of the native types and capabilities
-static constexpr const char* CONST_NATIVE_TRANSPORT_PLAIN = "plain";
-static constexpr const char* CONST_NATIVE_TRANSPORT_TLS = "tls";
-
 static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
+
+// Transport option ids
+static constexpr const char* CONST_NATIVE_TRANSPORT_WS = "ws";
+static constexpr const char* CONST_NATIVE_TRANSPORT_WSS = "wss";
+static constexpr const char* CONST_NATIVE_TRANSPORT_WSS_MTLS = "wss-mtls";
 
 static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
 static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";

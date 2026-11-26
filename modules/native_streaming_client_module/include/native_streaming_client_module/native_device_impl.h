@@ -26,6 +26,7 @@
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 
 #include <future>
 #include <mutex>
@@ -45,8 +46,8 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                Int port,
-                                Int reconnectionPeriod);
+                                Int reconnectionPeriod,
+                                const TransportOptionPtr& transportOption);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
@@ -56,11 +57,8 @@ public:
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
 
-    /// @brief the name of the transport the connection runs over
-    const std::string& getTransport() const;
-
-    /// @brief the port the connection is established on
-    Int getPort() const;
+    /// @brief the transport option the connection uses, at the port it is connected to
+    TransportOptionPtr getTransportOption() const;
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -93,18 +91,16 @@ private:
     bool acceptNotificationPackets;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
-    const std::string transport;
-    const Int port;
     std::mutex requestReplySync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
+    TransportOptionPtr transportOption;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
-    virtual void INTERFACE_FUNC publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
@@ -124,7 +120,6 @@ public:
 
     // INativeDevicePrivate
     void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
-    void INTERFACE_FUNC publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
@@ -150,11 +145,7 @@ class ConnectionStringUtils
 public:
     static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
-    /// @param defaultPort used when neither the connection string nor the config sets a port;
-    /// the port of the selected transport
-    static Int GetPort(const StringPtr& url,
-                       const PropertyObjectPtr& config = nullptr,
-                       Int defaultPort = opendaq_native_streaming_protocol::DEFAULT_PORT);
+    static StringPtr GetPort(const StringPtr& url);
     static StringPtr GetPath(const StringPtr& url);
 };
 

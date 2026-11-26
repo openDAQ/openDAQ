@@ -32,8 +32,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
-                                       Int port,
-                                       Int reconnectionPeriod)
+                                       Int reconnectionPeriod,
+                                       const TransportOptionPtr& transportOption)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
@@ -43,10 +43,9 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , acceptNotificationPackets(false) // ignore notification packets by default until the device is connected
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
-    , transport(transportProtocolClient->getTransport())
-    , port(port)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
+    , transportOption(transportOption)
 {
 }
 
@@ -182,12 +181,7 @@ void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, co
     auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
     if (!deviceSelf.assigned())
         return;
-    const auto devicePrivate = deviceSelf.asPtr<INativeDevicePrivate>();
-    devicePrivate->publishConnectionStatus(connectionStatus, statusMessage);
-    if (status == "Connected" && statusMessage == "")
-        devicePrivate->publishConfigurationStatus(connectionStatus, buildConnectedStatusMessage(transport));
-    else
-        devicePrivate->publishConfigurationStatus(connectionStatus, statusMessage);
+    deviceSelf.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -447,19 +441,15 @@ void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, con
 {
     // Called from the transport thread; the statuses are already gone when the device is being torn down
     const StringPtr statusName = "ConnectionStatus";
-    const ErrCode errCode = this->statusContainer.asPtr<IComponentStatusContainerPrivate>()->setStatusWithMessage(statusName, status, statusMessage);
+    ErrCode errCode = this->statusContainer.asPtr<IComponentStatusContainerPrivate>()->setStatusWithMessage(statusName, status, statusMessage);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
         return;
     }
     checkErrorInfo(errCode);
-}
 
-void NativeDeviceImpl::publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
-{
-    // Called from the transport thread; the statuses are already gone when the device is being torn down
-    const ErrCode errCode = this->connectionStatusContainer->updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
+    errCode = this->connectionStatusContainer->updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
@@ -477,8 +467,6 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
     this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
-    // the status is added with an empty message, while the "Connected" one names the transport
-    publishConfigurationStatus(statusInitValue, buildConnectedStatusMessage(deviceHelper->getTransport()));
 }
 
 void NativeDeviceImpl::removed()
@@ -544,14 +532,9 @@ NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() 
     return transportClientHandler;
 }
 
-const std::string& NativeDeviceHelper::getTransport() const
+TransportOptionPtr NativeDeviceHelper::getTransportOption() const
 {
-    return transport;
-}
-
-Int NativeDeviceHelper::getPort() const
-{
-    return port;
+    return transportOption;
 }
 
 void NativeDeviceImpl::disconnectAndCleanUp()
@@ -606,23 +589,25 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    // only the transport the device is connected over, at the port the connection is established on, which may
-    // come from the config rather than from the connection string
-    const std::string transport = deviceHelper ? deviceHelper->getTransport() : CONST_NATIVE_TRANSPORT_PLAIN;
-    const Int port = deviceHelper
-        ? deviceHelper->getPort()
-        : ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT);
     ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
                                                                 CONST_NATIVE_CONFIG_ID,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .addAvailableTransportOption(NativeTransportOption(transport, port))
                   .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
-                  .addAddressInfo(addressInfo)
-                  .freeze();
+                  .addAddressInfo(addressInfo);
+
+    // The connection info lists only the option the connection uses, at the port it is connected to
+    if (const TransportOptionPtr transportOption = deviceHelper ? deviceHelper->getTransportOption() : nullptr; transportOption.assigned())
+    {
+        auto options = Dict<IString, ITransportOption>();
+        options.set(transportOption.getId(), transportOption);
+        connectionInfo.setAvailableTransportOptions(options);
+    }
+
+    connectionInfo.freeze();
 
     auto deviceInfoProtected = deviceInfo.asPtr<IPropertyObjectProtected>(true);
     deviceInfoProtected.setProtectedPropertyValue("connectionString", connectionString);
@@ -653,7 +638,7 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-Int ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
     std::smatch match;
@@ -661,20 +646,12 @@ Int ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    Int port = defaultPort;
+    Int port = opendaq_native_streaming_protocol::DEFAULT_PORT;
 
     if (std::regex_search(suffix, match, RegexPort))
         port = std::stoi(match[1]);
 
-    if (config.assigned() && config.hasProperty("Port"))
-    {
-        const Int configuredPort = config.getPropertyValue("Port");
-        const Int configDefaultPort = config.getProperty("Port").getDefaultValue();
-        if (configuredPort != configDefaultPort)
-            port = configuredPort;
-    }
-
-    return port;
+    return String(std::to_string(port));
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

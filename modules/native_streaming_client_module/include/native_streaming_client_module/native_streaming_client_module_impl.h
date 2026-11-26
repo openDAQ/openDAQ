@@ -57,16 +57,6 @@ private:
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
 
-    /// @brief reads the transport option the type config names in its "TransportOption" property
-    /// (TransportOptionConfigProperty)
-    /// @return the selected option of the types, with its default port; the first ("plain") when the config
-    /// names none
-    /// @throw InvalidParameterException the selected option is not supported
-    TransportOptionPtr getSelectedTransportOption(const PropertyObjectPtr& config) const;
-
-    /// @brief the options of `serverOptions` this module supports too, in the server's order, with the server's ports
-    DictPtr<IString, ITransportOption> supportedTransportOptions(const DictPtr<IString, ITransportOption>& serverOptions) const;
-
     DevicePtr createDeviceInternal(const StringPtr& connectionString,
                                    const ComponentPtr& parent,
                                    const PropertyObjectPtr& config,
@@ -79,27 +69,18 @@ private:
     static bool ValidateConnectionString(const StringPtr& connectionString);
 
     /// @brief recognises the connection string prefix
-    /// @return the type, or nothing if the prefix belongs to some other module
-    static std::optional<NativeType> ParseConnectionType(const StringPtr& connectionString);
+    /// @return the native type, or nothing if the prefix belongs to some other module
+    static std::optional<NativeType> ParseNativeType(const StringPtr& connectionString);
 
 #if NATIVE_STREAMING_ENABLE_TLS
     /// @brief collects the TLS settings the transport handler needs out of the connection config
-    /// @return the object to hand to the handler
-    static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config);
+    /// @return the object to hand to the handler, or nothing for a plaintext connection
+    static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config, bool secure);
 #endif
 
-    /// @brief the transport options a discovered server lists that this module supports too, in the server's order,
-    /// at the server's ports
-    /// @return empty if the two have none in common
-    DictPtr<IString, ITransportOption> supportedDiscoveredTransportOptions(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
-    DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                        const DictPtr<IString, ITransportOption>& discoveredOptions);
-    DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                    const DictPtr<IString, ITransportOption>& discoveredOptions);
-    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                       ServerCapabilityConfigPtr& cap,
-                                       std::string protocolPrefix,
-                                       const IntegerPtr& port);
+    DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
 
     static StringPtr CreateUrlConnectionString(std::string prefix,
                                                const StringPtr& host,
@@ -112,7 +93,7 @@ private:
         Int port,
         const StringPtr& path,
         const PropertyObjectPtr& config,
-        const StringPtr& transport,
+        bool secure,
         const LoginParametersPtr& loginParameters);
     static DictPtr<IString, IString> ParseConfigCredentials(const PropertyObjectPtr& config);
     static DictPtr<IString, IString> GetLoginCredentials(const LoginParametersPtr& loginParameters);
@@ -130,16 +111,14 @@ private:
                                  Int port,
                                  const StringPtr& path,
                                  uint16_t& protocolVersion,
-                                 const StringPtr& transport,
+                                 const TransportOptionPtr& transportOption,
                                  const LoginParametersPtr& loginParameters);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
-    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
-    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType);
-    void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);
     bool validateConnectionConfig(const PropertyObjectPtr& config);
@@ -150,9 +129,6 @@ private:
     size_t transportClientIndex;
     std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
-    // the transport options every native type lists, with the default port of each; plain comes first.
-    // Fixed at build time, so it is built once and frozen
-    const DictPtr<IString, ITransportOption> transportOptions;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
     std::vector<ProcessingContext> processingContextPool;

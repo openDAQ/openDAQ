@@ -1,10 +1,8 @@
 #include <native_streaming_server_module/native_streaming_server_impl.h>
 #include <native_streaming_server_module/native_streaming_server_module_impl.h>
 #include <native_streaming_server_module/version.h>
-#include <native_streaming_protocol/native_streaming_constants.h>
 #include <coreobjects/property_object_class_ptr.h>
 #include <coretypes/version_info_factory.h>
-#include <opendaq/transport_option_factory.h>
 #include <chrono>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
@@ -16,7 +14,6 @@ NativeStreamingServerModule::NativeStreamingServerModule(ContextPtr context)
                               NATIVE_STREAM_SRV_MODULE_PATCH_VERSION),
              std::move(context),
              "OpenDAQNativeStreamingServerModule")
-    , transportOptions(NativeStreamingServerImpl::createTransportOptions())
 {
 }
 
@@ -24,7 +21,7 @@ DictPtr<IString, IServerType> NativeStreamingServerModule::onGetAvailableServerT
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = NativeStreamingServerImpl::createType(context, transportOptions);
+    auto serverType = NativeStreamingServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;

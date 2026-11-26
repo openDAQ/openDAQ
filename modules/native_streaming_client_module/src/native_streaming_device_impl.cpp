@@ -29,7 +29,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 : Device(ctx, parent, localId)
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
-  , connectedStatusMessage(buildConnectedStatusMessage(transportProtocolClient->getTransport()))
   , deviceType(type)
   , transportProtocolClient(transportProtocolClient)
   , callbacksHoldDevice(std::move(callbacksHoldDevice))
@@ -43,13 +42,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                           initTimeout);
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
-    // the status is added with an empty message, while the "Connected" one names the transport
-    this->connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
-        connectionString,
-        connectionStatus,
-        nativeStreaming,
-        connectedStatusMessage
-    );
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
 }
 
@@ -333,7 +325,7 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
         this->connectionStatusContainer->updateConnectionStatusWithMessage(this->connectionString,
                                                                       status,
                                                                       streaming,
-                                                                      status == "Connected" && statusMessage == "" ? connectedStatusMessage : statusMessage);
+                                                                      statusMessage);
     checkErrorInfoExcept(errCode, OPENDAQ_ERR_NOTFOUND);
 }
 

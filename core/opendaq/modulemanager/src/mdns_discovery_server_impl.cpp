@@ -94,15 +94,6 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
             properties["authMethods"] = authMethods;
     }
 
-    // DISCARD PORT: the optional "TransportOptions" string of the service is the TXT value of its transport options
-    // ("plain:7420,tls:7422"), built by the server, as the new transport options are no longer property objects
-    if (configPtr.hasProperty("TransportOptions"))
-    {
-        const StringPtr value = configPtr.getPropertyValue("TransportOptions");
-        if (value.assigned() && value.getLength() > 0)
-            properties[DiscoveryUtils::TRANSPORTS_KEY] = value.toStdString();
-    }
-
     MdnsDiscoveredService service(serviceName, servicePort, properties, PropertyObjectPtr::Borrow(deviceInfo));
     if (discoveryServer.registerService(serviceId, service))
     {

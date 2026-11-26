@@ -913,7 +913,6 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, credentials, ioContextPtr))
     , toDeviceStreamingEnabled(true)
-    , transport(CONST_NATIVE_TRANSPORT_PLAIN)
 {
     startTransportOperations();
 }
@@ -928,7 +927,6 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, credentials, tlsProperties, ioContextPtr))
     , toDeviceStreamingEnabled(true)
-    , transport(CONST_NATIVE_TRANSPORT_TLS)
 {
     startTransportOperations();
 }
@@ -1049,11 +1047,6 @@ bool NativeStreamingClientHandler::supportsToDeviceStreaming()
 void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
 {
     clientHandlerPtr->setAlternativeAddresses(alternativeAddresses);
-}
-
-const std::string& NativeStreamingClientHandler::getTransport() const
-{
-    return transport;
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

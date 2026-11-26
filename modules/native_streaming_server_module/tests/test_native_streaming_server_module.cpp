@@ -110,16 +110,6 @@ private:
     uint16_t port = 0;
 };
 
-// a port which was free a moment ago, for a test which needs to name the same one twice
-static uint16_t FindFreePort()
-{
-    using boost::asio::ip::tcp;
-
-    boost::asio::io_context ioContext;
-    tcp::acceptor acceptor(ioContext, tcp::endpoint(tcp::v4(), 0));
-    return acceptor.local_endpoint().port();
-}
-
 TEST_F(NativeStreamingServerModuleTest, CreateModule)
 {
     IModule* module = nullptr;
@@ -169,6 +159,16 @@ TEST_F(NativeStreamingServerModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(serverTypes.getCount(), 1u);
     ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
+
+    // the server type lists the options this build can serve, plain first
+    auto expectedIds = List<IString>("ws");
+#if NATIVE_STREAMING_ENABLE_TLS
+    expectedIds.pushBack("wss");
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    expectedIds.pushBack("wss-mtls");
+#endif
+#endif
+    ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getAvailableTransportOptions().getKeyList(), expectedIds);
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;
@@ -237,29 +237,6 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
     ASSERT_EQ(config.getPropertyValue("EnablePort"), True);
 }
 
-TEST_F(NativeStreamingServerModuleTest, ServerTypeListsTransportOptions)
-{
-    auto module = CreateModule();
-
-    const DictPtr<IString, ITransportOption> options = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").getAvailableTransportOptions();
-#if NATIVE_STREAMING_ENABLE_TLS
-    ASSERT_EQ(options.getCount(), 2u);
-    const TransportOptionPtr tls = options.get("tls");
-    ASSERT_EQ(tls.getId(), "tls");
-    ASSERT_EQ(tls.getPort(), 7422);
-    ASSERT_EQ(tls.getSecurityMode(), SecurityMode::Encrypted);
-    ASSERT_FALSE(tls.getCertificateRequired());
-#else
-    ASSERT_EQ(options.getCount(), 1u);
-#endif
-    ASSERT_EQ(options.getKeyList()[0], "plain");
-    const TransportOptionPtr plain = options.get("plain");
-    ASSERT_EQ(plain.getId(), "plain");
-    ASSERT_EQ(plain.getPort(), 7420);
-    ASSERT_EQ(plain.getSecurityMode(), SecurityMode::None);
-    ASSERT_FALSE(plain.getCertificateRequired());
-}
-
 TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
 {
     auto module = CreateModule();
@@ -309,12 +286,13 @@ TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
 
     const auto capabilities = device.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
+
+    // the plaintext listener is the only option, at the configured port
     for (const auto& capability : capabilities)
     {
-        const auto options = capability.getAvailableTransportOptions();
-        ASSERT_EQ(options.getCount(), 1u);
-        ASSERT_EQ(options.getKeyList()[0], "plain");
-        ASSERT_EQ(options.get("plain").getPort(), capability.getPort());
+        const DictPtr<IString, ITransportOption> options = capability.getAvailableTransportOptions();
+        ASSERT_EQ(options.getKeyList(), List<IString>("ws")) << capability.getProtocolId();
+        ASSERT_EQ(TransportOptionPtr(options.get("ws")).getPort(), 0) << capability.getProtocolId();
     }
 }
 
@@ -338,6 +316,16 @@ TEST_F(NativeStreamingServerModuleTest, RefusesPortInUse)
 }
 
 #if NATIVE_STREAMING_ENABLE_TLS
+
+// a port which was free a moment ago, for a test which needs to name the same one twice
+static uint16_t FindFreePort()
+{
+    using boost::asio::ip::tcp;
+
+    boost::asio::io_context ioContext;
+    tcp::acceptor acceptor(ioContext, tcp::endpoint(tcp::v4(), 0));
+    return acceptor.local_endpoint().port();
+}
 
 // a secret which fails to load is found only when the listener opens, after the threads have started
 TEST_F(NativeStreamingServerModuleTest, RefusesTlsWithUnreadableCertificate)

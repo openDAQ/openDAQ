@@ -39,9 +39,7 @@ public:
                                        const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
-    /// @param transportOptions the transport options the type lists, built once by the module
-    static ServerTypePtr createType(const ContextPtr& context, const DictPtr<IString, ITransportOption>& transportOptions);
-    static DictPtr<IString, ITransportOption> createTransportOptions();
+    static ServerTypePtr createType(const ContextPtr& context);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
@@ -49,7 +47,7 @@ protected:
     using ConfigServerPtr = std::shared_ptr<config_protocol::ConfigProtocolServer>;
     using PacketStreamingClientPtr = std::shared_ptr<packet_streaming::PacketStreamingClient>;
 
-    ListPtr<IPropertyObject> getDiscoveryConfigs() override;
+    PropertyObjectPtr getDiscoveryConfig() override;
     void onStopServer() override;
     StreamingPtr onGetStreaming() override;
     void prepareServerHandler();
@@ -58,11 +56,8 @@ protected:
     /// which turns the TLS listener on without the secrets it needs
     void validateChannelConfig(const PropertyObjectPtr& config) const;
 
-    /// @brief the transport options of the open channels, at the ports they listen on; plain first
-    DictPtr<IString, ITransportOption> servedTransportOptions() const;
-
-    /// @brief publishes the streaming and the configuration capability, shared by the open channels
-    /// @param transportOptions the open channels with their ports, plain first; the first one is the default
+    /// @brief publishes the streaming and the configuration capability of one channel
+    /// @param secure selects the secure identifiers, prefixes and security level
     void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
                                const DictPtr<IString, ITransportOption>& transportOptions,
                                const StringPtr& path) const;

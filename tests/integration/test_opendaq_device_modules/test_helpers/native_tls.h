@@ -20,7 +20,6 @@
 
 #include <native_streaming_protocol/native_streaming_constants.h>
 #include <opendaq/opendaq.h>
-#include <opendaq/transport_option_factory.h>
 
 #include <string>
 
@@ -32,10 +31,12 @@ namespace test_helpers::native_tls
 
     inline constexpr const char* ServerTypeId = CONST_NATIVE_SERVER_TYPE_ID;
 
-    // plain and TLS are transports of the same types and capabilities;
     // the pseudo-device and the streaming share their protocol id
-    inline constexpr const char* StreamingId = CONST_NATIVE_STREAMING_ID;
-    inline constexpr const char* ConfigId = CONST_NATIVE_CONFIG_ID;
+    inline constexpr const char* PlainStreamingId = CONST_NATIVE_STREAMING_ID;
+    inline constexpr const char* PlainConfigId = CONST_NATIVE_CONFIG_ID;
+
+    inline constexpr const char* WsOption = CONST_NATIVE_TRANSPORT_WS;
+    inline constexpr const char* WssOption = CONST_NATIVE_TRANSPORT_WSS;
 
     inline constexpr uint16_t PlainPort = DEFAULT_PORT;
     inline constexpr uint16_t TlsPort = DEFAULT_TLS_PORT;
@@ -74,125 +75,74 @@ namespace test_helpers::native_tls
         return config;
     }
 
-    /// @brief selects the TLS transport option in a device or streaming type config
+    /// @brief the add device config for the device at the connection string, with the defaults of its type
     [[maybe_unused]]
-    inline void selectTls(const PropertyObjectPtr& typeConfig)
+    inline AddDeviceConfigPtr addDeviceConfig(const InstancePtr& clientInstance, const std::string& connectionString)
     {
-        typeConfig.setPropertyValue(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_TLS);
+        return clientInstance.createAddDeviceConfig(DeviceInfo(connectionString));
     }
 
-    /// @brief the names of transport options, in order
+    /// @brief the native streaming config of an add device config
     [[maybe_unused]]
-    inline ListPtr<IString> optionNames(const DictPtr<IString, ITransportOption>& options)
+    inline AddStreamingConfigPtr nativeStreamingConfig(const AddDeviceConfigPtr& config)
     {
-        auto names = List<IString>();
-        for (const auto& [id, option] : options)
-            names.pushBack(id);
-        return names;
-    }
-
-    /// @brief the port of the transport option of a name; -1 if there is none
-    [[maybe_unused]]
-    inline Int optionPort(const DictPtr<IString, ITransportOption>& options, const std::string& name)
-    {
-        for (const auto& [id, option] : options)
-        {
-            if (id == name)
-                return option.getPort();
-        }
-        return -1;
+        return config.getStreamingOptions().getAvailableStreamingConfigs().get(PlainStreamingId);
     }
 
 #ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
 
-    // The client has no certificate settings, so the helpers below only select the TLS transport.
+    // The client has no certificate settings, so the helpers below only select the TLS option.
     // They keep their signatures so that the tests which only need a working secure connection stay
     // as they are; the tests which depend on the certificate settings are left out of this build.
 
-    /// @brief client configuration for a secure connection, which never verifies the server
-    [[maybe_unused]]
-    inline PropertyObjectPtr secureClientConfig(const InstancePtr& clientInstance,
-                                                const char* deviceTypeId,
-                                                bool /*mutualTls*/ = false,
-                                                const char* /*caCert*/ = CaCert)
+    /// @brief selects the TLS option on an add device or add streaming config; the client never verifies the server
+    template <typename ConfigPtr>
+    void selectTls(const ConfigPtr& config, bool /*mutualTls*/ = false, const char* /*caCert*/ = CaCert)
     {
-        auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
-        selectTls(config);
-        return config;
-    }
-
-    /// @brief selects the TLS transport in the native sections of a general add-device configuration,
-    /// which is how a streaming connection made from a server capability is configured
-    [[maybe_unused]]
-    inline void applySecureClientConfig(const PropertyObjectPtr& addDeviceConfig,
-                                        bool /*mutualTls*/ = false,
-                                        const char* /*caCert*/ = CaCert)
-    {
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + ConfigId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + StreamingId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId));
+        config.setTransportOption(WssOption);
     }
 
 #else
 
-    /// @brief client configuration which authenticates the server against the given authority
-    /// @param deviceTypeId which of the secure types to configure, device or streaming
+    /// @brief selects the TLS option on an add device or add streaming config, which authenticates the server
     /// @param mutualTls presents ClientCert / ClientKey to a server which asks for one
     /// @param caCert the authority to verify the server against
-    [[maybe_unused]]
-    inline PropertyObjectPtr secureClientConfig(const InstancePtr& clientInstance,
-                                                const char* deviceTypeId,
-                                                bool mutualTls = false,
-                                                const char* caCert = CaCert)
+    template <typename ConfigPtr>
+    void selectTls(const ConfigPtr& config, bool mutualTls = false, const char* caCert = CaCert)
     {
-        auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
-        selectTls(config);
-        config.setPropertyValue("CaCertificateFilePath", caCert);
-        config.setPropertyValue("EnableMutualTls", mutualTls);
+        config.setTransportOption(mutualTls ? CONST_NATIVE_TRANSPORT_WSS_MTLS : WssOption);
+
+        const PropertyObjectPtr typeConfig = config.getTypeConfig();
+        typeConfig.setPropertyValue("CaCertificateFilePath", caCert);
+        typeConfig.setPropertyValue("EnableMutualTls", mutualTls);
         if (mutualTls)
         {
-            config.setPropertyValue("CertificateFilePath", ClientCert);
-            config.setPropertyValue("KeyFilePath", ClientKey);
+            typeConfig.setPropertyValue("CertificateFilePath", ClientCert);
+            typeConfig.setPropertyValue("KeyFilePath", ClientKey);
         }
-        return config;
     }
 
-    /// @brief client configuration which encrypts without authenticating the server
-    [[maybe_unused]]
-    inline PropertyObjectPtr unverifiedClientConfig(const InstancePtr& clientInstance, const char* deviceTypeId)
+    /// @brief selects the TLS option, which encrypts without authenticating the server
+    template <typename ConfigPtr>
+    void selectUnverifiedTls(const ConfigPtr& config)
     {
-        auto config = clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
-        selectTls(config);
-        config.setPropertyValue("VerifyServerCertificate", False);
-        return config;
-    }
-
-    /// @brief the same settings applied to the secure sections of a general add-device configuration,
-    /// which is how a streaming connection made from a server capability is configured
-    [[maybe_unused]]
-    inline void applySecureClientConfig(const PropertyObjectPtr& addDeviceConfig,
-                                        bool mutualTls = false,
-                                        const char* caCert = CaCert)
-    {
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + ConfigId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + StreamingId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId));
-
-        for (const auto& prefix : {std::string("Device.") + ConfigId + ".",
-                                   std::string("Device.") + StreamingId + ".",
-                                   std::string("Streaming.") + StreamingId + "."})
-        {
-            addDeviceConfig.setPropertyValue(prefix + "CaCertificateFilePath", caCert);
-            addDeviceConfig.setPropertyValue(prefix + "EnableMutualTls", mutualTls);
-            if (mutualTls)
-            {
-                addDeviceConfig.setPropertyValue(prefix + "CertificateFilePath", ClientCert);
-                addDeviceConfig.setPropertyValue(prefix + "KeyFilePath", ClientKey);
-            }
-        }
+        config.setTransportOption(WssOption);
+        config.getTypeConfig().setPropertyValue("VerifyServerCertificate", False);
     }
 
 #endif
+
+    /// @brief the add device config for the device at the connection string, over the TLS option
+    [[maybe_unused]]
+    inline AddDeviceConfigPtr secureAddDeviceConfig(const InstancePtr& clientInstance,
+                                                    const std::string& connectionString,
+                                                    bool mutualTls = false,
+                                                    const char* caCert = CaCert)
+    {
+        auto config = addDeviceConfig(clientInstance, connectionString);
+        selectTls(config, mutualTls, caCert);
+        return config;
+    }
 
     [[maybe_unused]]
     inline std::string connectionString(const char* prefix, uint16_t port)

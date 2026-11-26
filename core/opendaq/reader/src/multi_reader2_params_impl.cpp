@@ -110,4 +110,20 @@ ErrCode MultiReader2ParamsImpl::setErrorPolicy(MultiReader2ErrorPolicy policy)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReader2ParamsImpl::getAdditionalOptions(IDict** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    std::scoped_lock lock(mutex);
+    *options = additionalOptions.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReader2ParamsImpl::setAdditionalOptions(IDict* options)
+{
+    std::scoped_lock lock(mutex);
+    additionalOptions = DictPtr<IString, IBaseObject>(options);
+    return OPENDAQ_SUCCESS;
+}
+
 END_NAMESPACE_OPENDAQ

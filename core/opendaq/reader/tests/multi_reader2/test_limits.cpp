@@ -206,4 +206,113 @@ TEST_F(MultiReader2Limits, StalledInputRejoinsOnItsOwnPacketWhenNoOtherInputIsHe
     write(in2, 200, 299);
     expect(read(100), count(100).at(200).noChanges());
 }
+
+// S1.LIM.12
+TEST_F(MultiReader2Limits, SyncLimitOptionStallsAnInputAfterItsSeconds)
+{
+    given().policy(Exclude).option("SyncLimitSeconds", Integer(1));
+    setupBase([&] { read(100); });
+    write(in2, 100, 1099);
+    expect(read(0), count(0).noChanges());
+    write(in2, 1100, 1109);
+    expect(read(0),
+           count(0)
+               .level(Warning)
+               .main(in2)
+               .domainChanged()
+               .resync()
+               .descChanged(in2)
+               .inError(in1, InputError::SyncFailed)
+               .msg("in1: not synchronized, no data for 1 s"));
+}
+
+// S1.LIM.13
+TEST_F(MultiReader2Limits, SyncLimitZeroNeverStallsASilentInput)
+{
+    given().policy(Exclude).option("SyncLimitSeconds", Integer(0));
+    setupBase([&] { read(100); });
+    write(in2, 100, 4109);
+    expect(read(0), count(0).noChanges());
+    write(in1, 100, 199);
+    expect(read(100), count(100).at(100).noChanges());
+}
+
+// S1.LIM.14
+TEST_F(MultiReader2Limits, SyncLimitZeroSynchronizesAnInputFarAheadOfTheMainInput)
+{
+    given().policy(Exclude).option("SyncLimitSeconds", Integer(0));
+    write(in1, 0, 99);
+    write(in2, 3100, 3199);
+    write(in1, 100, 3199);
+    expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
+    expect(read(100), count(100).at(3100).noChanges());
+}
+
+// S1.LIM.15
+TEST_F(MultiReader2Limits, StalledInputRejoinsWithinAThirdOfTheSyncLimitOption)
+{
+    given().policy(Exclude).main(in1).option("SyncLimitSeconds", Integer(6)).option("CriticalLimitSeconds", Integer(10));
+    setupBase([&] { read(100); });
+    write(in2, 100, 6109);
+    expect(read(0), count(0).level(Error).main(in1).inError(in1, InputError::SyncFailed).msg("in1: not synchronized, no data for 6 s"));
+    write(in1, 100, 4099);
+    expect(read(0), count(0).noChanges());
+    write(in1, 4100, 4199);
+    expect(read(0), count(0).level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in1).msg(""));
+}
+
+// S1.LIM.16
+TEST_F(MultiReader2Limits, CriticalLimitOptionDropsEveryQueuePastItsSeconds)
+{
+    given().option("CriticalLimitSeconds", Integer(4));
+    setupBase([&] { read(100); });
+    write(in1, 100, 4099);
+    write(in2, 100, 4099);
+    expect(avail(), count(4000));
+    write(in1, 4100, 4109);
+    write(in2, 4100, 4109);
+    expect(read(100), count(0).resync());
+    expect(read(100), count(10).at(4100).noChanges());
+}
+
+// S1.LIM.17
+TEST_F(MultiReader2Limits, CriticalLimitZeroKeepsMoreThanFiveSecondsQueued)
+{
+    given().option("CriticalLimitSeconds", Integer(0));
+    setupBase([&] { read(100); });
+    write(in1, 100, 6099);
+    write(in2, 100, 6099);
+    expect(avail(), count(6000));
+    expect(read(100), count(100).at(100).noChanges());
+}
+
+// S1.LIM.18
+TEST_F(MultiReader2Limits, CriticalBytesOptionDropsEveryQueuePastItsBytes)
+{
+    // 1000 Float64 samples are exactly 8000 bytes: within the limit
+    given().option("CriticalLimitBytes", Integer(8000));
+    setupBase([&] { read(100); });
+    write(in1, 100, 1099);
+    write(in2, 100, 1099);
+    expect(avail(), count(1000));
+    write(in1, 1100, 1109);
+    write(in2, 1100, 1109);
+    expect(read(100), count(0).resync());
+    expect(read(100), count(10).at(1100).noChanges());
+}
+
+// S1.LIM.19
+TEST_F(MultiReader2Limits, TotalBytesOptionDropsEveryQueuePastItsBytesOverAllInputs)
+{
+    // Each input stays under its 8000 critical bytes; together they pass the 12000 total bytes
+    given().option("CriticalLimitBytes", Integer(8000)).option("TotalLimitBytes", Integer(12000));
+    setupBase([&] { read(100); });
+    write(in1, 100, 849);
+    write(in2, 100, 849);
+    expect(avail(), count(750));
+    write(in1, 850, 859);
+    write(in2, 850, 859);
+    expect(read(100), count(0).resync());
+    expect(read(100), count(10).at(850).noChanges());
+}
 }

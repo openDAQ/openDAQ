@@ -372,6 +372,17 @@ daq::FunctionPtr toFunction(const py::handle& obj)
     return daq::createWithImplementation<daq::IFunction, PyCallableFunction>(py::reinterpret_borrow<py::object>(obj));
 }
 
+daq::DictPtr<daq::IString, daq::IBaseObject> toOptions(const py::handle& obj)
+{
+    if (obj.is_none())
+        return nullptr;
+    const auto converted = pyObjectToBaseObject(py::reinterpret_borrow<py::object>(obj), false);
+    auto options = converted.asPtrOrNull<daq::IDict, daq::DictPtr<daq::IString, daq::IBaseObject>>();
+    if (!options.assigned())
+        throw py::type_error("additional_options must be a dict or None");
+    return options;
+}
+
 void assignParams(const daq::MultiReader2ParamsPtr& target, const daq::MultiReader2ParamsPtr& source)
 {
     auto inputs = daq::List<daq::IComponent>();
@@ -386,6 +397,7 @@ void assignParams(const daq::MultiReader2ParamsPtr& target, const daq::MultiRead
     target.setValueReadType(source.getValueReadType());
     target.setMinReadCount(source.getMinReadCount());
     target.setErrorPolicy(source.getErrorPolicy());
+    target.setAdditionalOptions(source.getAdditionalOptions());
 }
 
 daq::MultiReader2ParamsPtr copyParams(const daq::MultiReader2ParamsPtr& source)
@@ -419,6 +431,8 @@ void applyKwargs(const daq::MultiReader2ParamsPtr& params, const py::kwargs& kwa
             params.setMinReadCount(value.cast<daq::SizeT>());
         else if (name == "error_policy")
             params.setErrorPolicy(value.cast<daq::MultiReader2ErrorPolicy>());
+        else if (name == "additional_options")
+            params.setAdditionalOptions(toOptions(value));
         else if (name == "on_data_available")
             throw py::type_error("on_data_available is not a params field; set it as a property of the reader");
         else
@@ -1081,7 +1095,7 @@ void wrapMultiReader2(pybind11::module_ m)
         py::arg("inputs") = py::list(),
         "MultiReader2Params(inputs=[], **fields): the inputs in slot order, the other fields as keyword arguments. "
         "Defaults: value_read_type=SampleType.Float64, min_read_count=1, error_policy=MultiReader2ErrorPolicy.Invalidate, "
-        "main_input=None (automatic) and accepts_descriptor=None.");
+        "main_input=None (automatic), accepts_descriptor=None and additional_options=None.");
 
     paramsCls.def(
         "update",
@@ -1134,6 +1148,14 @@ void wrapMultiReader2(pybind11::module_ m)
         [](daq::IMultiReader2Params* object, daq::MultiReader2ErrorPolicy policy)
         { daq::MultiReader2ParamsPtr::Borrow(object).setErrorPolicy(policy); },
         "What an erroring input does to the reader; Invalidate by default.");
+    paramsCls.def_property(
+        "additional_options",
+        [](daq::IMultiReader2Params* object)
+        { return baseObjectToPyObject(daq::MultiReader2ParamsPtr::Borrow(object).getAdditionalOptions()); },
+        [](daq::IMultiReader2Params* object, const py::object& options)
+        { daq::MultiReader2ParamsPtr::Borrow(object).setAdditionalOptions(toOptions(options)); },
+        "A dict overriding the built-in limits, or None for the defaults: SyncLimitSeconds (3), CriticalLimitSeconds (5), "
+        "CriticalLimitBytes (100 MB) and TotalLimitBytes (1000 MB). A time limit of 0 is not enforced.");
 
     // Input status
 

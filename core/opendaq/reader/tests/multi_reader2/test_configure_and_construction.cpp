@@ -601,4 +601,86 @@ TEST_F(MultiReader2Configure, ConfigureReplacingPortWithOneOfTheSameIdTakesOverT
     ASSERT_TRUE(twin.getListener().assigned());
     ASSERT_EQ(twin.getNotificationMethod(), PacketReadyNotification::SameThread);
 }
+
+// S1.CFG.69
+TEST(MultiReader2ParamsOptions, AdditionalOptionsAreUnsetByDefaultAndKeptAsGiven)
+{
+    auto params = MultiReader2Params();
+    ASSERT_FALSE(params.getAdditionalOptions().assigned());
+    auto options = Dict<IString, IBaseObject>({{"SyncLimitSeconds", 1}});
+    params.setAdditionalOptions(options);
+    ASSERT_EQ(params.getAdditionalOptions(), options);
+    params.setAdditionalOptions(nullptr);
+    ASSERT_FALSE(params.getAdditionalOptions().assigned());
+}
+
+// S1.CFG.70
+TEST_F(MultiReader2Configure, ConfigureWithInvalidAdditionalOptionFailsAndLeavesReaderUnchanged)
+{
+    setupBase();
+    const std::vector<std::pair<std::string, BaseObjectPtr>> invalid{
+        {"Unknown", Integer(1)},
+        {"SyncLimitBytes", Integer(1000)},
+        {"SyncLimitSeconds", String("3")},
+        {"SyncLimitSeconds", Floating(1.5)},
+        {"SyncLimitSeconds", Integer(-1)},
+        {"CriticalLimitBytes", Integer(0)},
+        {"TotalLimitBytes", Integer(-1)},
+        {"RecoveryLimitSeconds", Integer(4)},
+        {"SyncLimitSeconds", Integer(6)},
+        {"TotalLimitBytes", Integer(1000)},
+    };
+    for (SizeT i = 0; i < invalid.size(); ++i)
+    {
+        SCOPED_TRACE("case " + std::to_string(i) + ": " + invalid[i].first);
+        expect([&] { return configure(same().option(invalid[i].first, invalid[i].second)); }, failsAny().unchanged());
+    }
+    expect(read(100), count(100).at(0).noChanges());
+}
+
+// S1.CFG.71
+TEST_F(MultiReader2Configure, ConstructWithInvalidAdditionalOptionFails)
+{
+    setupBase();
+    expect([&] { return construct(same().option("Unknown", Integer(1))); }, failsAny().unchanged());
+    expect(read(100), count(100).at(0).noChanges());
+}
+
+// S1.CFG.72
+TEST_F(MultiReader2Configure, ConfigureSkipsOrderChecksAgainstATimeLimitOfZero)
+{
+    setupBase();
+    expect(configure(same().option("SyncLimitSeconds", Integer(0)).option("CriticalLimitSeconds", Integer(2))),
+           ok().domainChanged().resync().allDescChanged());
+    expect(configure(same().option("CriticalLimitSeconds", Integer(0)).option("SyncLimitSeconds", Integer(10))),
+           ok().domainChanged().resync().allDescChanged());
+}
+
+// S1.CFG.73
+TEST_F(MultiReader2Configure, ConfigureChangingCriticalLimitAppliesItToRetainedInputs)
+{
+    setupBase();
+    expect(configure(same().option("CriticalLimitSeconds", Integer(4))), ok().domainChanged().resync().allDescChanged());
+    write(in1, 100, 199);
+    write(in2, 100, 199);
+    expect(read(100), count(100).at(100).noChanges());
+    write(in1, 200, 4199);
+    write(in2, 200, 4199);
+    expect(avail(), count(4000));
+    write(in1, 4200, 4209);
+    write(in2, 4200, 4209);
+    expect(read(100), count(0).resync());
+    expect(read(100), count(10).at(4200).noChanges());
+}
+
+// S1.CFG.74
+TEST_F(MultiReader2Configure, ConfigureWithoutAdditionalOptionsRestoresTheDefaults)
+{
+    given().option("CriticalLimitSeconds", Integer(4));
+    setupBase();
+    expect(configure(same().noOptions()), ok().domainChanged().resync().allDescChanged());
+    write(in1, 100, 5099);
+    write(in2, 100, 5099);
+    expect(avail(), count(5000));
+}
 }

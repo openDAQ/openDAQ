@@ -78,6 +78,7 @@ struct MultiReader2Test::Config
     std::optional<int> main;
     SizeT minReadCount = 1;
     MultiReader2ErrorPolicy policy = Invalidate;
+    std::map<std::string, BaseObjectPtr> options;
     SampleType readType = SampleType::Float64;
     std::map<int, Sig> signals;
     std::map<int, Sig> spareSignals;

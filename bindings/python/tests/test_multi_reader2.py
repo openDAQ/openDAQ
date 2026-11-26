@@ -293,6 +293,22 @@ class TestMultiReader2(opendaq_test.TestCase):
         r = reader.read(10)
         self.assertEqual((r.count, r[0].dtype), (10, np.float64))
 
+    def test_additional_options(self):
+        self.assertIsNone(self.params().additional_options)
+        params = self.params(additional_options={'SyncLimitSeconds': 0, 'CriticalLimitBytes': 8000})
+        options = params.additional_options
+        self.assertEqual((len(options), options['SyncLimitSeconds'], options['CriticalLimitBytes']), (2, 0, 8000))
+        self.assertTrue(daq.MultiReader2(params).configure(params).ok)
+        params.additional_options = None
+        self.assertIsNone(params.additional_options)
+        with self.assertRaises(TypeError):
+            params.additional_options = 5
+
+        for invalid in ({'Unknown': 1}, {'SyncLimitBytes': 1000}, {'SyncLimitSeconds': -1}, {'SyncLimitSeconds': 1.5},
+                        {'SyncLimitSeconds': True}, {'CriticalLimitBytes': 0}, {'RecoveryLimitSeconds': 4}):
+            with self.subTest(options=invalid), self.assertRaises(RuntimeError):
+                daq.MultiReader2(self.params(additional_options=invalid))
+
     def test_exclude_rejected_input(self):
         amps = make_signal(self.ctx, 'amps', unit='A')
         inputs = self.signals[:2] + [amps]

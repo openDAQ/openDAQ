@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <coretypes/dictobject_factory.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/intfs.h>
 #include <opendaq/component_ptr.h>
@@ -41,6 +42,8 @@ public:
     ErrCode INTERFACE_FUNC setMinReadCount(SizeT count) override;
     ErrCode INTERFACE_FUNC getErrorPolicy(MultiReader2ErrorPolicy* policy) override;
     ErrCode INTERFACE_FUNC setErrorPolicy(MultiReader2ErrorPolicy policy) override;
+    ErrCode INTERFACE_FUNC getAdditionalOptions(IDict** options) override;
+    ErrCode INTERFACE_FUNC setAdditionalOptions(IDict* options) override;
 
 private:
     std::mutex mutex;
@@ -50,6 +53,7 @@ private:
     SampleType valueReadType = SampleType::Float64;
     SizeT minReadCount = 1;
     MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
+    DictPtr<IString, IBaseObject> additionalOptions;
 };
 
 END_NAMESPACE_OPENDAQ

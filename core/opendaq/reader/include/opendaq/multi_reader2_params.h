@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/dictobject.h>
 #include <coretypes/function.h>
 #include <coretypes/listobject.h>
 #include <opendaq/component.h>
@@ -124,6 +125,31 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
      * @param policy The error policy.
      */
     virtual ErrCode INTERFACE_FUNC setErrorPolicy(MultiReader2ErrorPolicy policy) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Gets the options that override the reader's built-in limits; null uses the defaults.
+     * @param[out] options The options, or null.
+     */
+    virtual ErrCode INTERFACE_FUNC getAdditionalOptions(IDict** options) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Sets the options that override the reader's built-in limits; a key left out keeps its default. Every value
+     * is an integer:
+     *  - `SyncLimitSeconds` (3): how far apart the inputs' data may be before an input counts as stalled or ahead; a
+     *    stalled or ahead input rejoins once it is within a third of it of the others;
+     *  - `CriticalLimitSeconds` (5): the data an input may queue before every queue is dropped;
+     *  - `CriticalLimitBytes` (100 MB): the bytes an input may queue before every queue is dropped; the sync limit in bytes
+     *    is 3/5 of it;
+     *  - `TotalLimitBytes` (1000 MB): the bytes all inputs together may queue before every queue is dropped.
+     *
+     * A time limit of 0 is not enforced; a byte limit must be above 0. Where both are enforced, the sync limit may not
+     * exceed the critical limit; the critical bytes may not exceed the total bytes. `configure` rejects an unknown key or a
+     * value out of range.
+     * @param options The options, or null for the defaults.
+     */
+    virtual ErrCode INTERFACE_FUNC setAdditionalOptions(IDict* options) = 0;
 };
 
 /*!@}*/

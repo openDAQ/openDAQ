@@ -43,6 +43,25 @@ BEGIN_NAMESPACE_OPENDAQ
 class MultiReaderDataManager final
 {
 public:
+    // The limits on what an input queues, in its own data time and in bytes; a time limit of 0 is not enforced:
+    //  - sync limit: how far apart the reader expects the inputs' data. An input that queues more has the inputs judged for
+    //    a stall, and nothing is dropped; an input that starts more than this past the main input's samples is ahead;
+    //  - recovery limit: a third of the sync limit, so an input does not flip between failed and rejoined. A stalled or
+    //    ahead input rejoins once its newest sample is this close to the others';
+    //  - critical limit: an input that queues more is read too slowly, and every queue goes. Also over all inputs together
+    struct Limits
+    {
+        std::int64_t syncSeconds = 3;
+        std::int64_t criticalSeconds = 5;
+        SizeT criticalBytes = SizeT(100) * 1000 * 1000;
+        SizeT totalBytes = SizeT(1000) * 1000 * 1000;
+
+        SizeT syncBytes() const
+        {
+            return criticalBytes / 5 * 3;
+        }
+    };
+
     // The params resolved to slot indices
     struct Config
     {
@@ -55,6 +74,7 @@ public:
         SampleType readType = SampleType::Float64;
         SizeT minReadCount = 1;
         MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
+        Limits limits;
         LoggerComponentPtr loggerComponent;               // for warnings; may be null
     };
 
@@ -98,18 +118,6 @@ public:
 private:
     using Event = multi_reader2::Event;
     using SyncCause = multi_reader2::SyncCause;
-
-    // The limits on what an input queues, in its own data time and in bytes:
-    //  - sync limit: how far apart the reader expects the inputs' data. An input that queues more has the inputs judged for
-    //    a stall, and nothing is dropped; an input that starts more than this past the main input's samples is ahead;
-    //  - recovery limit: a stalled or ahead input rejoins once its newest sample is this close to the others';
-    //  - critical limit: an input that queues more is read too slowly, and every queue goes. Also over all inputs together
-    static constexpr std::int64_t syncLimitSeconds = 3;
-    static constexpr std::int64_t recoveryLimitSeconds = 1;
-    static constexpr std::int64_t criticalLimitSeconds = 5;
-    static constexpr SizeT criticalLimitBytes = SizeT(100) * 1000 * 1000;
-    static constexpr SizeT syncLimitBytes = criticalLimitBytes / criticalLimitSeconds * syncLimitSeconds;
-    static constexpr SizeT totalLimitBytes = SizeT(1000) * 1000 * 1000;
 
     enum class State
     {
@@ -276,8 +284,7 @@ private:
     // Synchronization and read position, in main ticks
     std::int64_t mainDelta = 1;                    // main ticks per sample
     std::int64_t mainStart = 0;                    // the main rule's start: packetOffset is a tick minus it
-    std::int64_t syncLimitTicks = 0;               // the sync and recovery limits in main ticks
-    std::int64_t recoveryLimitTicks = 0;
+    std::int64_t syncLimitTicks = 0;               // the sync limit in main ticks; Int64 max when not enforced
     // While synchronizing, ingest checks for a stall only once an input sends past this main tick: the earliest at which an
     // input with nothing queued can be more than the sync limit behind. Unset: at the next ingest
     std::optional<std::int64_t> stallCheckTick;

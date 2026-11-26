@@ -129,6 +129,63 @@ MultiReader2Impl::~MultiReader2Impl()
 
 // ================================================================ configuration
 
+namespace
+{
+    ErrCode resolveLimits(const DictPtr<IBaseObject, IBaseObject>& options, MultiReaderDataManager::Limits& limits)
+    {
+        if (!options.assigned())
+            return OPENDAQ_SUCCESS;
+
+        for (const auto& [key, value] : options)
+        {
+            if (!key.assigned() || key.getCoreType() != ctString)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "An additional option's key must be a string");
+            const std::string name = key.asPtr<IString>().toStdString();
+            if (name == "SyncLimitBytes")
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                           "SyncLimitBytes cannot be set; it is 3/5 of CriticalLimitBytes");
+            if (name == "RecoveryLimitSeconds")
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                           "RecoveryLimitSeconds cannot be set; it is a third of SyncLimitSeconds");
+
+            std::int64_t* seconds = nullptr;
+            SizeT* bytes = nullptr;
+            if (name == "SyncLimitSeconds")
+                seconds = &limits.syncSeconds;
+            else if (name == "CriticalLimitSeconds")
+                seconds = &limits.criticalSeconds;
+            else if (name == "CriticalLimitBytes")
+                bytes = &limits.criticalBytes;
+            else if (name == "TotalLimitBytes")
+                bytes = &limits.totalBytes;
+            else
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Unknown additional option "%s")", name.c_str());
+
+            if (!value.assigned() || value.getCoreType() != ctInt)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Additional option "%s" must be an integer)", name.c_str());
+            const Int number = value;
+            if (seconds)
+            {
+                if (number < 0)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Additional option "%s" must be 0 or more)", name.c_str());
+                *seconds = number;
+            }
+            else
+            {
+                if (number <= 0)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Additional option "%s" must be above 0)", name.c_str());
+                *bytes = static_cast<SizeT>(number);
+            }
+        }
+
+        if (limits.syncSeconds != 0 && limits.criticalSeconds != 0 && limits.syncSeconds > limits.criticalSeconds)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "SyncLimitSeconds cannot exceed CriticalLimitSeconds");
+        if (limits.criticalBytes > limits.totalBytes)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "CriticalLimitBytes cannot exceed TotalLimitBytes");
+        return OPENDAQ_SUCCESS;
+    }
+}
+
 // Calls from inside the owner's acceptsDescriptor would re-enter the data manager under its own mutex
 #define MULTI_READER2_NOT_FROM_CALLBACK()                                                                                       \
     do                                                                                                                          \
@@ -156,6 +213,10 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     OPENDAQ_RETURN_IF_FAILED(params->getValueReadType(&config.readType));
     OPENDAQ_RETURN_IF_FAILED(params->getMinReadCount(&config.minReadCount));
     OPENDAQ_RETURN_IF_FAILED(params->getErrorPolicy(&config.errorPolicy));
+
+    DictPtr<IBaseObject, IBaseObject> options;
+    OPENDAQ_RETURN_IF_FAILED(params->getAdditionalOptions(&options));
+    OPENDAQ_RETURN_IF_FAILED(resolveLimits(options, config.limits));
 
     switch (config.readType)
     {

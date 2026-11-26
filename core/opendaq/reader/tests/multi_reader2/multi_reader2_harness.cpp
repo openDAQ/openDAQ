@@ -197,6 +197,7 @@ MultiReader2ParamsPtr copyParams(const MultiReader2ParamsPtr& from)
     params.setValueReadType(from.getValueReadType());
     params.setMinReadCount(from.getMinReadCount());
     params.setErrorPolicy(from.getErrorPolicy());
+    params.setAdditionalOptions(from.getAdditionalOptions());
     return params;
 }
 
@@ -550,6 +551,21 @@ ReadArgs nullBuffer(Input input)
 // ---------------------------------------------------------------------------------------------------------------------
 // Params
 
+namespace
+{
+    void setOption(const MultiReader2ParamsPtr& params, const std::string& key, const BaseObjectPtr& value)
+    {
+        auto options = Dict<IString, IBaseObject>();
+        if (const auto previous = params.getAdditionalOptions(); previous.assigned())
+        {
+            for (const auto& [k, v] : previous)
+                options.set(k, v);
+        }
+        options.set(key, value);
+        params.setAdditionalOptions(options);
+    }
+}
+
 #define MR2_PARAMS_CHANGE(Name, Args, Body)                                                     \
     Params Params::Name Args const                                                              \
     {                                                                                           \
@@ -584,6 +600,8 @@ MR2_PARAMS_CHANGE(mainNull, (), params.setMainInput(nullptr))
 MR2_PARAMS_CHANGE(readType, (SampleType type), params.setValueReadType(type))
 MR2_PARAMS_CHANGE(minReadCount, (SizeT count), params.setMinReadCount(count))
 MR2_PARAMS_CHANGE(policy, (MultiReader2ErrorPolicy policy), params.setErrorPolicy(policy))
+MR2_PARAMS_CHANGE(option, (const std::string& key, const BaseObjectPtr& value), setOption(params, key, value))
+MR2_PARAMS_CHANGE(noOptions, (), params.setAdditionalOptions(nullptr))
 MR2_PARAMS_CHANGE(newAccepts, (), params.setAcceptsDescriptor(t.newStubFunction()))
 MR2_PARAMS_CHANGE(newAccepts, (AcceptsRule rule), t.owner->rule = rule; params.setAcceptsDescriptor(t.newStubFunction()))
 
@@ -733,6 +751,7 @@ MR2_GIVEN(unconnected, (Input input), c.ports = true; c.unconnected.insert(input
 MR2_GIVEN(main, (Input input), c.main = input.slot)
 MR2_GIVEN(minReadCount, (SizeT count), c.minReadCount = count)
 MR2_GIVEN(policy, (MultiReader2ErrorPolicy p), c.policy = p)
+MR2_GIVEN(option, (const std::string& key, const BaseObjectPtr& value), c.options[key] = value)
 MR2_GIVEN(readType, (SampleType t), c.readType = t)
 MR2_GIVEN(signal, (Input input, const Sig& s), c.signals[input.slot] = s)
 MR2_GIVEN(value, (Input input, const Value& v), {
@@ -941,6 +960,13 @@ MultiReader2ParamsPtr MultiReader2Test::initialParams()
     params.setMinReadCount(config->minReadCount);
     params.setErrorPolicy(config->policy);
     params.setValueReadType(config->readType);
+    if (!config->options.empty())
+    {
+        auto options = Dict<IString, IBaseObject>();
+        for (const auto& [key, value] : config->options)
+            options.set(key, value);
+        params.setAdditionalOptions(options);
+    }
     if (config->stub)
     {
         params.setAcceptsDescriptor(newStubFunction());

@@ -227,6 +227,8 @@ public:
     Params readType(SampleType type) const;
     Params minReadCount(SizeT count) const;
     Params policy(MultiReader2ErrorPolicy policy) const;
+    Params option(const std::string& key, const BaseObjectPtr& value) const;
+    Params noOptions() const;
     Params newAccepts() const;
     Params newAccepts(AcceptsRule rule) const;
 
@@ -422,6 +424,7 @@ protected:
         Given& main(Input input);
         Given& minReadCount(SizeT count);
         Given& policy(MultiReader2ErrorPolicy policy);
+        Given& option(const std::string& key, const BaseObjectPtr& value);
         Given& readType(SampleType type);
         Given& signal(Input input, const Sig& sig);
         Given& value(Input input, const Value& value);

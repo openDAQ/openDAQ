@@ -18,6 +18,13 @@ using namespace multi_reader2;
 
 namespace
 {
+    constexpr auto unlimited = std::numeric_limits<std::int64_t>::max();
+
+    bool enforced(std::int64_t seconds)
+    {
+        return seconds != 0;
+    }
+
     bool sameComponent(const ComponentPtr& a, const ComponentPtr& b)
     {
         return a.getObject() == b.getObject();
@@ -221,8 +228,7 @@ void MultiReaderDataManager::restart()
         const TickDomain& main = *slots[*mainSlot].domain;
         mainDelta = main.delta;
         mainStart = main.start;
-        syncLimitTicks = main.ticksIn(syncLimitSeconds);
-        recoveryLimitTicks = main.ticksIn(recoveryLimitSeconds);
+        syncLimitTicks = enforced(config.limits.syncSeconds) ? main.ticksIn(config.limits.syncSeconds) : unlimited;
     }
 
     // The ticks the inputs sent are measured on the main input's grid: they hold while it stays
@@ -924,16 +930,17 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
         // Past the critical limit the inputs are read too slowly: every queue goes. Past the sync limit nothing goes, and
         // the read this calls for judges the inputs for a stall
         const SizeT bytes = packet.getRawDataSize() + (domainPacket.assigned() ? domainPacket.getRawDataSize() : 0);
-        const bool wasOverSync = over(slot, slot.syncLimitSamples, syncLimitBytes, 0, 0);
-        if (over(slot, slot.criticalLimitSamples, criticalLimitBytes, count, bytes) ||
-            (queuedBytes > 0 && queuedBytes + bytes > totalLimitBytes))
+        const Limits& limits = config.limits;
+        const bool wasOverSync = over(slot, slot.syncLimitSamples, limits.syncBytes(), 0, 0);
+        if (over(slot, slot.criticalLimitSamples, limits.criticalBytes, count, bytes) ||
+            (queuedBytes > 0 && queuedBytes + bytes > limits.totalBytes))
         {
             dropAll(i);
             droppedAll = true;
             trigger = true;
         }
         slot.queue.pushData(packet, count, firstTick, bytes);
-        trigger = (!wasOverSync && over(slot, slot.syncLimitSamples, syncLimitBytes, 0, 0)) || trigger;
+        trigger = (!wasOverSync && over(slot, slot.syncLimitSamples, limits.syncBytes(), 0, 0)) || trigger;
     }
 
     if (droppedAll)
@@ -973,9 +980,12 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
 void MultiReaderDataManager::useLatestDomain(Slot& slot) const
 {
     slot.latestDomain = parseDomain(slot.latest.domain);
-    constexpr auto unlimited = std::numeric_limits<std::int64_t>::max();
-    slot.syncLimitSamples = slot.latestDomain.has_value() ? slot.latestDomain->samplesIn(syncLimitSeconds) : unlimited;
-    slot.criticalLimitSamples = slot.latestDomain.has_value() ? slot.latestDomain->samplesIn(criticalLimitSeconds) : unlimited;
+    const auto samplesIn = [&slot](std::int64_t seconds)
+    {
+        return slot.latestDomain.has_value() && enforced(seconds) ? slot.latestDomain->samplesIn(seconds) : unlimited;
+    };
+    slot.syncLimitSamples = samplesIn(config.limits.syncSeconds);
+    slot.criticalLimitSamples = samplesIn(config.limits.criticalSeconds);
     slot.toMain.reset();
     if (mainSlot.has_value() && slot.latestDomain.has_value() && slots[*mainSlot].domain.has_value())
         slot.toMain = relate(*slot.latestDomain, *slots[*mainSlot].domain);
@@ -993,10 +1003,14 @@ void MultiReaderDataManager::dropAll(SizeT cause)
 {
     const auto& loggerComponent = config.loggerComponent;
     if (loggerComponent.assigned())
-        LOG_W("{}: past the critical limit of {} s or {} MB queued, or {} MB over all inputs; the queued samples of every input "
+    {
+        const Limits& limits = config.limits;
+        const std::string seconds = enforced(limits.criticalSeconds) ? std::to_string(limits.criticalSeconds) + " s or " : "";
+        LOG_W("{}: past the critical limit of {}{:g} MB queued, or {:g} MB over all inputs; the queued samples of every input "
               "are dropped",
-              config.inputs[cause].getLocalId().toStdString(), criticalLimitSeconds, criticalLimitBytes / 1000000,
-              totalLimitBytes / 1000000);
+              config.inputs[cause].getLocalId().toStdString(), seconds, static_cast<double>(limits.criticalBytes) / 1e6,
+              static_cast<double>(limits.totalBytes) / 1e6);
+    }
     for (auto& slot : slots)
     {
         if (!slot.queue.hasData())
@@ -1088,7 +1102,7 @@ std::optional<SyncCause> MultiReaderDataManager::startFailure(const Slot& slot, 
     const auto distance = first.has_value() ? checkedSub(*first, mainFirst) : std::nullopt;
     if (!distance.has_value() || *distance % mainDelta != 0)
         return SyncCause::OffGrid;
-    if (exceeds(*first, mainLatest, syncLimitTicks))
+    if (enforced(config.limits.syncSeconds) && exceeds(*first, mainLatest, syncLimitTicks))
         return SyncCause::Ahead;
     return std::nullopt;
 }
@@ -1138,9 +1152,11 @@ bool MultiReaderDataManager::checkRejoin(SizeT i)
         if (j != i && slots[j].error == MultiReader2InputError::None && slots[j].newestTick.has_value())
             newest = std::max(newest.value_or(*slots[j].newestTick), *slots[j].newestTick);
     }
+    const std::int64_t recoveryLimitTicks = syncLimitTicks / 3;
     if (newest.has_value() &&
-        (!slot.newestTick.has_value() || exceeds(*newest, *slot.newestTick, recoveryLimitTicks) ||
-         exceeds(*slot.newestTick, *newest, recoveryLimitTicks)))
+        (!slot.newestTick.has_value() ||
+         (enforced(config.limits.syncSeconds) &&
+          (exceeds(*newest, *slot.newestTick, recoveryLimitTicks) || exceeds(*slot.newestTick, *newest, recoveryLimitTicks)))))
         return false;
 
     trace(i, "rejoins: within the recovery limit of the others");
@@ -1196,7 +1212,7 @@ std::optional<std::int64_t> MultiReaderDataManager::silence(const Slot& slot, co
 
 bool MultiReaderDataManager::stallDue() const
 {
-    if (!valid() || !mainSlot.has_value() || !slots[*mainSlot].domain.has_value())
+    if (!enforced(config.limits.syncSeconds) || !valid() || !mainSlot.has_value() || !slots[*mainSlot].domain.has_value())
         return false;
     if (std::none_of(slots.begin(), slots.end(), [this](const Slot& slot) { return contributes(slot) && slot.queue.empty(); }))
         return false;
@@ -1342,8 +1358,8 @@ std::string MultiReaderDataManager::describeError(const Slot& slot) const
             if (slot.syncFailed == SyncCause::OffGrid)
                 return "not synchronized, off the main input's grid";
             if (slot.syncFailed == SyncCause::Stalled)
-                return "not synchronized, no data for " + std::to_string(syncLimitSeconds) + " s";
-            return "not synchronized, more than " + std::to_string(syncLimitSeconds) + " s ahead of the main input";
+                return "not synchronized, no data for " + std::to_string(config.limits.syncSeconds) + " s";
+            return "not synchronized, more than " + std::to_string(config.limits.syncSeconds) + " s ahead of the main input";
         default:
             return "";
     }

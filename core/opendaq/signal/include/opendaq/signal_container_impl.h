@@ -46,7 +46,6 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
-    ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
@@ -57,6 +56,8 @@ protected:
 
     std::vector<ComponentPtr> components;
     std::unordered_set<std::string> defaultComponents;
+
+    ErrCode updateMutex() override;
     bool allowNonDefaultComponents;
 
     LoggerComponentPtr signalContainerLoggerComponent;
@@ -212,14 +213,12 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
 }
 
 template <class Intf, class ... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::setLockingStrategy(LockingStrategy strategy)
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateMutex()
 {
-    const ErrCode errCode = ComponentImpl<Intf, Intfs...>::setLockingStrategy(strategy);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_RETURN_IF_FAILED(Super::updateMutex());
 
-    // Every child is visited: a child's own mutex owner does not show whether the lock it cached is stale
     for (const auto& component : this->components)
-        OPENDAQ_RETURN_IF_FAILED(this->resolveChildLock(component));
+        OPENDAQ_RETURN_IF_FAILED(this->updateChildMutex(component));
 
     return OPENDAQ_SUCCESS;
 }

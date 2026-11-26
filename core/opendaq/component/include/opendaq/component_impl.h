@@ -192,9 +192,6 @@ protected:
 
     PropertyObjectPtr getPropertyObjectParent() override;
 
-    // Resolves the lock of a child that inherits it again, and of its children, after this component's locking strategy was set
-    static ErrCode resolveChildLock(const ComponentPtr& child);
-
     static bool validateComponentId(const std::string& id);
 
     // Initialize component status with "Ok" status
@@ -283,20 +280,6 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         this->parentActive = parent.getActive();
         this->active = this->localActive && this->parentActive;
     }
-}
-
-template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::resolveChildLock(const ComponentPtr& child)
-{
-    const auto childInternal = child.asPtr<IPropertyObjectInternal>(true);
-    LockingStrategy ls;
-    OPENDAQ_RETURN_IF_FAILED(childInternal->getLockingStrategy(&ls));
-
-    // A child with its own lock is the mutex owner of everything below it, so nothing there changes
-    if (ls == LockingStrategy::OwnLock)
-        return OPENDAQ_SUCCESS;
-
-    return childInternal->setLockingStrategy(ls);
 }
 
 template <class Intf, class ... Intfs>

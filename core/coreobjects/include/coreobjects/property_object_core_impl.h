@@ -21,24 +21,13 @@
 #include <coreobjects/property_object_core.h>
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/property_object_utils.h>
-#include <atomic>
-#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename TMutex>
 class GenericRecursiveConfigLockGuard;
 struct LockGuardImpl;
-
-template <typename TMutex>
 class RecursiveLockGuardImpl;
-
-struct NullMutex
-{
-    void lock() {}
-    void unlock() noexcept {}
-    bool try_lock() { return true; }
-};
 
 class PropertyObjectCoreImpl : public ImplementationOfWeak<IPropertyObjectCore>
 {
@@ -47,13 +36,6 @@ public:
 
     ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard, IMutex* sync) override;
     ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard, IMutex* sync) override;
-
-private:
-    NullMutex nullSync;
-    // read outside the mutex in getRecursiveLockGuard to detect same-thread re-entry, so it
-    // must be atomic; writes happen under the mutex inside RecursiveLockGuardImpl
-    std::atomic<std::thread::id> externalCallThreadId{};
-    int externalCallDepth = 0;
 };
 
 struct LockGuardImpl : ImplementationOf<ILockGuard>
@@ -67,20 +49,16 @@ private:
     std::lock_guard<MutexPtr> lock;
 };
 
-template <typename TMutex>
 class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
 {
 public:
-    RecursiveLockGuardImpl(IPropertyObjectCore* owner, const TMutex& lock, std::atomic<std::thread::id>* threadId, int* depth);
+    RecursiveLockGuardImpl(IPropertyObjectCore* owner, MutexPtr lock);
     ~RecursiveLockGuardImpl() override;
 
 private:
     // to ensure that owner is destroyed after lock
     ObjectPtr<IPropertyObjectCore> owner;
-    std::atomic<std::thread::id>* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lockGuard;
+    MutexPtr mutex;
 };
 
 END_NAMESPACE_OPENDAQ

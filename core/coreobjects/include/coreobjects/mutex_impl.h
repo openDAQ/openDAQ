@@ -19,6 +19,9 @@
 #include <coreobjects/mutex.h>
 #include <fmt/format.h>
 #include <coretypes/impl.h>
+#include <atomic>
+#include <mutex>
+#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,8 +33,15 @@ public:
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC tryLock(Bool* succeeded) override;
     ErrCode INTERFACE_FUNC unlock() override;
+    ErrCode INTERFACE_FUNC lockRecursive() override;
+    ErrCode INTERFACE_FUNC unlockRecursive() override;
 
     std::mutex mutex;
+
+private:
+    // Read outside the mutex to detect same-thread re-entry, so it is atomic; written only while the mutex is held
+    std::atomic<std::thread::id> externalCallThreadId{};
+    int externalCallDepth = 0;
 };
 
 inline MutexImpl::MutexImpl() = default;
@@ -76,6 +86,32 @@ inline ErrCode MutexImpl::unlock()
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode MutexImpl::lockRecursive()
+{
+    // relaxed is sufficient because a thread only matches an id it wrote itself, and other threads' ids never compare equal
+    if (externalCallThreadId.load(std::memory_order_relaxed) != std::this_thread::get_id())
+    {
+        const ErrCode errCode = lock();
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        externalCallThreadId.store(std::this_thread::get_id(), std::memory_order_relaxed);
+    }
+
+    ++externalCallDepth;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode MutexImpl::unlockRecursive()
+{
+    if (externalCallThreadId.load(std::memory_order_relaxed) != std::this_thread::get_id())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The calling thread does not hold the mutex through lockRecursive");
+
+    if (--externalCallDepth > 0)
+        return OPENDAQ_SUCCESS;
+
+    externalCallThreadId.store(std::thread::id(), std::memory_order_relaxed);
+    return unlock();
 }
 
 END_NAMESPACE_OPENDAQ

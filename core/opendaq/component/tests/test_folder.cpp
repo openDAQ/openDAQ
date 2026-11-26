@@ -425,6 +425,36 @@ TEST_F(FolderTest, InheritedLockingAfterParentStartsForwarding)
     ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
 }
 
+TEST_F(FolderTest, InheritedLockingOfComponentObjectProperty)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folder.addItem(folder1);
+
+    const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
+    component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+    component.addProperty(ObjectProperty("Child", PropertyObject()));
+    const auto childInternal = component.getPropertyValue("Child").asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(childInternal.getMutex(), folderInternal1.getMutex());
+
+    // The component's object property resolves past the forwarding folder together with the component
+    folderInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
+    ASSERT_EQ(childInternal.getMutex(), mutex);
+
+    {
+        const auto lockGuard = childInternal.getLockGuard();
+        ASSERT_TRUE(isLockedElsewhere(mutex));
+    }
+
+    const auto componentImpl = dynamic_cast<AcquisitionLockComponentImpl*>(component.getObject());
+    ASSERT_TRUE(componentImpl->acquisitionLockHolds(mutex));
+}
+
 TEST_F(FolderTest, InheritedLockingTwoLevelsBelowStrategyChange)
 {
     const auto ctx = daq::NullContext();

@@ -3276,7 +3276,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingSt
         setLockOwner(lockOwnerPtr);
         setMutex(lockOwnerPtr.getMutex());
     });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set the mutex or lock owner of the inherited lock, the object is probably corrupt");
     return OPENDAQ_SUCCESS;
 }
 

@@ -3647,10 +3647,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
     if (getPropertyObjectParent() == newOwner)
         return OPENDAQ_IGNORED;
 
+    const auto oldParent = getPropertyObjectParent();
     this->owner = newOwner;
 
-    // An object with its own lock is the mutex owner of everything below it, so a new owner changes nothing there
-    if (lockingStrategy != LockingStrategy::OwnLock)
+    // A detached object keeps its mutex, as other threads may still lock it; a component's mutex follows its parent, not its owner
+    const bool parentChanged = getPropertyObjectParent().getObject() != oldParent.getObject();
+    if (newOwner != nullptr && parentChanged && lockingStrategy != LockingStrategy::OwnLock)
         OPENDAQ_RETURN_IF_FAILED(updateMutex());
 
     PermissionManagerPtr parentManager;

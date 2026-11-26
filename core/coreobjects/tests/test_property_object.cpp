@@ -2966,7 +2966,7 @@ TEST_F(PropertyObjectTest, NestedObjectsFollowStrategyChanges)
     expectLocksMutex(objC, rootMutex);
 }
 
-TEST_F(PropertyObjectTest, ObjectWithoutOwnerLocksOwnMutex)
+TEST_F(PropertyObjectTest, DetachedObjectKeepsItsMutex)
 {
     const auto root = PropertyObject();
     root.addProperty(ObjectProperty("A", PropertyObject()));
@@ -2978,11 +2978,10 @@ TEST_F(PropertyObjectTest, ObjectWithoutOwnerLocksOwnMutex)
     expectLocksMutex(objA, rootMutex);
     expectLocksMutex(objB, rootMutex);
 
+    // Other threads may still lock a detached object, so it and the objects below it keep the shared mutex
     objA.asPtr<IOwnable>().setOwner(nullptr);
-    const auto mutexA = objA.asPtr<IPropertyObjectInternal>().getMutex();
-    ASSERT_NE(mutexA, rootMutex);
-    expectLocksMutex(objA, mutexA);
-    expectLocksMutex(objB, mutexA);
+    expectLocksMutex(objA, rootMutex);
+    expectLocksMutex(objB, rootMutex);
 }
 
 TEST_F(PropertyObjectTest, CloneKeepsLockingStrategy)

@@ -41,14 +41,23 @@ TEST_F(COpendaqStreamingTest, TransportOptions)
 {
     daqString* plainName = nullptr;
     daqString_createString(&plainName, "plain");
+    // DISCARD PORT: options come from a builder in the rebased #1391
+    daqTransportOptionBuilder* plainBuilder = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilder(&plainBuilder, plainName), DAQ_SUCCESS);
+    daqTransportOptionBuilder_setPort(plainBuilder, 7420);
     daqTransportOption* plain = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOption(&plain, plainName, 7420, daqSecurityModeNone, False), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_build(plainBuilder, &plain), DAQ_SUCCESS);
     ASSERT_NE(plain, nullptr);
 
     daqString* tlsName = nullptr;
     daqString_createString(&tlsName, "tls");
+    daqTransportOptionBuilder* tlsBuilder = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilder(&tlsBuilder, tlsName), DAQ_SUCCESS);
+    daqTransportOptionBuilder_setPort(tlsBuilder, 7422);
+    daqTransportOptionBuilder_setSecurityMode(tlsBuilder, daqSecurityModeEncrypted);
+    daqTransportOptionBuilder_setCertificateRequired(tlsBuilder, True);
     daqTransportOption* tls = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOption(&tls, tlsName, 7422, daqSecurityModeEncrypted, True), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_build(tlsBuilder, &tls), DAQ_SUCCESS);
 
     daqSecurityMode securityMode = daqSecurityModeNone;
     ASSERT_EQ(daqTransportOption_getSecurityMode(tls, &securityMode), DAQ_SUCCESS);
@@ -104,7 +113,9 @@ TEST_F(COpendaqStreamingTest, TransportOptions)
     daqBaseObject_releaseRef(capability);
     daqBaseObject_releaseRef(protocolId);
     daqBaseObject_releaseRef(tls);
+    daqBaseObject_releaseRef(tlsBuilder);
     daqBaseObject_releaseRef(tlsName);
     daqBaseObject_releaseRef(plain);
+    daqBaseObject_releaseRef(plainBuilder);
     daqBaseObject_releaseRef(plainName);
 }

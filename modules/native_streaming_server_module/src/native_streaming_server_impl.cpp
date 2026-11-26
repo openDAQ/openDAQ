@@ -178,7 +178,7 @@ DictPtr<IString, ITransportOption> NativeStreamingServerImpl::servedTransportOpt
     if (plainChannelEnabled)
     {
         const Int port = config.getPropertyValue(PROPERTY_PORT_SERVER);
-        options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, port, SecurityMode::None, False));
+        options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_PLAIN).setPort(port).setSecurityMode(SecurityMode::None).setCertificateRequired(False).build());
     }
 
 #if NATIVE_STREAMING_ENABLE_TLS
@@ -191,7 +191,7 @@ DictPtr<IString, ITransportOption> NativeStreamingServerImpl::servedTransportOpt
         const Bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
 #endif
         // the server asks clients for a certificate only with mutual TLS on
-        options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOption(CONST_NATIVE_TRANSPORT_TLS, tlsPort, SecurityMode::Encrypted, mutualTls));
+        options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_TLS).setPort(tlsPort).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(mutualTls).build());
     }
 #endif
 
@@ -751,9 +751,9 @@ DictPtr<IString, ITransportOption> NativeStreamingServerImpl::createTransportOpt
     using namespace opendaq_native_streaming_protocol;
 
     auto options = Dict<IString, ITransportOption>();
-    options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, SecurityMode::None, False));
+    options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_PLAIN).setPort(DEFAULT_PORT).setSecurityMode(SecurityMode::None).setCertificateRequired(False).build());
 #if NATIVE_STREAMING_ENABLE_TLS
-    options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, SecurityMode::Encrypted, False));
+    options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_TLS).setPort(DEFAULT_TLS_PORT).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(False).build());
 #endif
     options.freeze();
     return options;

@@ -458,9 +458,9 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsSupportedTranspor
 
     auto target = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                       .setPrefix("daq.nd")
-                      .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 9000, SecurityMode::Encrypted),
-                                                                         TransportOption("plain", 7420),
-                                                                         TransportOption("tls", 7422, SecurityMode::Encrypted, True)}));
+                      .setAvailableTransportOptions(TransportOptionsById({TransportOptionBuilder("wss").setPort(9000).setSecurityMode(SecurityMode::Encrypted).build(),
+                                                                         TransportOptionBuilder("plain").setPort(7420).build(),
+                                                                         TransportOptionBuilder("tls").setPort(7422).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(True).build()}));
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
     const auto options = target.getAvailableTransportOptions();
@@ -474,7 +474,7 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsSupportedTranspor
 
     auto unsupported = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                            .setPrefix("daq.nd")
-                           .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 9000, SecurityMode::Encrypted)}));
+                           .setAvailableTransportOptions(TransportOptionsById({TransportOptionBuilder("wss").setPort(9000).setSecurityMode(SecurityMode::Encrypted).build()}));
     ASSERT_FALSE(module.completeServerCapability(source, unsupported));
 }
 

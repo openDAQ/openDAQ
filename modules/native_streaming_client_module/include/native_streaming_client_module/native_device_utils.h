@@ -97,7 +97,7 @@ inline TransportOptionPtr NativeTransportOption(const StringPtr& transport, Int 
 {
     const auto protection = transport == opendaq_native_streaming_protocol::CONST_NATIVE_TRANSPORT_TLS ? SecurityMode::Encrypted
                                                                                                         : SecurityMode::None;
-    return TransportOption(transport, port, protection, certificateRequired);
+    return TransportOptionBuilder(transport).setPort(port).setSecurityMode(protection).setCertificateRequired(certificateRequired).build();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

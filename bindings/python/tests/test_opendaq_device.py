@@ -41,14 +41,21 @@ class TestDeviceType(opendaq_test.TestCase):
 class TestTransportOptions(opendaq_test.TestCase):
 
     def test_transport_option(self):
-        option = opendaq.TransportOption('tls', 7422, opendaq.SecurityMode.Encrypted, True)
+        # DISCARD PORT: options come from a builder in the rebased #1391
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        builder.security_mode = opendaq.SecurityMode.Encrypted
+        builder.certificate_required = True
+        option = builder.build()
 
         self.assertEqual(option.id, 'tls')
         self.assertEqual(option.port, 7422)
         self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
         self.assertTrue(option.certificate_required)
 
-        plain = opendaq.TransportOption('plain', 7420, getattr(opendaq.SecurityMode, 'None'), False)
+        plain_builder = opendaq.TransportOptionBuilder('plain')
+        plain_builder.port = 7420
+        plain = plain_builder.build()
         self.assertEqual(plain.security_mode, getattr(opendaq.SecurityMode, 'None'))
         self.assertFalse(plain.certificate_required)
 

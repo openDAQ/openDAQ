@@ -33,9 +33,9 @@ namespace
     DictPtr<IString, ITransportOption> CreateTransportOptions()
     {
         auto options = Dict<IString, ITransportOption>();
-        options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, SecurityMode::None, False));
+        options.set(CONST_NATIVE_TRANSPORT_PLAIN, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_PLAIN).setPort(DEFAULT_PORT).setSecurityMode(SecurityMode::None).setCertificateRequired(False).build());
 #if NATIVE_STREAMING_ENABLE_TLS
-        options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, SecurityMode::Encrypted, False));
+        options.set(CONST_NATIVE_TRANSPORT_TLS, TransportOptionBuilder(CONST_NATIVE_TRANSPORT_TLS).setPort(DEFAULT_TLS_PORT).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(False).build());
 #endif
         options.freeze();
         return options;

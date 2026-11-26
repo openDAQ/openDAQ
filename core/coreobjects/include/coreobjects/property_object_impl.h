@@ -590,24 +590,27 @@ typename GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::CloneParame
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateMutex()
 {
-    // ForwardOwnerLockOwn forwards only getMutexOwner, so only an inheriting object with a parent locks another object's mutex
-    if (lockingStrategy != LockingStrategy::InheritLock || !getPropertyObjectParent().assigned())
+    return daqTry([this]() -> ErrCode
     {
-        sync = ownMutex;
-    }
-    else
-    {
-        PropertyObjectInternalPtr mutexOwner;
-        OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&mutexOwner));
-        MutexPtr mutex;
-        OPENDAQ_RETURN_IF_FAILED(mutexOwner->getMutex(&mutex));
-        sync = std::move(mutex);
-    }
+        // ForwardOwnerLockOwn forwards only getMutexOwner, so only an inheriting object with a parent locks another object's mutex
+        if (lockingStrategy != LockingStrategy::InheritLock || !getPropertyObjectParent().assigned())
+        {
+            sync = ownMutex;
+        }
+        else
+        {
+            PropertyObjectInternalPtr mutexOwner;
+            OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&mutexOwner));
+            MutexPtr mutex;
+            OPENDAQ_RETURN_IF_FAILED(mutexOwner->getMutex(&mutex));
+            sync = std::move(mutex);
+        }
 
-    for (const auto& [_, value] : propValues)
-        OPENDAQ_RETURN_IF_FAILED(updateChildMutex(value));
+        for (const auto& [_, value] : propValues)
+            OPENDAQ_RETURN_IF_FAILED(updateChildMutex(value));
 
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

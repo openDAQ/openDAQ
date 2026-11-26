@@ -108,6 +108,21 @@ static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyO
             target.setPropertyValue(name, general.getPropertyValue(name));
 }
 
+static void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig)
+{
+    if (!authenticationConfig.assigned() || !typeConfig.assigned() || !typeConfig.hasProperty(LegacyAddDeviceConfig::Username))
+        return;
+
+    const StringPtr username = typeConfig.getPropertyValue(LegacyAddDeviceConfig::Username);
+    if (username.getLength() == 0 || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
+        return;
+
+    const StringPtr password =
+        typeConfig.hasProperty(LegacyAddDeviceConfig::Password) ? StringPtr(typeConfig.getPropertyValue(LegacyAddDeviceConfig::Password)) : String("");
+    authenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
+    authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
+}
+
 }
 
 PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
@@ -168,21 +183,6 @@ PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType
     return config.detach();
 }
 
-void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig)
-{
-    if (!authenticationConfig.assigned() || !typeConfig.assigned() || !typeConfig.hasProperty(LegacyAddDeviceConfig::Username))
-        return;
-
-    const StringPtr username = typeConfig.getPropertyValue(LegacyAddDeviceConfig::Username);
-    if (username.getLength() == 0 || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
-        return;
-
-    const StringPtr password =
-        typeConfig.hasProperty(LegacyAddDeviceConfig::Password) ? StringPtr(typeConfig.getPropertyValue(LegacyAddDeviceConfig::Password)) : String("");
-    authenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
-    authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
-}
-
 AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const DeviceTypePtr& deviceType,
                                              const DictPtr<IString, IStreamingType>& streamingTypes,
@@ -207,11 +207,11 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
     detail::translateTypeConfig(config.getTypeConfig(), detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig), general);
-    applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
+    detail::applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
     for (const auto& [typeId, streamingConfig] : streamingConfigs)
     {
         detail::translateTypeConfig(streamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, typeId), general);
-        applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
+        detail::applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
     }
 
     const StringPtr addressType = general.getPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType);
@@ -256,18 +256,23 @@ Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
     return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
 }
 
-PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
+AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
 {
-    if (!config.assigned() || !config.hasProperty(LegacyAddDeviceConfig::DeviceSection) ||
-        !config.hasProperty(LegacyAddDeviceConfig::StreamingSection) || !config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
-        return config;
+    auto addStreamingConfig = AddStreamingConfig(streamingType);
+    if (config.assigned() && config.hasProperty(LegacyAddDeviceConfig::DeviceSection) &&
+        config.hasProperty(LegacyAddDeviceConfig::StreamingSection) && config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
+    {
+        const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
+        const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
+        detail::translateTypeConfig(addStreamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, streamingType.getId()), general);
+    }
+    else if (config.assigned())
+    {
+        addStreamingConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("TypeConfig", config);
+    }
 
-    const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
-    const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
-
-    auto typeConfig = streamingType.createDefaultConfig();
-    detail::translateTypeConfig(typeConfig, detail::sectionOf(streamingSection, streamingType.getId()), general);
-    return typeConfig;
+    detail::applyLegacyCredentials(addStreamingConfig.getAuthenticationConfig(), addStreamingConfig.getTypeConfig());
+    return addStreamingConfig;
 }
 
 PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)

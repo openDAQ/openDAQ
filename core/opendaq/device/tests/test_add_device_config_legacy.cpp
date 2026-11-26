@@ -2,6 +2,7 @@
 #include <opendaq/add_device_config_legacy.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/component_type_builder_factory.h>
+#include <opendaq/authentication_method_factory.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <coreobjects/property_object_factory.h>
@@ -46,6 +47,49 @@ protected:
     static StreamingTypePtr createStreamingType(const StringPtr& id)
     {
         return StreamingTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id).setDefaultConfig(createTypeConfig()).build();
+    }
+
+    static StreamingTypePtr createAuthenticatedStreamingType(const StringPtr& id, bool userNamePassword = true)
+    {
+        auto builder = StreamingTypeBuilder()
+                           .setId(id)
+                           .setName(id)
+                           .setConnectionStringPrefix(id)
+                           .setDefaultConfig(createTypeConfig())
+                           .addAuthenticationMethod(StandardAnonymousAuthenticationMethod());
+        if (userNamePassword)
+            builder.addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod());
+        return builder.build();
+    }
+
+    static DeviceTypePtr createAuthenticatedDeviceType()
+    {
+        return DeviceTypeBuilder()
+            .setId("dev")
+            .setName("dev")
+            .setConnectionStringPrefix("dev")
+            .setDeviceKind(DeviceKind::Mirrored)
+            .setDefaultConfig(createTypeConfig())
+            .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+            .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
+            .build();
+    }
+
+    static DictPtr<IString, IString> credential(const StringPtr& username, const StringPtr& password)
+    {
+        return Dict<IString, IString>({{"UserName", username}, {"Password", password}});
+    }
+
+    static void assertCredential(const AuthenticationConfigPtr& authenticationConfig, const DictPtr<IString, IString>& expected)
+    {
+        ASSERT_EQ(authenticationConfig.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
+        ASSERT_EQ(authenticationConfig.getSuppliedCredential(), expected);
+    }
+
+    static void assertNoCredential(const AuthenticationConfigPtr& authenticationConfig)
+    {
+        ASSERT_EQ(authenticationConfig.getSelectedAuthenticationMethod().getId(), StandardAnonymousId);
+        ASSERT_EQ(authenticationConfig.getSuppliedCredential().getCount(), 0u);
     }
 
     PropertyObjectPtr createLegacyConfig() const
@@ -420,17 +464,36 @@ TEST_F(AddDeviceConfigLegacyTest, AdapterDropsStreamingSection)
     ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 1);
 }
 
-TEST_F(AddDeviceConfigLegacyTest, StreamingConfigPassesOtherConfigs)
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigIsCreatedForTheStreamingType)
 {
     const auto streamingType = streamingTypes.get(LtId);
-    ASSERT_FALSE(fromLegacyAddStreamingConfig(nullptr, streamingType).assigned());
 
+    ASSERT_EQ(fromLegacyAddStreamingConfig(createLegacyConfig(), streamingType).getStreamingType(), streamingType);
+    ASSERT_EQ(fromLegacyAddStreamingConfig(createTypeConfig(), streamingType).getStreamingType(), streamingType);
+    ASSERT_EQ(fromLegacyAddStreamingConfig(nullptr, streamingType).getStreamingType(), streamingType);
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigOfNullHasDefaultTypeConfig)
+{
+    const auto config = fromLegacyAddStreamingConfig(nullptr, streamingTypes.get(LtId));
+
+    ASSERT_EQ(serialize(config.getTypeConfig()), serialize(createTypeConfig()));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigTakesOtherConfigsAsTypeConfig)
+{
+    const auto streamingType = streamingTypes.get(LtId);
     for (const auto name : {"Device", "Streaming", "General"})
     {
         const auto config = createLegacyConfig();
         config.removeProperty(name);
-        ASSERT_EQ(fromLegacyAddStreamingConfig(config, streamingType), config);
+        ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(config, streamingType).getTypeConfig()), serialize(config));
     }
+
+    const auto typeConfig = createTypeConfig();
+    typeConfig.setPropertyValue("Port", 1);
+    typeConfig.addProperty(StringProperty("Extra", "value"));
+    ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(typeConfig, streamingType).getTypeConfig()), serialize(typeConfig));
 }
 
 TEST_F(AddDeviceConfigLegacyTest, StreamingConfigTakesItsEntryAndGeneralCredentials)
@@ -443,7 +506,7 @@ TEST_F(AddDeviceConfigLegacyTest, StreamingConfigTakesItsEntryAndGeneralCredenti
     entry.setPropertyValue("Port", 1);
     entry.setPropertyValue("Username", "ltuser");
 
-    const auto typeConfig = fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId));
+    const auto typeConfig = fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId)).getTypeConfig();
 
     ASSERT_EQ(typeConfig.getPropertyValue("Port"), 1);
     ASSERT_EQ(typeConfig.getPropertyValue("Username"), "ltuser");
@@ -459,7 +522,100 @@ TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutEntryTakesGeneralCredent
     const auto expected = createTypeConfig();
     expected.setPropertyValue("Username", "user");
 
-    ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId))), serialize(expected));
+    ASSERT_EQ(serialize(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId)).getTypeConfig()), serialize(expected));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutAuthenticationMethodsHasNoAuthenticationConfig)
+{
+    const auto legacy = createLegacyConfig();
+    section(legacy, "General").setPropertyValue("Username", "user");
+
+    ASSERT_FALSE(fromLegacyAddStreamingConfig(legacy, streamingTypes.get(LtId)).getAuthenticationConfig().assigned());
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesLegacyCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
+
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId));
+
+    assertCredential(config.getAuthenticationConfig(), credential("user", "pw"));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesEntryCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
+    const auto entry = typeSection(legacy, "Streaming", LtId);
+    entry.setPropertyValue("Username", "ltuser");
+    entry.setPropertyValue("Password", "ltpw");
+
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId));
+
+    assertCredential(config.getAuthenticationConfig(), credential("ltuser", "ltpw"));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigSuppliesTypeConfigCredentials)
+{
+    const auto typeConfig = createTypeConfig();
+    typeConfig.setPropertyValue("Username", "user");
+    typeConfig.setPropertyValue("Password", "pw");
+
+    const auto config = fromLegacyAddStreamingConfig(typeConfig, createAuthenticatedStreamingType(LtId));
+
+    assertCredential(config.getAuthenticationConfig(), credential("user", "pw"));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutUsernameSuppliesNoCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    section(legacy, "General").setPropertyValue("Password", "pw");
+
+    assertNoCredential(fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId)).getAuthenticationConfig());
+    assertNoCredential(fromLegacyAddStreamingConfig(nullptr, createAuthenticatedStreamingType(LtId)).getAuthenticationConfig());
+}
+
+TEST_F(AddDeviceConfigLegacyTest, StreamingConfigWithoutUserNamePasswordMethodSuppliesNoCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    section(legacy, "General").setPropertyValue("Username", "user");
+
+    const auto config = fromLegacyAddStreamingConfig(legacy, createAuthenticatedStreamingType(LtId, false));
+
+    assertNoCredential(config.getAuthenticationConfig());
+}
+
+TEST_F(AddDeviceConfigLegacyTest, DeviceConfigSuppliesLegacyCredentials)
+{
+    const auto legacy = createLegacyConfig();
+    const auto general = section(legacy, "General");
+    general.setPropertyValue("Username", "user");
+    general.setPropertyValue("Password", "pw");
+    typeSection(legacy, "Device", "dev").setPropertyValue("Username", "devuser");
+    typeSection(legacy, "Streaming", LtId).setPropertyValue("Username", "ltuser");
+
+    const auto authenticatedTypes =
+        Dict<IString, IStreamingType>({{NativeId, createAuthenticatedStreamingType(NativeId)}, {LtId, createAuthenticatedStreamingType(LtId)}});
+    const auto config = fromLegacyAddDeviceConfig(legacy, createAuthenticatedDeviceType(), authenticatedTypes, True, loggerComponent);
+    const auto streamingConfigs = config.getStreamingOptions().getAvailableStreamingConfigs();
+
+    assertCredential(config.getAuthenticationConfig(), credential("devuser", "pw"));
+    assertCredential(streamingConfigs.get(NativeId).getAuthenticationConfig(), credential("user", "pw"));
+    assertCredential(streamingConfigs.get(LtId).getAuthenticationConfig(), credential("ltuser", "pw"));
+}
+
+TEST_F(AddDeviceConfigLegacyTest, DeviceConfigWithoutUsernameSuppliesNoCredentials)
+{
+    const auto authenticatedTypes = Dict<IString, IStreamingType>({{LtId, createAuthenticatedStreamingType(LtId)}});
+    const auto config = fromLegacyAddDeviceConfig(createLegacyConfig(), createAuthenticatedDeviceType(), authenticatedTypes, True, loggerComponent);
+
+    assertNoCredential(config.getAuthenticationConfig());
+    assertNoCredential(config.getStreamingOptions().getAvailableStreamingConfigs().get(LtId).getAuthenticationConfig());
 }
 
 TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)

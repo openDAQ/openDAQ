@@ -18,7 +18,7 @@
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/logger_component_ptr.h>
-#include <opendaq/authentication_config_ptr.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
 
@@ -43,16 +43,6 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
                                                             Bool scanOnAdd);
 
 /*!
- * @brief Applies the legacy `Username` and `Password` of a type config to an authentication config.
- * @param authenticationConfig The authentication config, or null
- * @param typeConfig The type config, or null
- *
- * With a non-empty `Username`, the `UserNamePassword` method is selected and the user name and password are supplied as its credential.
- * Nothing changes without a `Username`, or when the authentication config has no `UserNamePassword` method.
- */
-PUBLIC_EXPORT void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig);
-
-/*!
  * @brief Translates a legacy config into an Add device config.
  * @param legacyConfig The legacy config
  * @param deviceType The Device type the config is created for
@@ -75,7 +65,8 @@ PUBLIC_EXPORT void applyLegacyCredentials(const AuthenticationConfigPtr& authent
  * A missing `General` key takes the default of the legacy `General` section.
  * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into the type configs.
  * They replace only values that equal the `General` default.
- * The `Username` and `Password` of each type config also go into its authentication config, see `applyLegacyCredentials`.
+ * A non-empty `Username` of a type config selects the `UserNamePassword` method of its authentication config, if it has one.
+ * The `Username` and `Password` are then supplied as the credential of that method.
  * `PrimaryAddressType` `IPv6` gives IPv6, and any other value gives IPv4.
  * A `PrimaryAddressType` other than `IPv4`, `IPv6` or blank logs a warning.
  *
@@ -105,22 +96,23 @@ PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectP
 PUBLIC_EXPORT Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd);
 
 /*!
- * @brief Translates a legacy config into the type config of a Streaming type.
+ * @brief Translates a legacy config into an Add streaming config.
  * @param config The config
  * @param streamingType The Streaming type the config is created for
- * @returns The type config, or the config as given when it isn't a legacy config
+ * @returns The Add streaming config
  * @throws InvalidValueException when the type config rejects a value of the `Streaming` entry.
  * @throws NotFoundException when a `General` selection value is not in its selection.
  * @throws ConversionFailedException when a `General` value can't be converted to its property's type.
  *
  * A legacy config has `Device`, `Streaming` and `General` sections.
- * Any other config, null included, is returned as given.
- * The type config is the default config of the Streaming type.
+ * The type config of a legacy config is the default config of the Streaming type.
  * It takes the values of the type's entry in the `Streaming` section, copied as `fromLegacyAddDeviceConfig` copies them.
  * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into it as in `fromLegacyAddDeviceConfig`.
  * Without an entry for the type, the type config takes only the `General` keys.
+ * Any other config is the type config itself, and null gives the default config of the Streaming type.
+ * The `Username` and `Password` of the type config go into the authentication config as in `fromLegacyAddDeviceConfig`.
  */
-PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
+PUBLIC_EXPORT AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
 
 /*!
  * @brief Translates an Add device config into a legacy config with `Device`, `Streaming` and `General` sections.

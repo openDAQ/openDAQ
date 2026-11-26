@@ -1739,20 +1739,10 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!streamingType.assigned())
             continue;
 
-        const auto streamingTypeConfig =
-            addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
-
-        AuthenticationConfigPtr authenticationConfig;
-        if (addStreamingConfig.assigned())
-        {
-            authenticationConfig = addStreamingConfig.getAuthenticationConfig();
-        }
-        else
-        {
-            // A legacy config has no authentication config of its own
-            authenticationConfig = streamingType.createAuthenticationConfig();
-            applyLegacyCredentials(authenticationConfig, streamingTypeConfig);
-        }
+        const AddStreamingConfigPtr streamingConfig =
+            addStreamingConfig.assigned() ? addStreamingConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
+        const PropertyObjectPtr streamingTypeConfig = addStreamingConfig.assigned() ? typeConfig : streamingConfig.getTypeConfig();
+        const AuthenticationConfigPtr authenticationConfig = streamingConfig.getAuthenticationConfig();
 
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.

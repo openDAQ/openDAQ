@@ -2921,7 +2921,7 @@ static void expectLocksMutex(const PropertyObjectPtr& obj, const MutexPtr& mutex
     ASSERT_TRUE(isLockedElsewhere(mutex));
 }
 
-TEST_F(PropertyObjectTest, NestedObjectsFollowStrategyChanges)
+TEST_F(PropertyObjectTest, OwnedObjectKeepsItsStrategy)
 {
     const auto root = PropertyObject();
     const auto a = PropertyObject();
@@ -2935,35 +2935,25 @@ TEST_F(PropertyObjectTest, NestedObjectsFollowStrategyChanges)
     const PropertyObjectPtr objC = objB.getPropertyValue("C");
 
     const auto internalA = objA.asPtr<IPropertyObjectInternal>();
-    const auto rootMutex = root.asPtr<IPropertyObjectInternal>().getMutex();
     const auto mutexA = internalA.getMutex();
-    ASSERT_NE(mutexA, rootMutex);
+    ASSERT_NE(mutexA, root.asPtr<IPropertyObjectInternal>().getMutex());
     expectLocksMutex(objB, mutexA);
     expectLocksMutex(objC, mutexA);
 
-    internalA.setLockingStrategy(LockingStrategy::InheritLock);
-    expectLocksMutex(objA, rootMutex);
-    expectLocksMutex(objB, rootMutex);
-    expectLocksMutex(objC, rootMutex);
+    // An owned object keeps its strategy; setting the one it has updates its mutex
+    ASSERT_THROW(internalA.setLockingStrategy(LockingStrategy::InheritLock), InvalidOperationException);
+    ASSERT_NO_THROW(objB.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock));
+    expectLocksMutex(objA, mutexA);
+    expectLocksMutex(objB, mutexA);
+    expectLocksMutex(objC, mutexA);
 
     // Re-entry is tracked by the shared mutex, so the guards of different objects nest on one thread
     {
-        const auto rootGuard = root.asPtr<IPropertyObjectInternal>().getRecursiveLockGuard();
+        const auto guardA = internalA.getRecursiveLockGuard();
         const auto guardC = objC.asPtr<IPropertyObjectInternal>().getRecursiveLockGuard();
         objC.addProperty(StringProperty("Value", "Default"));
         ASSERT_EQ(objC.getPropertyValue("Value"), "Default");
     }
-
-    internalA.setLockingStrategy(LockingStrategy::OwnLock);
-    expectLocksMutex(objA, mutexA);
-    expectLocksMutex(objB, mutexA);
-    expectLocksMutex(objC, mutexA);
-
-    // A keeps its own mutex, while the objects below it lock the root's
-    internalA.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
-    expectLocksMutex(objA, mutexA);
-    expectLocksMutex(objB, rootMutex);
-    expectLocksMutex(objC, rootMutex);
 }
 
 TEST_F(PropertyObjectTest, DetachedObjectKeepsItsMutex)

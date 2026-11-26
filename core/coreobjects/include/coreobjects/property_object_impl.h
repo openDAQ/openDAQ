@@ -3257,6 +3257,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursive
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingStrategy(LockingStrategy strategy)
 {
+    // An owned object keeps its strategy; setting the one it has updates its mutex, which the update of its owner relies on
+    if (strategy != lockingStrategy && this->owner.assigned() && this->owner.getRef().assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Locking strategy can not be changed after owner is already assigned!");
+
     // An object that keeps its own lock is the mutex owner of everything below it, so nothing there changes
     if (strategy == LockingStrategy::OwnLock && lockingStrategy == LockingStrategy::OwnLock)
         return OPENDAQ_SUCCESS;

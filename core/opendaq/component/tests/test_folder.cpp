@@ -438,14 +438,19 @@ TEST_F(FolderTest, InheritedLockingOfComponentObjectProperty)
     const auto component = daq::createWithImplementation<daq::IComponent, AcquisitionLockComponentImpl>(ctx, folder1, "component");
     component.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
     folder1.addItem(component);
-    component.addProperty(ObjectProperty("Child", PropertyObject()));
+    const auto child = PropertyObject();
+    child.addProperty(ObjectProperty("Inner", PropertyObject()));
+    component.addProperty(ObjectProperty("Child", child));
     const auto childInternal = component.getPropertyValue("Child").asPtr<IPropertyObjectInternal>();
+    const auto innerInternal = component.getPropertyValue("Child.Inner").asPtr<IPropertyObjectInternal>();
     ASSERT_EQ(childInternal.getMutex(), folderInternal1.getMutex());
+    ASSERT_EQ(innerInternal.getMutex(), folderInternal1.getMutex());
 
-    // The component's object property resolves past the forwarding folder together with the component
+    // The component's object property and the object inside it resolve past the forwarding folder together with the component
     folderInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     const auto mutex = folder.asPtr<IPropertyObjectInternal>().getMutex();
     ASSERT_EQ(childInternal.getMutex(), mutex);
+    ASSERT_EQ(innerInternal.getMutex(), mutex);
 
     {
         const auto lockGuard = childInternal.getLockGuard();

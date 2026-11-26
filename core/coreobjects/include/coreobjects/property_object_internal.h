@@ -83,6 +83,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * The nested property objects and child components that inherit their lock switch to the mutex the
      * new strategy resolves to. Set it before other threads use the object or the objects below it, as a
      * thread that holds the previous mutex does not exclude a thread that locks the new one.
+     * @retval OPENDAQ_ERR_INVALID_OPERATION if the object has an owner and the strategy differs from its current one;
+     * setting the strategy it has updates its mutex.
      *
      * Property objects default to `InheritLock`, so an object stored in an object-type property shares the
      * lock of the object that holds it. Components default to `OwnLock`. A clone keeps the strategy of its source.

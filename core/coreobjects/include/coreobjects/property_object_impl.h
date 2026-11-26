@@ -50,7 +50,7 @@
 #include <set>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
-#include <coreobjects/property_object_core.h>
+#include <coreobjects/object_lock_guard_impl.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
 #include <coreobjects/property_object_utils.h>
@@ -324,8 +324,6 @@ protected:
     ErrCode addCoreProperty(IProperty* property);
 
 private:
-    ObjectPtr<IPropertyObjectCore> propObjCore;
-
     // The object's own mutex, locked while the object does not inherit one
     MutexPtr ownMutex;
     // Mutex that every lock getter locks: ownMutex, or the mutex owner's when inheriting. Those getters should
@@ -504,7 +502,6 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
-    propObjCore = PropertyObjectCore_Create();
 
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
@@ -3242,13 +3239,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
-    return propObjCore->getLockGuard(lockGuard, sync);
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+
+    return createObject<ILockGuard, LockGuardImpl, MutexPtr>(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    return propObjCore->getRecursiveLockGuard(lockGuard, sync);
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+
+    return createObject<ILockGuard, RecursiveLockGuardImpl, MutexPtr>(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

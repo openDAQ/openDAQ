@@ -27,6 +27,15 @@ struct UserContextDeleter
     }
 };
 
+// Drops the session's references to the configuration server, so that a thread still sending through the session cannot destroy it
+static void releaseConfigProtocolServer(const std::shared_ptr<ServerSessionHandler>& sessionHandler)
+{
+    if (!sessionHandler)
+        return;
+    sessionHandler->setConfigPacketReceivedHandler(nullptr);
+    sessionHandler->setPacketBufferReceivedHandler(nullptr);
+}
+
 
 NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& context,
                                                            std::shared_ptr<boost::asio::io_context> ioContextPtr,
@@ -60,6 +69,13 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
         if (signal.getPublic())
             streamingManager.registerSignal(signal);
     }
+}
+
+// The sessions left at stop are released here, as the transport thread no longer runs to release them
+NativeStreamingServerHandler::~NativeStreamingServerHandler()
+{
+    for (const auto& [_, sessionHandler] : sessionHandlers)
+        releaseConfigProtocolServer(sessionHandler);
 }
 
 void NativeStreamingServerHandler::startServer(uint16_t port)
@@ -401,7 +417,7 @@ void NativeStreamingServerHandler::setStreamingToDeviceHandlers(const OnSignalAv
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 {
-    releaseSessionHandlerInternal(session, true);
+    releaseConfigProtocolServer(releaseSessionHandlerInternal(session, true));
 }
 
 std::shared_ptr<ServerSessionHandler> NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock)
@@ -531,6 +547,7 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
                 }
             }
         }
+        releaseConfigProtocolServer(removedObsoleteSessionHandler);
 
         if (doRegisterSessionWithClientId)
             sessionHandler->setClientId(clientId.toStdString());
@@ -661,6 +678,8 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
                                sessionHandler->getClientType(),
                                sessionHandler->getClientHostName());
     }
+    for (const auto& released : releasedSessions)
+        releaseConfigProtocolServer(released);
 
     this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
 }

@@ -42,6 +42,9 @@ namespace RTGen.Types
         /// <summary>Explicit array size if provided otherwise -1.</summary>
         public int Size { get; }
 
+        /// <summary>The argument is an array of pointers to buffers and the extent is that of each buffer, not of the pointer array.</summary>
+        public bool IsBufferArray { get; set; }
+
         /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
         /// <returns>true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.</returns>
         /// <param name="other">An object to compare with this object.</param>
@@ -54,7 +57,8 @@ namespace RTGen.Types
 
             return ExtentType == other.ExtentType
                    && Reference == other.Reference
-                   && Size == other.Size;
+                   && Size == other.Size
+                   && IsBufferArray == other.IsBufferArray;
         }
     }
 }

@@ -5,7 +5,6 @@
 #include <ref_fb_module/module_dll.h>
 #include <testutils/memcheck_listener.h>
 #include <gmock/gmock.h>
-#include <thread>
 
 using namespace daq;
 
@@ -101,6 +100,7 @@ TEST_F(PowerReaderTest, Connect)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 }
 
 TEST_F(PowerReaderTest, ConnectOneSignal)
@@ -143,6 +143,7 @@ TEST_F(PowerReaderTest, Simple)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -201,6 +202,64 @@ TEST_F(PowerReaderTest, Simple)
     ctx.getScheduler().stop();
 }
 
+// Power is (VoltageScale * v + VoltageOffset) * (CurrentScale * i + CurrentOffset), and so is its value range
+TEST_F(PowerReaderTest, ScaleAndOffsetProperties)
+{
+    const auto ctx = createContext();
+    const auto module = createModule(ctx);
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
+    fb.setPropertyValue("VoltageScale", 2.0);
+    fb.setPropertyValue("VoltageOffset", 1.0);
+    fb.setPropertyValue("CurrentScale", 3.0);
+    fb.setPropertyValue("CurrentOffset", -1.0);
+    createSignals(ctx);
+    voltageSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(0, 10)).build());
+    currentSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(-1, 1)).build());
+    fb.getInputPorts()[0].connect(voltageSignal);
+    fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
+
+    const auto timePacket = DataPacket(timeSignal.getDescriptor(), 10, 0);
+    const auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 10);
+    const auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 10);
+    for (size_t i = 0; i < 10; i++)
+    {
+        static_cast<float*>(voltagePacket.getRawData())[i] = static_cast<float>(i);
+        static_cast<float*>(currentPacket.getRawData())[i] = static_cast<float>(i);
+    }
+
+    const auto reader = StreamReaderBuilder()
+                            .setSkipEvents(True)
+                            .setSignal(fb.getSignals()[0])
+                            .setValueReadType(SampleType::Float64)
+                            .setDomainReadType(SampleType::Int64)
+                            .setReadMode(ReadMode::Scaled)
+                            .setReadTimeoutType(ReadTimeoutType::All)
+                            .build();
+    timeSignal.sendPacket(timePacket);
+    voltageSignal.sendPacket(voltagePacket);
+    currentSignal.sendPacket(currentPacket);
+
+    std::vector<double> data(10);
+    SizeT count = 10;
+    reader.read(data.data(), &count, 10000);
+    ASSERT_EQ(count, 10u);
+    for (size_t i = 0; i < 10; i++)
+        EXPECT_DOUBLE_EQ(data[i], (2.0 * i + 1.0) * (3.0 * i - 1.0));
+
+    // Voltage 1..21 V and current -4..2 A
+    auto range = fb.getSignals()[0].getDescriptor().getValueRange();
+    EXPECT_DOUBLE_EQ(range.getLowValue().getFloatValue(), -84.0);
+    EXPECT_DOUBLE_EQ(range.getHighValue().getFloatValue(), 42.0);
+
+    // A scale change rebuilds the range: voltage 1..11 V
+    fb.setPropertyValue("VoltageScale", 1.0);
+    range = fb.getSignals()[0].getDescriptor().getValueRange();
+    EXPECT_DOUBLE_EQ(range.getLowValue().getFloatValue(), -44.0);
+    EXPECT_DOUBLE_EQ(range.getHighValue().getFloatValue(), 22.0);
+    ctx.getScheduler().stop();
+}
+
 TEST_F(PowerReaderTest, MultiplePackets)
 {
     const auto ctx = createContext();
@@ -213,6 +272,7 @@ TEST_F(PowerReaderTest, MultiplePackets)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -318,6 +378,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();  // data sent before the reader applies the connects is lost
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -370,6 +431,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     fb.getInputPorts()[1].disconnect();
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     timePacket = DataPacket(timeSignal.getDescriptor(), 100, 100);
     timeSignal.sendPacket(timePacket);
@@ -406,7 +468,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     std::vector<int64_t> expectedTime1(100);
     std::generate(expectedTime1.begin(), expectedTime1.end(), [n = 100]() mutable { return n++; });
-    ASSERT_THAT(time, testing::ElementsAreArray(expectedTime));
+    ASSERT_THAT(time1, testing::ElementsAreArray(expectedTime1));
 
     ctx.getScheduler().stop();
 }
@@ -423,6 +485,7 @@ TEST_F(PowerReaderTest, Gap)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -507,6 +570,8 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    // The block sets its output descriptor once its reader applied the connects, on the scheduler
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -581,13 +646,13 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     currentSignal.sendPacket(currentPacket1);
 
     constexpr size_t samplesToRead1 = 100;
-    ASSERT_EQ(reader.getAvailableCount(), 0u); // no data available when FB internal multireader is inactive
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     // Set correct Unit
     voltageSignal.setDescriptor(
         DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    ctx.getScheduler().waitAll();
 
     const auto timePacket2 = DataPacket(timeSignal.getDescriptor(), 50, 200);
     timeSignal.sendPacket(timePacket2);
@@ -658,8 +723,13 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
 
     // Create domain signal with descriptor
-    auto domainSignalLinearDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setUnit(Unit("s", -1, "", "time")).setTickResolution(Ratio(1, 10)).setRule(LinearDataRule(1, 3)).build();
+    auto domainSignalLinearDescriptor = DataDescriptorBuilder()
+                                            .setSampleType(SampleType::UInt64)
+                                            .setUnit(Unit("s", -1, "", "time"))
+                                            .setTickResolution(Ratio(1, 10))
+                                            .setRule(LinearDataRule(1, 3))
+                                            .setOrigin("1970-01-01T00:00:00")  // the multi reader reads domains with an origin
+                                            .build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
 
     // Set domain signal
@@ -669,9 +739,33 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     fb.getInputPorts()[0].connect(signal);
     fb.getInputPorts()[1].connect(signal);
 
-    // Incomplete input signal descriptors
+    // The reader applies the connects on the scheduler
+    context.getScheduler().waitAll();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+}
+
+TEST_F(PowerReaderTestStatus, StatisticsStatusDomainWithoutOrigin)
+{
+    auto signal = SignalWithDescriptor(context, DataDescriptorBuilder().setSampleType(SampleType::Float64).build(), nullptr, "signal");
+    auto domainSignal = SignalWithDescriptor(context,
+                                             DataDescriptorBuilder()
+                                                 .setSampleType(SampleType::UInt64)
+                                                 .setUnit(Unit("s", -1, "", "time"))
+                                                 .setTickResolution(Ratio(1, 10))
+                                                 .setRule(LinearDataRule(1, 3))
+                                                 .build(),
+                                             nullptr,
+                                             "domain");
+    signal.setDomainSignal(domainSignal);
+
+    fb.getInputPorts()[0].connect(signal);
+    fb.getInputPorts()[1].connect(signal);
+
+    // Inputs whose domains have no origin are read together on a shared relative time
+    context.getScheduler().waitAll();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
 }
 
@@ -688,6 +782,7 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
                                             .setUnit(Unit("s", -1, "", "time"))
                                             .setTickResolution(Ratio(1, 10))
                                             .setRule(LinearDataRule(1, 3))
+                                            .setOrigin("1970-01-01T00:00:00")  // the multi reader reads domains with an origin
                                             .build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
 
@@ -698,10 +793,43 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
     fb.getInputPorts()[0].connect(signal);
     fb.getInputPorts()[1].connect(signal);
 
-    // Incomplete input signal descriptors
+    // The block rejects a voltage in G; the voltage port is the pinned main input, so the block is in error
+    context.getScheduler().waitAll();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
-    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for power signal: Invalid voltage signal unit");
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Voltage: value descriptor rejected by the owner");
+}
+
+// Power is computed from scalar samples only: a vector current makes the block invalid
+TEST_F(PowerReaderTestStatus, VectorInputIsRejected)
+{
+    const auto domainDescriptor = DataDescriptorBuilder()
+                                      .setSampleType(SampleType::UInt64)
+                                      .setUnit(Unit("s", -1, "", "time"))
+                                      .setTickResolution(Ratio(1, 10))
+                                      .setRule(LinearDataRule(1, 3))
+                                      .setOrigin("1970-01-01T00:00:00")
+                                      .build();
+    const auto domainSignal = SignalWithDescriptor(context, domainDescriptor, nullptr, "domain");
+    const auto voltage = SignalWithDescriptor(
+        context, DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build(), nullptr, "voltage");
+    const auto current = SignalWithDescriptor(context,
+                                              DataDescriptorBuilder()
+                                                  .setSampleType(SampleType::Float64)
+                                                  .setDimensions(List<IDimension>(Dimension(LinearDimensionRule(1, 0, 2))))
+                                                  .build(),
+                                              nullptr,
+                                              "current");
+    voltage.setDomainSignal(domainSignal);
+    current.setDomainSignal(domainSignal);
+
+    fb.getInputPorts()[0].connect(voltage);
+    fb.getInputPorts()[1].connect(current);
+
+    context.getScheduler().waitAll();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Current: value descriptor rejected by the owner");
 }
 
 TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
@@ -714,20 +842,26 @@ TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
 
     createSignals(ctx);
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    // The reader applies connects and disconnects on the scheduler
+    const auto status = [&]
+    {
+        ctx.getScheduler().waitAll();
+        return fb.getStatusContainer().getStatus("ComponentStatus").getValue();
+    };
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
     fb.getInputPorts()[0].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
 
     fb.getInputPorts()[1].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
     fb.getInputPorts()[1].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
 }

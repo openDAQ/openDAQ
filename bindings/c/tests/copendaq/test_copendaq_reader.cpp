@@ -1,6 +1,10 @@
 #include <copendaq.h>
+#include <coretypes/errorinfo.h>
 
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <thread>
 
 class COpendaqReaderTest : public testing::Test
 {
@@ -74,7 +78,7 @@ protected:
         daqBaseObject_queryInterface(start, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &startNum);
         daqBaseObject_releaseRef(delta);
         daqBaseObject_releaseRef(start);
-        daqDataRule_createLinearDataRule(&rule, startNum, deltaNum);
+        daqDataRule_createLinearDataRule(&rule, deltaNum, startNum);
         daqBaseObject_releaseRef(deltaNum);
         daqBaseObject_releaseRef(startNum);
         daqDataDescriptorBuilder_setRule(builder, rule);
@@ -152,6 +156,30 @@ protected:
         daqBaseObject_releaseRef(packet);
 
         return outputPacket;
+    }
+
+    daqMultiReader2Params* MultiReader2Params(const char* optionKey, daqInt optionValue)
+    {
+        daqMultiReader2Params* params = nullptr;
+        daqMultiReader2Params_createMultiReader2Params(&params);
+        daqList* inputs = nullptr;
+        daqList_createList(&inputs);
+        daqList_pushBack(inputs, signal);
+        daqMultiReader2Params_setInputs(params, inputs);
+        daqBaseObject_releaseRef(inputs);
+
+        daqDict* options = nullptr;
+        daqDict_createDict(&options);
+        daqString* key = nullptr;
+        daqString_createString(&key, optionKey);
+        daqInteger* value = nullptr;
+        daqInteger_createInteger(&value, optionValue);
+        daqDict_set(options, (daqBaseObject*) key, (daqBaseObject*) value);
+        daqMultiReader2Params_setAdditionalOptions(params, options);
+        daqBaseObject_releaseRef(value);
+        daqBaseObject_releaseRef(key);
+        daqBaseObject_releaseRef(options);
+        return params;
     }
 
     void SetUp() override
@@ -363,4 +391,84 @@ TEST_F(COpendaqReaderTest, daqTailReader)
     }
     daqBaseObject_releaseRef(status);
     daqBaseObject_releaseRef(tailReader);
+}
+
+TEST_F(COpendaqReaderTest, daqMultiReader2)
+{
+    daqMultiReader2Params* params = MultiReader2Params("CriticalLimitBytes", 8000);
+    daqMultiReader2Params_setErrorPolicy(params, daqMultiReader2ErrorPolicy::daqMultiReader2ErrorPolicyExclude);
+    daqMultiReader2ErrorPolicy policy = daqMultiReader2ErrorPolicy::daqMultiReader2ErrorPolicyInvalidate;
+    daqMultiReader2Params_getErrorPolicy(params, &policy);
+    ASSERT_EQ(policy, daqMultiReader2ErrorPolicy::daqMultiReader2ErrorPolicyExclude);
+    daqDict* options = nullptr;
+    daqMultiReader2Params_getAdditionalOptions(params, &options);
+    daqSizeT optionCount = 0;
+    daqDict_getCount(options, &optionCount);
+    ASSERT_EQ(optionCount, 1u);
+    daqBaseObject_releaseRef(options);
+
+    daqMultiReader2* reader = nullptr;
+    ASSERT_EQ(daqMultiReader2_createMultiReader2(&reader, params), DAQ_SUCCESS);
+    daqBaseObject_releaseRef(params);
+
+    // The first read takes the status owed since construction
+    daqSizeT count = 0;
+    daqInt packetOffset = 0;
+    daqMultiReader2Status* status = nullptr;
+    ASSERT_EQ(daqMultiReader2_read(reader, nullptr, nullptr, &count, 0, &packetOffset, &status), DAQ_SUCCESS);
+    daqBool hasChanges = false;
+    daqMultiReader2Status_getHasChanges(status, &hasChanges);
+    ASSERT_TRUE(hasChanges);
+    daqComponentStatus level = daqComponentStatus::daqComponentStatusError;
+    daqMultiReader2Status_getStatus(status, &level);
+    daqString* message = nullptr;
+    daqMultiReader2Status_getStatusMessage(status, &message);
+    daqConstCharPtr text = nullptr;
+    daqString_getCharPtr(message, &text);
+    ASSERT_EQ(level, daqComponentStatus::daqComponentStatusOk) << text;
+    daqBaseObject_releaseRef(message);
+    daqMultiReader2InputStatus* input = nullptr;
+    daqMultiReader2Status_getInputStatus(status, (daqComponent*) signal, &input);
+    daqMultiReader2InputError error = daqMultiReader2InputError::daqMultiReader2InputErrorSyncFailed;
+    daqMultiReader2InputStatus_getError(input, &error);
+    ASSERT_EQ(error, daqMultiReader2InputError::daqMultiReader2InputErrorNone);
+    daqSizeT sampleSize = 0;
+    daqMultiReader2InputStatus_getSampleSize(input, &sampleSize);
+    ASSERT_EQ(sampleSize, sizeof(daqFloat));
+    daqBaseObject_releaseRef(input);
+    daqBaseObject_releaseRef(status);
+
+    daqPacket* packet = daqPrepareDataPacket();
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
+
+    // The reader takes the packet on a scheduler worker
+    for (int i = 0; i < 1000 && count < 10; ++i)
+    {
+        daqMultiReader2_getAvailableCount(reader, &count);
+        if (count < 10)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    ASSERT_EQ(count, 10u);
+
+    daqFloat data[5] = {0};
+    void* buffers[] = {data};
+    count = 5;
+    ASSERT_EQ(daqMultiReader2_read(reader, buffers, nullptr, &count, 0, &packetOffset, &status), DAQ_SUCCESS);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(packetOffset, 0);
+    for (daqSizeT i = 0; i < count; ++i)
+        ASSERT_EQ(data[i], (daqFloat) i + 1);
+    daqBaseObject_releaseRef(status);
+    daqBaseObject_releaseRef(reader);
+}
+
+TEST_F(COpendaqReaderTest, daqMultiReader2InvalidAdditionalOption)
+{
+    daqMultiReader2Params* params = MultiReader2Params("RecoveryLimitSeconds", 1);
+    daqMultiReader2* reader = nullptr;
+    ASSERT_NE(daqMultiReader2_createMultiReader2(&reader, params), DAQ_SUCCESS);
+    daqClearErrorInfo();
+    ASSERT_EQ(reader, nullptr);
+    daqBaseObject_releaseRef(params);
 }

@@ -16,10 +16,14 @@
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
 - [#1401](https://github.com/openDAQ/openDAQ/pull/1401) Devices start in the Operation mode by default.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types: how their blocks create input ports, at most one instance per parent (enforced by the core), and common settings for nested blocks of another type.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add the experimental `MultiReader2`, a reader that keeps equal-rate signals aligned on the main input's tick grid. It is set up through `configure` with an `IMultiReader2Params` object and returns one status per read, with each input's error. Under the `Exclude` error policy an erroring input is set aside until it is healthy again. The sync and memory limits can be overridden through `IMultiReader2Params::setAdditionalOptions`. Available in C, Python and .NET, where `MultiReader2<TValue>` reads into `TValue[][]` buffers. The existing `MultiReader` is unchanged.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) The reference FB module's sum and power readers and the multi CSV recorder read through `MultiReader2`, on the header-only `ReaderFbBase` example base.
 
 ## Python
 
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Expose the function block type options: the `FunctionBlockInputPolicy` enum and the read-only `IFunctionBlockType` properties `input_policy`, `singleton` and `common_settings_type_id`. `common_settings_type_id` is `None` when the type does not declare a common settings relationship. The options can only be read from Python, as the component type builder has no Python binding.
+
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add the experimental `daq.MultiReader2Params(inputs, **params)` and `daq.MultiReader2(params)`. `read(count)` returns numpy arrays with the ticks, times and status.
 
 ## Bug fixes
 
@@ -58,6 +62,7 @@
 - [#1402](https://github.com/openDAQ/openDAQ/pull/1402) Fix the property type that a client reports for properties with `onSelectionValuesRead` listeners.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Fix a hang when a native streaming client is destroyed: its transport thread is drained instead of stopped, and a connection attempt still in flight is closed (libNativeStreaming v1.0.23), so removing a device that is connecting or reconnecting to a host that does not answer no longer blocks.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) The native inactivity timeout runs from the moment connection activity monitoring starts, so a peer that never sends anything after connecting is timed out like any other silent peer. Before, the timeout started with the first received frame.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Fix a race between `IInputPort::setListener` and a packet notification running on another thread: the listener is swapped atomically and the previous one is released only once no thread is still reading it.
 
 ## Misc
 
@@ -75,6 +80,7 @@
 - [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Reduce the native streaming client's cost per received packet: a packet buffer is received into one allocation, received packets reach the processing thread in bursts, and session inactivity is checked from a timestamp instead of re-arming a timer on every read.
 - [#1386](https://github.com/openDAQ/openDAQ/pull/1386) Bump libNativeStreaming to v1.0.23.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) RTGen: add the `bufferArray(param, count)` attribute for `void**` buffer arrays.
 
 ## Required application changes
 
@@ -106,6 +112,12 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 ### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
 
 `loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
+
+### [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Reference reader blocks read through MultiReader2
+
+- `RefFBModulePowerReader` no longer has the `TickOffsetToleranceUs` property, and `RefFBModuleSumReader` and the multi CSV recorder no longer have the `ReaderNotificationMode` creation config property.
+- `RefFBModulePowerReader` uses the voltage input as the main input and is in error when the voltage signal has a unit other than volts. Its output starts at the first sample the inputs have in common.
+- `RefFBModuleSumReader` sets aside an input it can't use and keeps summing the rest. A port whose signal disconnects is removed.
 
 ## Required module changes
 
@@ -184,6 +196,11 @@ skips that instance with a warning, also on devices reached through the config p
 + [interface] ISyncInterfaceInternal
 + [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
 + [enum] ServerKind
++ [interface] IMultiReader2
++ [interface] IMultiReader2Params
++ [interface] IMultiReader2Status
++ [interface] IMultiReader2InputStatus
++ [enum] MultiReader2ErrorPolicy, MultiReader2InputError
 ```
 
 ### Removed interfaces

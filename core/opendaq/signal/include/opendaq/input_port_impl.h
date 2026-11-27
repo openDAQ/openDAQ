@@ -32,6 +32,7 @@
 #include <opendaq/scheduler_errors.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <opendaq/cyclic_ref_check.h>
+#include <opendaq/active_operation_tracker.h>
 
 #include "opendaq/errors.h"
 
@@ -61,6 +62,7 @@ public:
                                   const ComponentPtr& parent,
                                   const StringPtr& localId,
                                   bool gapChecking = false);
+    ~GenericInputPortImpl() override;
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) override;
@@ -135,7 +137,8 @@ private:
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
 
-    WeakRefPtr<IInputPortNotifications> listenerRef;
+    std::atomic<IWeakRef*> listenerRef{nullptr};
+    details::ActiveOperationTracker listenerReaders;
     WeakRefPtr<IConnection> connectionRef{};
     WorkPtr notifySchedulerCallback;
 
@@ -145,6 +148,7 @@ private:
     WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal);
+    InputPortNotificationsPtr currentListener();
     void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
@@ -167,12 +171,24 @@ GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const Cont
     , isPublic(true)
     , gapCheckingEnabled(gapCheckingEnabled)
     , notifyMethod(PacketReadyNotification::None)
-    , listenerRef(nullptr)
     , connectionRef(nullptr)
 {
     loggerComponent = context.getLogger().getOrAddComponent("InputPort");
     if (context.assigned())
         scheduler = context.getScheduler();
+
+    notifySchedulerCallback = Work([this, portRef = this->template getWeakRefInternal<IInputPort>()]
+    {
+        if (const auto port = portRef.getRef(); port.assigned())
+            notifyPacketEnqueuedSameThread();
+    });
+}
+
+template <typename TInterface, typename...  Interfaces>
+GenericInputPortImpl<TInterface, Interfaces...>::~GenericInputPortImpl()
+{
+    if (IWeakRef* listener = listenerRef.exchange(nullptr))
+        listener->releaseRef();
 }
 
 template <typename TInterface, typename...  Interfaces>
@@ -184,12 +200,8 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* 
     const auto err = canConnectSignal(signal);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    if (listenerRef.assigned())
-    {
-        const auto listener = listenerRef.getRef();
-        if (listener.assigned())
-            return listener->acceptsSignal(Super::template borrowInterface<IInputPort>(), signal, accepts);
-    }
+    if (const auto listener = currentListener(); listener.assigned())
+        return listener->acceptsSignal(Super::template borrowInterface<IInputPort>(), signal, accepts);
 
     *accepts = true;
     return OPENDAQ_SUCCESS;
@@ -243,6 +255,17 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connect(ISignal* signal
 }
 
 template <typename TInterface, typename...  Interfaces>
+InputPortNotificationsPtr GenericInputPortImpl<TInterface, Interfaces...>::currentListener()
+{
+    WeakRefPtr<IInputPortNotifications> listener;
+    {
+        details::ActiveOperationTracker::Scope reader(listenerReaders);
+        listener = WeakRefPtr<IInputPortNotifications>(listenerRef.load(std::memory_order_seq_cst));
+    }
+    return listener.assigned() ? listener.getRef() : nullptr;
+}
+
+template <typename TInterface, typename...  Interfaces>
 void GenericInputPortImpl<TInterface, Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
 {
     if (!connection.assigned())
@@ -275,12 +298,8 @@ void GenericInputPortImpl<TInterface, Interfaces...>::disconnectSignalInternal(C
 
     if (notifyListener)
     {
-        if (listenerRef.assigned())
-        {
-            const auto listener = listenerRef.getRef();
-            if (listener.assigned())
-                listener->disconnected(Super::template borrowInterface<IInputPort>());
-        }
+        if (const auto listener = currentListener(); listener.assigned())
+            listener->disconnected(Super::template borrowInterface<IInputPort>());
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned() && triggerCoreEvent)
@@ -373,19 +392,15 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getNotificationMethod(P
 template <typename TInterface, typename...  Interfaces>
 void GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedSameThread()
 {
-    if (listenerRef.assigned())
+    if (const auto listener = currentListener(); listener.assigned())
     {
-        auto listener = listenerRef.getRef();
-        if (listener.assigned())
+        try
         {
-            try
-            {
-                listener.packetReceived(this->template thisInterface<IInputPort>());
-            }
-            catch (const std::exception& e)
-            {
-                LOG_E("Input port notification failed: {}", e.what());
-            }
+            listener.packetReceived(this->template thisInterface<IInputPort>());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Input port notification failed: {}", e.what());
         }
     }
 }
@@ -483,29 +498,11 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setListener(IInputPortN
         connection.template as<IConnectionInternal>(true)->enqueueLastDescriptor();
     }
 
-    listenerRef = port;
-    if (listenerRef.assigned())
-    {
-        auto portRef = this->template getWeakRefInternal<IInputPort>();
-        notifySchedulerCallback = Work([notifyRef = listenerRef, portRef = portRef, loggerComponent = loggerComponent]
-        {
-            auto notify = notifyRef.getRef();
-            auto port = portRef.getRef();
-            if (notify.assigned() && port.assigned())
-            {
-                try
-                {
-                    notify.packetReceived(port);
-                }
-                catch (const std::exception& e)
-                {
-                    LOG_E("Input port notification failed: {}", e.what());
-                }
-            }
-        });
-    }
-    else
-        notifySchedulerCallback.release();
+    WeakRefPtr<IInputPortNotifications> listener(port);
+    IWeakRef* replaced = listenerRef.exchange(listener.detach(), std::memory_order_seq_cst);
+    listenerReaders.waitUntilIdle();
+    if (replaced)
+        replaced->releaseRef();
 
     return OPENDAQ_SUCCESS;
 }
@@ -515,18 +512,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getListener(IInputPortN
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    auto lock = this->getRecursiveConfigLock2();
-
-    if (listenerRef.assigned())
-    {
-        auto listener = this->listenerRef.getRef();
-        *port = listener.addRefAndReturn();
-    }
-    else
-    {
-        *port = nullptr;
-    }
-
+    *port = currentListener().detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -690,9 +676,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectInternal(ISignal
                 disconnectSignalInternal(std::move(oldConnection), false, true, false);
             }
             connectionRef = connection;
-
-            if (listenerRef.assigned())
-                inputPortListener = listenerRef.getRef();
+            inputPortListener = currentListener();
         }
 
         if (inputPortListener.assigned())
@@ -700,6 +684,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectInternal(ISignal
             err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
             if (OPENDAQ_FAILED(err))
             {
+                auto lock = this->getRecursiveConfigLock2();
                 connectionRef.release();
                 return DAQ_MAKE_ERROR_INFO(err);
             }

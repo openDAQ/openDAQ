@@ -66,6 +66,7 @@ set(SRC_Cpp
     generated/reader/py_multi_reader.cpp
     generated/reader/py_multi_reader_builder.cpp
     generated/reader/py_multi_reader_status.cpp
+    generated/reader/py_multi_reader2.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp

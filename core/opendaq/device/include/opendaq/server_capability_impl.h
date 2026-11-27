@@ -26,11 +26,12 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/address_info_ptr.h>
 #include <opendaq/transport_option_factory.h>
-#include <opendaq/transport_options_object.h>
 #include <opendaq/container_utils.h>
+#include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <fmt/format.h>
 #include <algorithm>
+#include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -111,9 +112,10 @@ private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 
-    DictPtr<IString, ITransportOption> readTransportOptions();
-    ErrCode writeTransportOptions(const DictPtr<IString, ITransportOption>& options);
+    bool hasTransportOptions();
     bool hasPortWithoutTransportOptions();
+
+    static void AddTransportOptionObject(const PropertyObjectPtr& container, const TransportOptionPtr& option);
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
@@ -414,7 +416,7 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
 
     return daqTry([&]
     {
-        if (readTransportOptions().getCount() > 0)
+        if (hasTransportOptions())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability lists transport options, which give its port");
 
         return Super::setPropertyValue(String(Port), port);
@@ -524,25 +526,29 @@ inline ErrCode ServerCapabilityConfigImpl::addAuthenticationMethod(IString* meth
     });
 }
 
-inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransportOptions()
+inline bool ServerCapabilityConfigImpl::hasTransportOptions()
 {
-    return TransportOptionsFromObject(objPtr.getPropertyValue(AvailableTransportOptions));
-}
-
-inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<IString, ITransportOption>& options)
-{
-    return daqTry([&]
-    {
-        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(AvailableTransportOptions), TransportOptionsObject(options));
-        return OPENDAQ_SUCCESS;
-    });
+    DictPtr<IString, ITransportOption> options;
+    checkErrorInfo(getAvailableTransportOptions(&options));
+    return options.getCount() > 0;
 }
 
 // A capability gives its port either by itself or by its transport options, never both
 inline bool ServerCapabilityConfigImpl::hasPortWithoutTransportOptions()
 {
     const IntegerPtr port = objPtr.getPropertyValue(Port);
-    return port.assigned() && port != -1 && readTransportOptions().getCount() == 0;
+    return port.assigned() && port != -1 && !hasTransportOptions();
+}
+
+inline void ServerCapabilityConfigImpl::AddTransportOptionObject(const PropertyObjectPtr& container, const TransportOptionPtr& option)
+{
+    std::string name = option.getId();
+    name.erase(std::remove_if(name.begin(), name.end(), [](char c) { return c == '/' || c == '.' || c == '[' || c == ']'; }),
+               name.end());
+    if (name.empty() || container.hasProperty(name))
+        DAQ_THROW_EXCEPTION(InvalidValueException, R"(Transport option "{}" cannot be told apart from another one)", option.getId());
+
+    container.addProperty(ObjectProperty(name, option));
 }
 
 inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
@@ -551,7 +557,16 @@ inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IDict** 
 
     return daqTry([&]
     {
-        *transportOptions = readTransportOptions().detach();
+        const PropertyObjectPtr container = objPtr.getPropertyValue(AvailableTransportOptions);
+        auto options = Dict<IString, ITransportOption>();
+        for (const auto& prop : container.getAllProperties())
+        {
+            const auto option = container.getPropertyValue(prop.getName()).asPtrOrNull<ITransportOption, TransportOptionPtr>();
+            if (option.assigned())
+                options.set(option.getId(), option);
+        }
+
+        *transportOptions = options.detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -567,7 +582,12 @@ inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IDict* t
         if (options.getCount() > 0 && hasPortWithoutTransportOptions())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability has a port set, so it takes no transport options");
 
-        OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
+        // Filled before it replaces the old one, so that an option that fails leaves the capability as it was
+        auto container = PropertyObject();
+        for (const auto& [id, option] : options)
+            AddTransportOptionObject(container, option);
+
+        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(AvailableTransportOptions), container);
 
         // Older clients read the Port property
         if (const auto first = FirstValue(options); first.assigned())
@@ -587,15 +607,15 @@ inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITranspor
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability has a port set, so it takes no transport options");
 
         const auto option = TransportOptionPtr::Borrow(transportOption);
-        auto options = readTransportOptions();
+        DictPtr<IString, ITransportOption> options;
+        OPENDAQ_RETURN_IF_FAILED(getAvailableTransportOptions(&options));
         if (options.hasKey(option.getId()))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Transport option "{}" is already set)", option.getId()));
 
-        options.set(option.getId(), option);
-        OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
+        AddTransportOptionObject(objPtr.getPropertyValue(AvailableTransportOptions), option);
 
         // the first option is the default one, whose port older clients read
-        if (options.getCount() == 1)
+        if (options.getCount() == 0)
             OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), Integer(option.getPort())));
 
         return OPENDAQ_SUCCESS;

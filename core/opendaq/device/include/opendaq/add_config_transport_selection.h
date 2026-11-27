@@ -16,13 +16,15 @@
 
 #pragma once
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coretypes/exceptions.h>
 #include <opendaq/container_utils.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_ptr.h>
-#include <opendaq/transport_options_object.h>
+#include <algorithm>
+#include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,6 +39,23 @@ inline void FreezeAvailableTransportOptions(const PropertyObjectPtr& config)
     config.getPropertyValue(AvailableTransportOptionsProperty).freeze();
 }
 
+inline PropertyObjectPtr AvailableTransportOptionsObject(const DictPtr<IString, ITransportOption>& options)
+{
+    auto container = PropertyObject();
+    for (const auto& [id, option] : options)
+    {
+        std::string name = id;
+        name.erase(std::remove_if(name.begin(), name.end(), [](char c) { return c == '/' || c == '.' || c == '[' || c == ']'; }),
+                   name.end());
+        if (name.empty() || container.hasProperty(name))
+            DAQ_THROW_EXCEPTION(InvalidValueException, R"(Transport option "{}" cannot be told apart from another one)", option.getId());
+
+        container.addProperty(ObjectProperty(name, option));
+    }
+
+    return container;
+}
+
 inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
 {
     const TransportOptionPtr firstOption = FirstValue(options);
@@ -44,7 +63,7 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
     config.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, firstId).setSelectionValues(options.getKeyList()).build());
     config.addProperty(IntPropertyBuilder(PortConfigProperty, -1).setMinValue(-1).build());
     config.addProperty(ObjectProperty(AvailableTransportOptionsProperty, PropertyObject()));
-    config.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(AvailableTransportOptionsProperty, TransportOptionsObject(options));
+    config.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(AvailableTransportOptionsProperty, AvailableTransportOptionsObject(options));
     FreezeAvailableTransportOptions(config);
 }
 
@@ -83,7 +102,15 @@ inline ErrCode GetAvailableTransportOptions(const PropertyObjectPtr& config, IDi
     // A new dictionary on each call, frozen so that a change to it fails instead of being lost
     return daqTry([&]
     {
-        auto options = TransportOptionsFromObject(config.getPropertyValue(AvailableTransportOptionsProperty));
+        const PropertyObjectPtr container = config.getPropertyValue(AvailableTransportOptionsProperty);
+        auto options = Dict<IString, ITransportOption>();
+        for (const auto& prop : container.getAllProperties())
+        {
+            const auto option = container.getPropertyValue(prop.getName()).asPtrOrNull<ITransportOption, TransportOptionPtr>();
+            if (option.assigned())
+                options.set(option.getId(), option);
+        }
+
         options.freeze();
         *transportOptions = options.detach();
     });

@@ -150,6 +150,23 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsInvalid)
     ASSERT_EQ(capability.getAvailableTransportOptions().getCount(), 0u);
 }
 
+// An option is kept under its id without "/", ".", "[" and "]", so ids that differ only in them cannot be kept together
+TEST_F(ServerCapabilityTest, TransportOptionIdsThatCollide)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("plain", 7420)}));
+
+    ASSERT_THROW(capability.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("ws.tls", 7421),
+                                                                               TestTransportOption("wstls", 7422)})),
+                 InvalidValueException);
+    ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
+
+    capability.addAvailableTransportOption(TestTransportOption("ws.tls", 7421));
+    ASSERT_THROW(capability.addAvailableTransportOption(TestTransportOption("ws/tls", 7422)), InvalidValueException);
+    ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "ws.tls"));
+}
+
 TEST_F(ServerCapabilityTest, AddTransportOption)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)

@@ -38,6 +38,9 @@ extern "C"
     typedef struct daqStreamingType daqStreamingType;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqAuthenticationConfig daqAuthenticationConfig;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqTransportOption daqTransportOption;
 
     EXPORTED extern const daqIntfID DAQ_ADD_STREAMING_CONFIG_INTF_ID;
     void EXPORTED daqAddStreamingConfig_getInterfaceId(daqIntfID* intfId);
@@ -45,6 +48,11 @@ extern "C"
     daqErrCode EXPORTED daqAddStreamingConfig_getStreamingType(daqAddStreamingConfig* self, daqStreamingType** type);
     daqErrCode EXPORTED daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqPropertyObject** config);
     daqErrCode EXPORTED daqAddStreamingConfig_getAuthenticationConfig(daqAddStreamingConfig* self, daqAuthenticationConfig** config);
+    daqErrCode EXPORTED daqAddStreamingConfig_getAvailableTransportOptions(daqAddStreamingConfig* self, daqDict** transportOptions);
+    daqErrCode EXPORTED daqAddStreamingConfig_setTransportOption(daqAddStreamingConfig* self, daqString* id);
+    daqErrCode EXPORTED daqAddStreamingConfig_getTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption);
+    daqErrCode EXPORTED daqAddStreamingConfig_setPort(daqAddStreamingConfig* self, daqInt port);
+    daqErrCode EXPORTED daqAddStreamingConfig_getPort(daqAddStreamingConfig* self, daqInt* port);
 
 #ifdef __cplusplus
 }

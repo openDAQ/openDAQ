@@ -32,6 +32,8 @@
 #include <opendaq/module_manager_utils_ptr.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
+#include <opendaq/transport_selection_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -495,12 +497,9 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
-        [[maybe_unused]] const auto protoGroupId = cap.getProtocolGroupId();
-
-        LOG_D("Device {} has streaming capability: name [{}] group id [{}] id [{}] string [{}] prefix [{}]",
+        LOG_D("Device {} has streaming capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
-              protoGroupId.assigned() ? protoGroupId : "<none>",
               cap.getProtocolId(),
               cap.getConnectionString(),
               cap.getPrefix());
@@ -508,6 +507,18 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         const StringPtr capabilityProtocolId = cap.getProtocolId();
         if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
+
+        if (!AnnouncesSelectedTransportOption(streamingConfig, cap))
+        {
+            LOG_D("Device {}: capability {} does not announce the selected transport option", device.getGlobalId(), capabilityProtocolId);
+            continue;
+        }
+
+        const auto streamingPort = GetCapabilityConnectionPort(streamingConfig, streamingConfig.getStreamingType(), cap);
+        const auto withStreamingPort = [&streamingPort](const StringPtr& connectionString) -> StringPtr
+        {
+            return streamingPort.has_value() ? ReplaceConnectionStringPort(connectionString, streamingPort.value()) : connectionString;
+        };
 
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
@@ -517,9 +528,9 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
 
         auto streamingConnectionStrings = List<IString>();
         for (const auto& addressInfo : suitableAddressesInfo)
-            streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
+            streamingConnectionStrings.pushBack(withStreamingPort(addressInfo.getConnectionString()));
         if (streamingConnectionStrings.empty())
-            streamingConnectionStrings.pushBack(cap.getConnectionString());
+            streamingConnectionStrings.pushBack(withStreamingPort(cap.getConnectionString()));
 
         // try all suitable addresses until the first successful streaming connection
         for (const auto& connectionString : streamingConnectionStrings)

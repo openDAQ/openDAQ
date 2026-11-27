@@ -30,6 +30,7 @@
 #include <opendaq/server_capability_config_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_factory.h>
+#include <opendaq/transport_option_factory.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/device_info_factory.h>
@@ -706,6 +707,26 @@ private:
             }
     }
 
+    // The core adds the selected transport option and its port to the config of a type with options.
+    // This keeps them for a module whose default config does not declare them.
+    static void copyTransportSelection(const PropertyObjectPtr& configOut, const PropertyObjectPtr& configIn, const ComponentTypePtr& type)
+    {
+        if (!type.assigned() || type.getAvailableTransportOptions().getCount() == 0)
+            return;
+
+        if (configIn.hasProperty(TransportOptionConfigProperty) && !configOut.hasProperty(TransportOptionConfigProperty))
+        {
+            const StringPtr id = configIn.getPropertyValue(TransportOptionConfigProperty);
+            configOut.addProperty(StringProperty(TransportOptionConfigProperty, id));
+        }
+
+        if (configIn.hasProperty(PortConfigProperty) && !configOut.hasProperty(PortConfigProperty))
+        {
+            const Int port = configIn.getPropertyValue(PortConfigProperty);
+            configOut.addProperty(IntProperty(PortConfigProperty, port));
+        }
+    }
+
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const
     {
         PropertyObjectPtr configIn = userConfig.assigned() ? userConfig : PropertyObject();
@@ -716,6 +737,7 @@ private:
             auto errorGuard = DAQ_ERROR_GUARD();
             configOut = type.assigned() ? type.createDefaultConfig() : PropertyObject();
             populateDefaultConfig(configOut, configIn);
+            copyTransportSelection(configOut, configIn, type);
         }
         catch (const DaqException& e)
         {

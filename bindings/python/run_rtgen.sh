@@ -192,6 +192,8 @@ run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronizat
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  synchronization
 run_rtgen opendaq opendaq/modulemanager   opendaq opendaq/generated/modulemanager    module_info
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_type
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        transport_option
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        transport_option_builder
 run_rtgen opendaq opendaq/utility         opendaq opendaq/generated/utility          device_update_options
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_field
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         authentication_method

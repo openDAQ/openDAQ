@@ -67,6 +67,77 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         options.streaming_mode = opendaq.StreamingMode.MinConnections
         self.assertEqual(options.streaming_mode, opendaq.StreamingMode.MinConnections)
 
+    def test_port_without_transport_options(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+
+        self.assertEqual(len(config.device_type.available_transport_options), 0)
+        self.assertEqual(len(config.available_transport_options), 0)
+        self.assertIsNone(config.transport_option)
+        self.assertEqual(config.port, -1)
+        config.port = 7500
+        self.assertEqual(config.port, 7500)
+
+        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
+        self.assertEqual(len(streaming_config.available_transport_options), 0)
+        self.assertIsNone(streaming_config.transport_option)
+        self.assertEqual(streaming_config.port, -1)
+        streaming_config.port = 7600
+        self.assertEqual(streaming_config.port, 7600)
+
+class TestTransportOption(opendaq_test.TestCase):
+
+    def test_builder(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        builder.security_mode = opendaq.SecurityMode.Encrypted
+        builder.certificate_required = True
+
+        option = builder.build()
+        self.assertEqual(option.id, 'tls')
+        self.assertEqual(option.port, 7422)
+        self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
+        self.assertTrue(option.certificate_required)
+
+    def test_builder_from_existing(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        builder.security_mode = opendaq.SecurityMode.Encrypted
+        option = builder.build()
+
+        copy = opendaq.TransportOptionBuilderFromExisting(option)
+        copy.port = 7500
+        copied = copy.build()
+        self.assertEqual(copied.id, 'tls')
+        self.assertEqual(copied.port, 7500)
+        self.assertEqual(copied.security_mode, opendaq.SecurityMode.Encrypted)
+        self.assertEqual(option.port, 7422)
+
+    def test_builder_defaults(self):
+        builder = opendaq.TransportOptionBuilder('serial')
+        self.assertEqual(builder.id, 'serial')
+
+        option = builder.build()
+        self.assertEqual(option.port, 0)
+        # SecurityMode.None cannot be written in Python: None is a keyword
+        self.assertEqual(option.security_mode, getattr(opendaq.SecurityMode, 'None'))
+        self.assertFalse(option.certificate_required)
+
+    def test_builder_with_empty_id_rejected(self):
+        with self.assertRaises(RuntimeError):
+            opendaq.TransportOptionBuilder('').build()
+
+    def test_is_property_object(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        option = builder.build()
+
+        self.assertEqual(option.get_property_value('Id'), 'tls')
+        self.assertEqual(option.get_property_value('Port'), 7422)
+        with self.assertRaises(RuntimeError):
+            option.set_property_value('Port', 9000)
+        self.assertEqual(option.port, 7422)
+
 class TestDeviceAddConfig(opendaq_test.TestCase):
 
     def test_create_add_device_config(self):

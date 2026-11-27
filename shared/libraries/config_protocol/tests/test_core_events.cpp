@@ -28,6 +28,9 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/transport_option_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/component_private_ptr.h>
 
@@ -492,7 +495,7 @@ TEST_F(ConfigCoreEventTest, AddDeviceConfigReachesOldClientInLegacyForm)
     const auto deviceType = DeviceTypeBuilder().setId("dev").setName("dev").setConnectionStringPrefix("dev").build();
     const auto setAddDeviceConfig = [&deviceType](const ComponentPtr& component)
     {
-        component.asPtr<IComponentPrivate>().setComponentConfig(AddDeviceConfig(deviceType, nullptr, False));
+        component.asPtr<IComponentPrivate>().setComponentConfig(AddDeviceConfig(deviceType, nullptr, nullptr, False));
     };
     const auto isLegacy = [](const PropertyObjectPtr& config)
     {
@@ -1987,6 +1990,30 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
 
     ASSERT_EQ(clientDevice.getInfo().getSerialNumber(), "test");
     ASSERT_EQ(clientDevice.getInfo().getManufacturer(), "test");
+}
+
+// The client gets the transport options of a server capability as transport option objects, not as remote Property objects
+TEST_F(ConfigCoreEventTest, ReconnectDeviceInfoWithTransportOptions)
+{
+    auto capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Configuration);
+    capability.addAvailableTransportOption(TransportOptionBuilder("ws").setPort(7420).build());
+    capability.addAvailableTransportOption(TransportOptionBuilder("wss").setPort(7422).setSecurityMode(SecurityMode::Encrypted).build());
+
+    const auto info = DeviceInfo(serverDevice.getInfo().getConnectionString(), "");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+    auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+    mock->setDeviceInfoHelper(info);
+
+    connectClient();
+
+    const auto capabilities = clientDevice.getInfo().getServerCapabilities();
+    ASSERT_EQ(capabilities.getCount(), 1u);
+
+    const auto options = capabilities[0].getAvailableTransportOptions();
+    ASSERT_EQ(options.getKeyList(), List<IString>("ws", "wss"));
+    ASSERT_EQ(options.get("ws").getPort(), 7420);
+    ASSERT_EQ(options.get("wss").getPort(), 7422);
+    ASSERT_EQ(options.get("wss").getSecurityMode(), SecurityMode::Encrypted);
 }
 
 TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndSubDeviceAddedProperty)

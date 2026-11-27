@@ -19,6 +19,7 @@
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
 #include <opendaq/module_info.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,6 +31,7 @@ struct IAuthenticationConfig;
  * [interfaceLibrary(IPropertyObject, CoreObjects)]
  * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -94,6 +96,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type sort (server-, FB-types) does not upports authentication.
      */
     virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
+
+    // [templateType(transportOptions, IString, ITransportOption)]
+    /*!
+     * @brief Gets the ways a component of this type can be connected to, with the default port of each.
+     * @param[out] transportOptions The transport options the module supports, keyed by their own ids, the default
+     * first in dict iteration order. Empty if the type lists none.
+     *
+     * The first option is the one used when no other is selected. A module creates a device or streaming of a type that
+     * lists options with a type config whose "TransportOption" property holds the id of the selected option and whose
+     * "Port" property carries the port to connect to (see TransportOptionConfigProperty and PortConfigProperty).
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 };
 /*!@}*/
 

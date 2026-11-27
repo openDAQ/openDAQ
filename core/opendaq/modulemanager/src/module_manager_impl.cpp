@@ -1,6 +1,10 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/transport_option_impl.h>
+#include <opendaq/container_utils.h>
+#include <opendaq/connection_string_utils.h>
+#include <opendaq/transport_selection_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -54,6 +58,7 @@
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/add_streaming_options_ptr.h>
+#include <coretypes/integer_factory.h>
 #include <opendaq/streaming_type_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -115,6 +120,206 @@ TypePtr FindTypeByPrefix(const Types& types, const StringPtr& prefix)
         if (type.getConnectionStringPrefix() == prefix)
             return type;
     return nullptr;
+}
+
+// The id of the transport option the type config of a device or streaming type holds, or unassigned if it holds none
+inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
+{
+    if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
+        return nullptr;
+    return typeConfig.getPropertyValue(TransportOptionConfigProperty);
+}
+
+/*!
+ * @brief Adds the properties a module connects by to the config a device or streaming is created with.
+ * @param config The type config.
+ * @param options The type's transport options; nothing is added when there are none.
+ *
+ * Adds TransportOptionConfigProperty, set to the id of the first option, and PortConfigProperty, set to its port.
+ * A property the config already has is kept.
+ */
+inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
+{
+    const TransportOptionPtr defaultOption = FirstValue(options);
+    if (!config.assigned() || !defaultOption.assigned())
+        return;
+
+    if (!config.hasProperty(TransportOptionConfigProperty))
+        config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getId()));
+    if (!config.hasProperty(PortConfigProperty))
+        config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
+}
+
+// Fails with OPENDAQ_ERR_NOTFOUND when the type config holds the id of a transport option the type does not list
+inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const PropertyObjectPtr& typeConfig)
+{
+    const StringPtr selected = GetSelectedTransportOption(typeConfig);
+    if (!selected.assigned())
+        return OPENDAQ_SUCCESS;
+
+    DictPtr<IString, ITransportOption> options;
+    if (OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
+    {
+        daqClearErrorInfo();
+        return OPENDAQ_SUCCESS;
+    }
+
+    // A type that lists no options leaves the property to its module
+    if (!options.assigned() || options.getCount() == 0 || options.hasKey(selected))
+        return OPENDAQ_SUCCESS;
+
+    std::string ids;
+    for (const auto& id : options.getKeyList())
+        ids += (ids.empty() ? "" : ", ") + id.toStdString();
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                               fmt::format("The {} type '{}' has no transport option '{}'; it lists: {}",
+                                           type.asPtrOrNull<IStreamingType>().assigned() ? "streaming" : "device",
+                                           type.getId(),
+                                           selected,
+                                           ids));
+}
+
+// Returns the port set on a legacy streaming config, or -1.
+// A Port equal to the default Port of the type's own config is not a set port.
+inline Int GetLegacyPortSet(const PropertyObjectPtr& config, const StreamingTypePtr& type)
+{
+    if (!config.hasProperty(PortConfigProperty) || config.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return -1;
+
+    const Int port = config.getPropertyValue(PortConfigProperty);
+    if (port < 0)
+        return -1;
+
+    const PropertyObjectPtr typeDefaultConfig = type.createDefaultConfig();
+    if (!typeDefaultConfig.assigned() || !typeDefaultConfig.hasProperty(PortConfigProperty) ||
+        typeDefaultConfig.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return port;
+
+    const Int defaultPort = typeDefaultConfig.getProperty(PortConfigProperty).getDefaultValue();
+    return port == defaultPort ? -1 : port;
+}
+
+inline Int GetConnectionPort(Int portSet, const StringPtr& connectionString, const TransportOptionPtr& selected)
+{
+    return portSet != -1 ? portSet : GetConnectionStringPort(connectionString).value_or(selected.getPort());
+}
+
+// Applies "?TransportOption='id'" and "?Port=number" of a connection string to a config with transport options
+inline void ApplyConnectionStringTransportOptions(const AddDeviceConfigPtr& config,
+                                                  const tsl::ordered_map<std::string, BaseObjectPtr>& options)
+{
+    if (config.getAvailableTransportOptions().getCount() == 0)
+        return;
+
+    if (const auto it = options.find(TransportOptionConfigProperty); it != options.end())
+    {
+        const StringPtr id = it->second.asPtr<IEvalValue, EvalValuePtr>().getResult();
+        config.setTransportOption(id);
+    }
+
+    if (const auto it = options.find(PortConfigProperty); it != options.end())
+    {
+        const Int port = it->second.asPtr<IEvalValue, EvalValuePtr>().getResult();
+        config.setPort(port);
+    }
+}
+
+// A module without transport options learns the port only from the connection string, so a port set goes into it
+template <typename ConfigPtr>
+StringPtr PutPortSetInConnectionString(const ConfigPtr& config, const StringPtr& connectionString)
+{
+    if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getTransportOption().assigned())
+        return ReplaceConnectionStringPort(connectionString, portSet);
+    return connectionString;
+}
+
+inline void WarnIfPortSetOverridesConnectionString(Int portSet,
+                                                   const StringPtr& connectionString,
+                                                   const LoggerComponentPtr& loggerComponent)
+{
+    const auto stringPort = GetConnectionStringPort(connectionString);
+    if (portSet != -1 && stringPort.has_value() && stringPort.value() != portSet)
+    {
+        LOG_W(R"(Connecting at the port {} set on the config instead of the port {} of the connection string "{}")",
+              portSet,
+              stringPort.value(),
+              connectionString);
+    }
+}
+
+// Puts the port of the connection into the connection string of a server capability (see GetCapabilityConnectionPort).
+// A port set is used even when the capability does not announce the selected option.
+inline StringPtr SetCapabilityConnectionPort(const StringPtr& connectionString,
+                                             const ServerCapabilityPtr& capability,
+                                             const AddDeviceConfigPtr& config)
+{
+    if (GetPortSet(config) == -1 && !AnnouncesSelectedTransportOption(config, capability))
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException,
+                            R"(The server capability "{}" does not announce the transport option "{}")",
+                            capability.getProtocolId(),
+                            config.getTransportOption().getId());
+    }
+
+    const auto port = GetCapabilityConnectionPort(config, config.getDeviceType(), capability);
+    return port.has_value() ? ReplaceConnectionStringPort(connectionString, port.value()) : connectionString;
+}
+
+// Creates the config the module connects with: a copy of the type config with the selected option and the final port.
+// The port is the port set on the config, then the port of the connection string, then the port of the selected option.
+template <typename ConfigPtr>
+PropertyObjectPtr CreateConnectionConfig(const ConfigPtr& config,
+                                         const ComponentTypePtr& type,
+                                         const PropertyObjectPtr& typeConfig,
+                                         const StringPtr& connectionString)
+{
+    PropertyObjectPtr connectionConfig;
+    if (typeConfig.assigned())
+        checkErrorInfo(typeConfig.asPtr<IPropertyObjectInternal>()->clone(&connectionConfig));
+
+    const TransportOptionPtr selected = config.getTransportOption();
+    if (!selected.assigned())
+    {
+        if (type.getAvailableTransportOptions().getCount() > 0)
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException,
+                                R"(The server of "{}" announces no transport option of the type "{}")",
+                                connectionString,
+                                type.getId());
+        }
+        return connectionConfig;
+    }
+
+    const Int port = GetConnectionPort(GetPortSet(config), connectionString, selected);
+
+    if (!connectionConfig.assigned())
+        connectionConfig = PropertyObject();
+
+    if (connectionConfig.hasProperty(TransportOptionConfigProperty))
+        connectionConfig.setPropertyValue(TransportOptionConfigProperty, selected.getId());
+    else
+        connectionConfig.addProperty(StringProperty(TransportOptionConfigProperty, selected.getId()));
+
+    if (!connectionConfig.hasProperty(PortConfigProperty))
+    {
+        connectionConfig.addProperty(IntProperty(PortConfigProperty, port));
+    }
+    else if (const auto portProperty = connectionConfig.getProperty(PortConfigProperty); portProperty.getValueType() == ctInt)
+    {
+        const Int typeConfigPort = connectionConfig.getPropertyValue(PortConfigProperty);
+        const Int defaultPort = portProperty.getDefaultValue();
+        if (typeConfigPort != defaultPort && typeConfigPort != port)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                R"(The port {} in the type config differs from the port {} of the connection. Use setPort to set the port)",
+                                typeConfigPort,
+                                port);
+        }
+        connectionConfig.setPropertyValue(PortConfigProperty, port);
+    }
+
+    return connectionConfig;
 }
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
@@ -927,6 +1132,8 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     };
 
     const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+    ApplyConnectionStringTransportOptions(addDeviceConfig, connectionStringOptions);
+    WarnIfPortSetOverridesConnectionString(GetPortSet(addDeviceConfig), connectionStringPtr, loggerComponent);
 
     // Check the device type and resolve the address
     const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
@@ -943,7 +1150,8 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                     typePrefix,
                                     deviceType.getId());
             }
-            return connectionStringPtr;
+
+            return PutPortSetInConnectionString(config, connectionStringPtr);
         }
 
         const auto hasTypePrefix = [&typePrefix](const ServerCapabilityPtr& capability)
@@ -958,7 +1166,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                 connectionStringPtr,
                                 typePrefix);
         }
-        return resolveSmartConnectionString(*it, config.getPrimaryAddressType());
+        return SetCapabilityConnectionPort(resolveSmartConnectionString(*it, config.getPrimaryAddressType()), *it, config);
     };
 
     const DeviceTypePtr deviceType = addDeviceConfig.getDeviceType();
@@ -968,8 +1176,9 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     // Connect through the module that has the device type
     PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
     PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
+    const auto connectionConfig = CreateConnectionConfig(addDeviceConfig, deviceType, deviceTypeConfig, connectionStringPtr);
 
-    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
+    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, connectionConfig, authenticationConfig);
     if (device.assigned())
     {
         onCompleteCapabilities(device, discoveredDeviceInfo);
@@ -1544,7 +1753,7 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
     const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
 
-    auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
+    auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, capabilities, scanOnAdd);
 
     const auto options = addDeviceConfig.getStreamingOptions();
     if (!options.assigned())
@@ -1731,10 +1940,17 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                             configType.getId());
     }
 
-    const PropertyObjectPtr inputTypeConfig = addStreamingConfig.assigned() ? addStreamingConfig.getTypeConfig() : config;
+    StringPtr targetConnectionString = connectionString;
     PropertyObjectPtr typeConfig;
-    if (inputTypeConfig.assigned())
-        checkErrorInfo(inputTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+    if (addStreamingConfig.assigned())
+    {
+        WarnIfPortSetOverridesConnectionString(GetPortSet(addStreamingConfig), connectionString, loggerComponent);
+        targetConnectionString = PutPortSetInConnectionString(addStreamingConfig, connectionString);
+    }
+    else if (config.assigned())
+    {
+        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+    }
 
     StreamingPtr streaming;
 
@@ -1755,8 +1971,35 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!streamingType.assigned())
             continue;
 
-        const auto streamingTypeConfig =
-            addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
+        PropertyObjectPtr streamingTypeConfig;
+        if (addStreamingConfig.assigned())
+        {
+            streamingTypeConfig =
+                CreateConnectionConfig(addStreamingConfig, streamingType, addStreamingConfig.getTypeConfig(), targetConnectionString);
+        }
+        else
+        {
+            streamingTypeConfig = fromLegacyAddStreamingConfig(typeConfig, streamingType);
+
+            // The module connects by the selection properties; a config without them gets the default option
+            if (const auto options = streamingType.getAvailableTransportOptions(); options.getCount() > 0)
+            {
+                if (!streamingTypeConfig.assigned())
+                    streamingTypeConfig = streamingType.createDefaultConfig();
+
+                const Int portSet = GetLegacyPortSet(streamingTypeConfig, streamingType);
+                WarnIfPortSetOverridesConnectionString(portSet, targetConnectionString, loggerComponent);
+                AddTransportSelectionProperties(streamingTypeConfig, options);
+                checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
+
+                const TransportOptionPtr selected = options.get(GetSelectedTransportOption(streamingTypeConfig));
+                if (streamingTypeConfig.getProperty(PortConfigProperty).getValueType() == ctInt)
+                {
+                    streamingTypeConfig.setPropertyValue(PortConfigProperty,
+                                                         GetConnectionPort(portSet, targetConnectionString, selected));
+                }
+            }
+        }
 
         if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         {
@@ -1785,7 +2028,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                 }
 
                 const auto credentialRequest = CredentialRequestBuilder()
-                                                   .setConnectionString(module.getCanonicalConnectionString(connectionString))
+                                                   .setConnectionString(module.getCanonicalConnectionString(targetConnectionString))
                                                    .setManufacturer(manufacturer)
                                                    .setSerialNumber(serialNumber)
                                                    .setModel(model)
@@ -1799,13 +2042,13 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                  .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
                                                  .setCredentials(credentials)
                                                  .build();
-                streaming = module.createAuthenticatedStreaming(connectionString, streamingTypeConfig, loginParameters);
+                streaming = module.createAuthenticatedStreaming(targetConnectionString, streamingTypeConfig, loginParameters);
 
                 // TODO: cache `credentials` keyed by `credentialRequest` here when a caching mechanism (e.g. a vault) is ready.
             }
             else
             {
-                streaming = module.createStreaming(connectionString, streamingTypeConfig);
+                streaming = module.createStreaming(targetConnectionString, streamingTypeConfig);
             }
         }
         catch ([[maybe_unused]] const std::exception& e)

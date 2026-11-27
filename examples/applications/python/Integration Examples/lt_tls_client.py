@@ -2,11 +2,9 @@
 # Connects to an LT streaming server over the secure (TLS) channel and reads a Signal from it.
 #
 # The example first looks the server up through mDNS discovery and prints the Server Capabilities it
-# advertises. Capabilities carry a protocol group ID and a protocol security level, so a client can
-# pick the most secure channel a server offers on its own: the LT streaming channels share the
-# "LTStreaming" group, and the secure one ("OpenDAQLTStreamingSecure", "daq.lts") has the higher
-# security level. The client then connects to the selected capability with its own TLS configuration
-# and reads the Signal for a few seconds.
+# advertises: a plain ("daq.lt") and a secure ("daq.lts") LT streaming channel. The client selects
+# the secure one ("OpenDAQLTStreamingSecure"), connects to it with its own TLS configuration and
+# reads the Signal for a few seconds.
 #
 # Start "lt_tls_server.py" in another terminal first, and use the certificates created by
 # "generate_certificates.sh":
@@ -26,7 +24,6 @@ import time
 import opendaq as daq
 
 SECURE_PROTOCOL_ID = 'OpenDAQLTStreamingSecure'
-LT_PROTOCOL_GROUP_ID = 'LTStreaming'
 SECURE_PREFIX = 'daq.lts'
 PLAIN_PREFIX = 'daq.lt'
 DEFAULT_TLS_PORT = 7415
@@ -129,30 +126,18 @@ def to_int(value, default=-1):
 
 def print_capability(capability, indent='    '):
     print(f'{indent}{capability.protocol_id}')
-    print(f'{indent}  protocol group id:      {capability.protocol_group_id}')
-    print(f'{indent}  protocol security level:{to_int(capability.protocol_security_level):>3}')
-    print(f'{indent}  prefix:                 {capability.prefix}')
-    print(f'{indent}  port:                   {to_int(capability.port)}')
-    print(f'{indent}  connection string:      {capability.connection_string}')
+    print(f'{indent}  prefix:            {capability.prefix}')
+    print(f'{indent}  port:              {to_int(capability.port)}')
+    print(f'{indent}  connection string: {capability.connection_string}')
 
 
 def lt_capabilities(device_info):
-    capabilities = []
-    for capability in device_info.server_capabilities:
-        try:
-            group_id = capability.protocol_group_id
-        except AttributeError:
-            raise RuntimeError(
-                'These Python bindings predate the protocol group ID / security level API. '
-                'Rebuild them from this branch (ninja py_opendaq_daq), or pass --host to connect '
-                'without inspecting the capabilities.') from None
-        if group_id == LT_PROTOCOL_GROUP_ID:
-            capabilities.append(capability)
-    return capabilities
+    return [capability for capability in device_info.server_capabilities
+            if capability.prefix in (PLAIN_PREFIX, SECURE_PREFIX)]
 
 
 def discover_capability(instance):
-    """Finds an LT streaming server through mDNS and returns its most secure capability."""
+    """Finds an LT streaming server through mDNS and returns its secure capability."""
     print('Discovering LT streaming servers...')
 
     selected = None
@@ -166,22 +151,15 @@ def discover_capability(instance):
             print_capability(capability)
 
         if selected is None:
-            # Ordering the capabilities of a protocol group by their security level is what makes a
-            # client prefer the secure channel without knowing anything about the protocols
-            selected = max(capabilities,
-                           key=lambda capability: to_int(capability.protocol_security_level))
+            selected = next((capability for capability in capabilities
+                             if capability.protocol_id == SECURE_PROTOCOL_ID), None)
 
     if selected is None:
-        raise RuntimeError('No LT streaming server was discovered. Start "lt_tls_server.py" first, '
-                           'or pass --host to connect to a known address.')
+        raise RuntimeError('No LT streaming server with the secure channel was discovered. Start '
+                           '"lt_tls_server.py" with the secure channel enabled first, or pass --host '
+                           'to connect to a known address.')
 
-    if selected.protocol_id != SECURE_PROTOCOL_ID:
-        raise RuntimeError(f'The most secure LT capability offered is "{selected.protocol_id}", '
-                           'not the TLS one. Make sure the server was started with the secure '
-                           'channel enabled.')
-
-    print(f'\nSelected "{selected.protocol_id}" (security level '
-          f'{to_int(selected.protocol_security_level)})')
+    print(f'\nSelected "{selected.protocol_id}"')
     return selected.connection_string
 
 

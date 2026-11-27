@@ -71,14 +71,6 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolName().toStdString();
         },
         "Gets the name of the protocol supported by the device.");
-    cls.def_property_readonly("protocol_group_id",
-        [](daq::IServerCapability *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-            return objectPtr.getProtocolGroupId().toStdString();
-        },
-        "Gets the id of the protocol group supported by the device. Should not contain spaces or special characters except for '_' and '-'. Could be empty if the protocol is not part of any group.");
     cls.def_property_readonly("protocol_id",
         [](daq::IServerCapability *object)
         {
@@ -136,7 +128,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getPort().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the port of the device with the current protocol.");
+        "Gets the port of the capability.");
     cls.def_property_readonly("address_info",
         [](daq::IServerCapability *object)
         {
@@ -154,15 +146,6 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolVersion().toStdString();
         },
         "Gets the protocol version supported by the device's protocol.");
-    cls.def_property_readonly("protocol_security_level",
-        [](daq::IServerCapability *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-            return objectPtr.getProtocolSecurityLevel().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Gets the security level of the protocol.");
     cls.def_property_readonly("authentication_methods",
         [](daq::IServerCapability *object)
         {
@@ -172,4 +155,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         },
         py::return_value_policy::take_ownership,
         "Gets the list of supported authentication methods ids.");
+    cls.def_property_readonly("available_transport_options",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getAvailableTransportOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transport options the server accepts connections over, with the port it serves each on.");
 }

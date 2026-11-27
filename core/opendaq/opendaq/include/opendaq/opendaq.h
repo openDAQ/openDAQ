@@ -45,6 +45,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/transport_option_factory.h>
 #include <opendaq/network_interface_factory.h>
 
 #include <opendaq/server_ptr.h>

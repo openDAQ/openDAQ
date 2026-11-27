@@ -24,6 +24,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceLibrary(IProperty, "coreobjects")]
  * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(ITransportOption, "opendaq")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
@@ -41,13 +43,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param connectionString The connection string of device
      */
     virtual ErrCode INTERFACE_FUNC addConnectionString(IString* connectionString) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the ID of protocol group. Empty protocol group ID means that the protocol is not part of any group.
-     * @param protocolGroupId The ID of protocol group
-     */
-    virtual ErrCode INTERFACE_FUNC setProtocolGroupId(IString* protocolGroupId) = 0;
 
     // [returnSelf]
     /*!
@@ -100,8 +95,9 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the port of the device
+     * @brief Sets the port of a capability without transport options.
      * @param port The port of the device
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the capability lists transport options: they give the port.
      */
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
     
@@ -117,22 +113,37 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the security level of the protocol.
-     * @param securityLevel The security level of the protocol.
-     *
-     * Could be '-1' if the protocol does not define any security level or if the security level is not known,
-     * '0' if the protocol is not secure, and positive integer values for different security levels defined by the protocol.
-     * The higher the value, the more secure the protocol is considered to be.
-     */
-    virtual ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Adds a method id to the list of supported authentication methods. No-op when `methodId` is
      * already present.
      * @param methodId The authentication method id to add.
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
+
+    // [templateType(transportOptions, IString, ITransportOption), returnSelf]
+    /*!
+     * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
+     * @param transportOptions The served options, keyed by their own ids, the default one first in dict iteration
+     * order: the one a client connects over when it selects none.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the id of its option.
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the dictionary is not empty and the capability has a port set by setPort.
+     *
+     * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
+     * getPort; that port is also stored as the port read by older clients. An empty dictionary leaves that port
+     * unchanged.
+     */
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds a transport option the server accepts connections over, after the ones already set.
+     * @param transportOption The served option, with the port it is served on.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if an option with the same id is already set.
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the capability has a port set by setPort.
+     *
+     * The first option added becomes the default, and sets the port read by older clients.
+     */
+    virtual ErrCode INTERFACE_FUNC addAvailableTransportOption(ITransportOption* transportOption) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

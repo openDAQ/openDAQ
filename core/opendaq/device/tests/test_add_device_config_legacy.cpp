@@ -76,7 +76,7 @@ protected:
 
     AddDeviceConfigPtr createConfig(DeviceKind kind = DeviceKind::Mirrored) const
     {
-        return AddDeviceConfig(createDeviceType(kind), streamingTypes, True);
+        return AddDeviceConfig(createDeviceType(kind), streamingTypes, nullptr, True);
     }
 
     AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& legacy, DeviceKind kind = DeviceKind::Mirrored) const
@@ -466,7 +466,7 @@ TEST_F(AddDeviceConfigLegacyTest, NoStreamingOptionsDoesNotConnectStreaming)
 {
     const auto connects = [](DeviceKind kind)
     {
-        const auto legacy = toLegacyAddDeviceConfig(AddDeviceConfig(createDeviceType(kind), nullptr, True));
+        const auto legacy = toLegacyAddDeviceConfig(AddDeviceConfig(createDeviceType(kind), nullptr, nullptr, True));
         return static_cast<Bool>(section(legacy, "General").getPropertyValue("AutomaticallyConnectStreaming"));
     };
 

@@ -1,10 +1,13 @@
+#include <coretypes/dictobject_factory.h>
+#include <coretypes/listobject_factory.h>
+#include <coretypes/validation.h>
+#include <fmt/format.h>
 #include <opendaq/component_type_builder_impl.h>
-#include <opendaq/server_type_impl.h>
+#include <opendaq/container_utils.h>
 #include <opendaq/device_type_impl.h>
 #include <opendaq/function_block_type_impl.h>
+#include <opendaq/server_type_impl.h>
 #include <opendaq/streaming_type_impl.h>
-#include <coretypes/validation.h>
-#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -12,7 +15,9 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
     , serverKind(ServerKind::Unspecified)
     , deviceKind(DeviceKind::Unspecified)
-    , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
+    , supportedAuthenticationMethods(
+          (sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ? Dict<IString, IAuthenticationMethod>() : nullptr)
+    , transportOptions(Dict<IString, ITransportOption>())
 {
 }
 
@@ -225,6 +230,31 @@ ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getLinkedDeviceType only applies to a Streaming type");
 
     *deviceType = this->linkedDeviceType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IDict* transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    if (sort != ComponentTypeSort::Device && sort != ComponentTypeSort::Streaming && sort != ComponentTypeSort::Server)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Transport options only apply to a Device, Streaming or Server type");
+
+    return daqTry([&]
+    {
+        CheckKeyedByIds<ITransportOption>(transportOptions);
+
+        // A copy, so that the options checked here cannot change afterwards
+        this->transportOptions = FrozenClone(DictPtr<IString, ITransportOption>::Borrow(transportOptions));
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ComponentTypeBuilderImpl::getAvailableTransportOptions(IDict** transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    *transportOptions = this->transportOptions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

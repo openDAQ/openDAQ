@@ -34,7 +34,8 @@ public:
                                const StringPtr& prefix,
                                const PropertyObjectPtr& defaultConfig,
                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                               const DeviceTypePtr& linkedDeviceType = nullptr);
+                               const DeviceTypePtr& linkedDeviceType = nullptr,
+                               const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     explicit StreamingTypeImpl(const ComponentTypeBuilderPtr& builder);
 

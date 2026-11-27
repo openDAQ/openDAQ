@@ -13,7 +13,10 @@
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_builder_factory.h>
+#include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/transport_option_factory.h>
 #include <testutils/testutils.h>
+#include <testutils/transport_options.h>
 
 using InstanceTest = testing::Test;
 
@@ -405,9 +408,262 @@ TEST_F(InstanceTest, GetAddDeviceConfigOfRootDeviceIsNull)
     auto instance = test_helpers::setupInstance();
     const auto deviceType = DeviceType("mock_dev", "Mock device", "", "daqmockdev");
     instance.getRootDevice().asPtr<IComponentPrivate>().setComponentConfig(
-        AddDeviceConfig(deviceType, Dict<IString, IStreamingType>(), False));
+        AddDeviceConfig(deviceType, Dict<IString, IStreamingType>(), nullptr, False));
 
     ASSERT_FALSE(instance.getAddDeviceConfig().assigned());
+}
+
+// A mirrored device with the given server capabilities
+class StreamingTransportDevice final : public MockMirroredDeviceImpl
+{
+public:
+    StreamingTransportDevice(const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const DeviceTypePtr& type,
+                             const StringPtr& connectionString,
+                             const ListPtr<IServerCapability>& capabilities)
+        : MockMirroredDeviceImpl(ctx, parent, localId, type, connectionString)
+    {
+        for (const auto& capability : capabilities)
+            info.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+    }
+
+    void addNestedDevice(const DeviceTypePtr& type, const ListPtr<IServerCapability>& capabilities)
+    {
+        addSubDevice(createWithImplementation<IDevice, StreamingTransportDevice>(
+            this->context, this->devices, "nested", type, "daqtransport://nested", capabilities));
+    }
+};
+
+// Lists a Streaming type with transport options. Records the streaming it is asked to create and fails it.
+class StreamingTransportModule final : public Module
+{
+public:
+    explicit StreamingTransportModule(ContextPtr ctx)
+        : Module("Streaming transport", VersionInfo(1, 0, 0), std::move(ctx), "StreamingTransport")
+        , deviceType(DeviceTypeBuilder()
+                         .setId("transport_dev")
+                         .setName("transport_dev")
+                         .setConnectionStringPrefix("daqtransport")
+                         .setDeviceKind(DeviceKind::Mirrored)
+                         .setAvailableTransportOptions(TransportOptionsById(
+                             {TestTransportOption("ws", 7420), TestTransportOption("wss", 7422, SecurityMode::Encrypted)}))
+                         .build())
+    {
+    }
+
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        return Dict<IString, IDeviceType>({{"transport_dev", deviceType}});
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        const auto streamingType = StreamingTypeBuilder()
+                                       .setId("transport_streaming")
+                                       .setName("transport_streaming")
+                                       .setConnectionStringPrefix("daqstr")
+                                       .setAvailableTransportOptions(TransportOptionsById(
+                                           {TestTransportOption("ws", 7500), TestTransportOption("wss", 7502, SecurityMode::Encrypted)}))
+                                       .build();
+        return Dict<IString, IStreamingType>({{"transport_streaming", streamingType}});
+    }
+
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override
+    {
+        deviceConfigs.pushBack(config);
+        const DevicePtr device = createWithImplementation<IDevice, StreamingTransportDevice>(
+            context, parent, "transport", deviceType, connectionString, capabilities);
+
+        if (nestedCapabilities.assigned())
+            dynamic_cast<StreamingTransportDevice*>(device.getObject())->addNestedDevice(deviceType, nestedCapabilities);
+
+        return device;
+    }
+
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override
+    {
+        streamingConnectionStrings.pushBack(connectionString);
+        streamingConfigs.pushBack(config);
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "No streaming in the transport tests");
+    }
+
+    DeviceTypePtr deviceType;
+    ListPtr<IServerCapability> capabilities = List<IServerCapability>();
+    ListPtr<IServerCapability> nestedCapabilities;
+    ListPtr<IPropertyObject> deviceConfigs = List<IPropertyObject>();
+    ListPtr<IString> streamingConnectionStrings = List<IString>();
+    ListPtr<IPropertyObject> streamingConfigs = List<IPropertyObject>();
+};
+
+class StreamingTransportTest : public testing::Test
+{
+protected:
+    StreamingTransportTest()
+        : instance(test_helpers::setupInstance())
+        , modulePtr(createWithImplementation<IModule, StreamingTransportModule>(instance.getContext()))
+        , module(dynamic_cast<StreamingTransportModule*>(modulePtr.getObject()))
+    {
+        instance.getModuleManager().addModule(modulePtr);
+    }
+
+    static ServerCapabilityConfigPtr Capability(const std::string& prefix,
+                                                const std::string& host,
+                                                Int port,
+                                                const DictPtr<IString, ITransportOption>& options = nullptr)
+    {
+        auto capability = ServerCapability(prefix, prefix, ProtocolType::Streaming).setPrefix(prefix);
+        capability.setConnectionString(prefix + "://" + host + ":" + std::to_string(port));
+        if (options.assigned())
+            capability.setAvailableTransportOptions(options);
+        return capability;
+    }
+
+    static DictPtr<IString, ITransportOption> ServerOptions(Int wsPort, Int wssPort)
+    {
+        return TransportOptionsById({TestTransportOption("ws", wsPort), TestTransportOption("wss", wssPort, SecurityMode::Encrypted)});
+    }
+
+    AddDeviceConfigPtr createConfig() const
+    {
+        const auto config = instance.createAddDeviceConfig(DeviceInfo("daqtransport://host"));
+        config.getStreamingOptions().setStreamingType("transport_streaming");
+        return config;
+    }
+
+    void add(const AddDeviceConfigPtr& config) const
+    {
+        instance.addDevice("daqtransport://host", config);
+    }
+
+    void expectStreaming(SizeT index, const StringPtr& connectionString, const StringPtr& option, Int port) const
+    {
+        ASSERT_GT(module->streamingConnectionStrings.getCount(), index);
+        ASSERT_EQ(module->streamingConnectionStrings[index], connectionString);
+        const PropertyObjectPtr config = module->streamingConfigs[index];
+        ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), option);
+        ASSERT_EQ(config.getPropertyValue(PortConfigProperty), port);
+    }
+
+    InstancePtr instance;
+    ModulePtr modulePtr;
+    StreamingTransportModule* module;
+};
+
+// The default config of the module declares neither property: the module base class has to keep them
+TEST_F(StreamingTransportTest, ModuleGetsSelectedOptionAndPort)
+{
+    const auto config = createConfig();
+    config.setTransportOption("wss");
+
+    add(config);
+
+    ASSERT_EQ(module->deviceConfigs.getCount(), 1u);
+    const PropertyObjectPtr deviceConfig = module->deviceConfigs[0];
+    ASSERT_EQ(deviceConfig.getPropertyValue(TransportOptionConfigProperty), "wss");
+    ASSERT_EQ(deviceConfig.getPropertyValue(PortConfigProperty), 7422);
+}
+
+TEST_F(StreamingTransportTest, StreamingUsesPortTheServerAnnounces)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, ServerOptions(7510, 7512)));
+    const auto config = createConfig();
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
+
+    add(config);
+
+    ASSERT_EQ(module->streamingConnectionStrings.getCount(), 1u);
+    expectStreaming(0, "daqstr://host:7512", "wss", 7512);
+}
+
+TEST_F(StreamingTransportTest, StreamingUsesPortSet)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, ServerOptions(7510, 7512)));
+    const auto config = createConfig();
+    const auto streaming = config.getStreamingOptions().getStreamingConfig();
+    streaming.setTransportOption("wss");
+    streaming.setPort(7700);
+
+    add(config);
+
+    expectStreaming(0, "daqstr://host:7700", "wss", 7700);
+}
+
+// The streaming does not move to the open channel when the server does not announce the selected option
+TEST_F(StreamingTransportTest, CapabilityWithoutSelectedOptionIsSkipped)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TestTransportOption("ws", 7510)})));
+    const auto config = createConfig();
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
+
+    add(config);
+
+    ASSERT_EQ(module->streamingConnectionStrings.getCount(), 0u);
+}
+
+TEST_F(StreamingTransportTest, CapabilityWithoutSelectedOptionIsSkippedWithPortSet)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, TransportOptionsById({TestTransportOption("ws", 7510)})));
+    const auto config = createConfig();
+    const auto streaming = config.getStreamingOptions().getStreamingConfig();
+    streaming.setTransportOption("wss");
+    streaming.setPort(7700);
+
+    add(config);
+
+    ASSERT_EQ(module->streamingConnectionStrings.getCount(), 0u);
+}
+
+TEST_F(StreamingTransportTest, CapabilityWithoutOptionsKeepsItsPortForFirstOption)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510));
+
+    add(createConfig());
+
+    expectStreaming(0, "daqstr://host:7510", "ws", 7510);
+}
+
+TEST_F(StreamingTransportTest, CapabilityWithoutOptionsUsesOptionPortForOtherOption)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510));
+    const auto config = createConfig();
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
+
+    add(config);
+
+    expectStreaming(0, "daqstr://host:7502", "wss", 7502);
+}
+
+// Each device is reached at the port its own capability announces
+TEST_F(StreamingTransportTest, NestedDeviceUsesPortOfItsCapability)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, ServerOptions(7510, 7512)));
+    module->nestedCapabilities = List<IServerCapability>(Capability("daqstr", "nested", 7530, ServerOptions(7530, 7532)));
+    const auto config = createConfig();
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
+    config.getStreamingOptions().setStreamingMode(StreamingMode::MinHops);
+
+    add(config);
+
+    ASSERT_EQ(module->streamingConnectionStrings.getCount(), 2u);
+    expectStreaming(0, "daqstr://nested:7532", "wss", 7532);
+    expectStreaming(1, "daqstr://host:7512", "wss", 7512);
+}
+
+TEST_F(StreamingTransportTest, NestedDeviceWithoutSelectedOptionIsSkipped)
+{
+    module->capabilities.pushBack(Capability("daqstr", "host", 7510, ServerOptions(7510, 7512)));
+    module->nestedCapabilities =
+        List<IServerCapability>(Capability("daqstr", "nested", 7530, TransportOptionsById({TestTransportOption("ws", 7530)})));
+    const auto config = createConfig();
+    config.getStreamingOptions().getStreamingConfig().setTransportOption("wss");
+    config.getStreamingOptions().setStreamingMode(StreamingMode::MinHops);
+
+    add(config);
+
+    ASSERT_EQ(module->streamingConnectionStrings.getCount(), 1u);
+    expectStreaming(0, "daqstr://host:7512", "wss", 7512);
 }
 
 TEST_F(InstanceTest, EnumerateDeviceTypes)
@@ -1465,7 +1721,7 @@ static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr
 
 TEST_F(InstanceTest, LoadBindsSavedAddDeviceConfig)
 {
-    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, True);
+    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, nullptr, True);
     savedConfig.setPrimaryAddressType(AddressType::IPv6);
     savedConfig.setScanOnAdd(False);
 
@@ -1482,7 +1738,7 @@ TEST_F(InstanceTest, LoadSkipsSavedAddDeviceConfigOfUnloadedType)
 {
     const auto unloadedType = KindDeviceModule::createType("daqunloaded", DeviceKind::Adapter);
 
-    ASSERT_EQ(LoadRemovedAdapterChild(AddDeviceConfig(unloadedType, nullptr, False)).getCount(), 0u);
+    ASSERT_EQ(LoadRemovedAdapterChild(AddDeviceConfig(unloadedType, nullptr, nullptr, False)).getCount(), 0u);
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)

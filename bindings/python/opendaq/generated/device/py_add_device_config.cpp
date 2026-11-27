@@ -104,4 +104,42 @@ void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig
         },
         py::return_value_policy::take_ownership,
         "");
+    cls.def_property_readonly("available_transport_options",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getAvailableTransportOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transport options the device can be added over.");
+    cls.def_property("transport_option",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getTransportOption().detach();
+        },
+        [](daq::IAddDeviceConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            objectPtr.setTransportOption(getVariantValue<daq::IString*>(id));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the selected transport option. / Selects the transport option the device is added over.");
+    cls.def_property("port",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getPort();
+        },
+        [](daq::IAddDeviceConfig *object, daq::Int port)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            objectPtr.setPort(port);
+        },
+        "Gets the port the device is added on. / Sets the port the device is added on.");
 }

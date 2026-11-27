@@ -30,6 +30,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
 
     auto classIModuleInfo = declareIModuleInfo(m);
     auto classIComponentType = declareIComponentType(m);
+    auto classITransportOption = declareITransportOption(m);
+    auto classITransportOptionBuilder = declareITransportOptionBuilder(m);
     auto classIRemovable = declareIRemovable(m);
     auto classIComponent = declareIComponent(m);
     auto classIFolder = declareIFolder(m);
@@ -149,6 +151,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
 
     defineIModuleInfo(m, classIModuleInfo);
     defineIComponentType(m, classIComponentType);
+    defineITransportOption(m, classITransportOption);
+    defineITransportOptionBuilder(m, classITransportOptionBuilder);
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
     defineIFolder(m, classIFolder);

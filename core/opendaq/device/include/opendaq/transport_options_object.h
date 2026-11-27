@@ -19,7 +19,6 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/exceptions.h>
-#include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_ptr.h>
 #include <algorithm>
 #include <string>
@@ -31,16 +30,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param options The options, keyed by their ids.
  * @throws InvalidValueException if two ids differ only in "/", ".", "[" or "]".
  *
- * Each option is a child Property object with the read-only "Id", "Port", "SecurityMode" and "CertificateRequired"
- * properties. A peer that does not know ITransportOption can still read it. The child is named after the id of its
- * option, without the characters a property name cannot hold.
+ * Each option is a child object, named after the id of its option without the characters a property name cannot hold.
  */
 inline PropertyObjectPtr TransportOptionsObject(const DictPtr<IString, ITransportOption>& options)
 {
-    const auto securityModeNames = Dict<IInteger, IString>({{static_cast<Int>(SecurityMode::None), "None"},
-                                                            {static_cast<Int>(SecurityMode::Signed), "Signed"},
-                                                            {static_cast<Int>(SecurityMode::Encrypted), "Encrypted"}});
-
     auto container = PropertyObject();
     for (const auto& [id, option] : options)
     {
@@ -50,45 +43,10 @@ inline PropertyObjectPtr TransportOptionsObject(const DictPtr<IString, ITranspor
         if (key.empty() || container.hasProperty(key))
             DAQ_THROW_EXCEPTION(InvalidValueException, R"(Transport option "{}" cannot be told apart from another one)", option.getId());
 
-        auto obj = PropertyObject();
-        obj.addProperty(StringPropertyBuilder("Id", option.getId()).setReadOnly(true).build());
-        obj.addProperty(IntPropertyBuilder("Port", option.getPort()).setReadOnly(true).build());
-        obj.addProperty(
-            SparseSelectionPropertyBuilder("SecurityMode", securityModeNames, static_cast<Int>(option.getSecurityMode())).setReadOnly(true).build());
-        obj.addProperty(BoolPropertyBuilder("CertificateRequired", option.getCertificateRequired()).setReadOnly(true).build());
-        container.addProperty(ObjectProperty(key, obj));
+        container.addProperty(ObjectProperty(key, option));
     }
 
     return container;
-}
-
-/*!
- * @brief Gets the transport option that one child of a Property object created by TransportOptionsObject keeps.
- * @param obj The child Property object.
- * @throws InvalidParameterException if the object is not a transport option.
- */
-inline TransportOptionPtr TransportOptionFromObject(const PropertyObjectPtr& obj)
-{
-    const auto hasProperty = [&obj](const char* name, CoreType type)
-    {
-        return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
-    };
-
-    if (!hasProperty("Id", ctString) || !hasProperty("Port", ctInt) || !hasProperty("SecurityMode", ctInt) ||
-        !hasProperty("CertificateRequired", ctBool))
-    {
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
-    }
-
-    const StringPtr id = obj.getPropertyValue("Id");
-    const Int port = obj.getPropertyValue("Port");
-    const Int securityMode = obj.getPropertyValue("SecurityMode");
-    const Bool certificateRequired = obj.getPropertyValue("CertificateRequired");
-    return TransportOptionBuilder(id)
-        .setPort(port)
-        .setSecurityMode(static_cast<SecurityMode>(securityMode))
-        .setCertificateRequired(certificateRequired)
-        .build();
 }
 
 /*!
@@ -106,15 +64,9 @@ inline DictPtr<IString, ITransportOption> TransportOptionsFromObject(const Prope
         if (prop.getValueType() != ctObject)
             continue;
 
-        try
-        {
-            const auto option = TransportOptionFromObject(container.getPropertyValue(prop.getName()));
+        const auto option = container.getPropertyValue(prop.getName()).asPtrOrNull<ITransportOption, TransportOptionPtr>();
+        if (option.assigned())
             options.set(option.getId(), option);
-        }
-        catch (...)
-        {
-            daqClearErrorInfo();
-        }
     }
 
     return options;

@@ -196,9 +196,8 @@ TEST_F(ServerCapabilityTest, TransportOptionsAreCopied)
     ASSERT_EQ(capability.getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
 }
 
-// The options are written as plain Property objects, which a client without transport options reads too
-// The capability keeps each option as a plain Property object, which peers that do not know transport options read
-TEST_F(ServerCapabilityTest, TransportOptionsKeptAsPlainPropertyObjects)
+// The capability keeps the option objects themselves, like its address infos
+TEST_F(ServerCapabilityTest, TransportOptionsKeptAsChildObjects)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
@@ -207,7 +206,7 @@ TEST_F(ServerCapabilityTest, TransportOptionsKeptAsPlainPropertyObjects)
     const PropertyObjectPtr container = capability.getPropertyValue("AvailableTransportOptions");
     const PropertyObjectPtr tls = container.getPropertyValue("tls");
 
-    ASSERT_FALSE(tls.supportsInterface<ITransportOption>());
+    ASSERT_TRUE(tls.supportsInterface<ITransportOption>());
     ASSERT_EQ(tls.getPropertyValue("Id"), "tls");
     ASSERT_EQ(tls.getPropertyValue("Port"), 7421);
     ASSERT_EQ(tls.getPropertySelectionValue("SecurityMode"), "Encrypted");
@@ -239,7 +238,7 @@ TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
     const auto serializer = JsonSerializer();
     capability.serialize(serializer);
     const auto serializedCapability = serializer.getOutput();
-    ASSERT_EQ(std::string(serializedCapability).find(R"("__type":"TransportOption")"), std::string::npos);
+    ASSERT_NE(std::string(serializedCapability).find(R"("__type":"TransportOption")"), std::string::npos);
 
     const auto deserializer = JsonDeserializer();
     const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);
@@ -276,22 +275,18 @@ TEST_F(ServerCapabilityTest, DeserializeWithoutTransportOptions)
     ASSERT_EQ(newCapability.getPort(), 7420);
 }
 
-// An entry that is not a transport option, as a peer of another version may send, is left out
+// An entry that is not a transport option, as a peer of another version may send, is left out, even with the same properties
 TEST_F(ServerCapabilityTest, EntryThatIsNotATransportOptionIsLeftOut)
 {
-    auto quic = PropertyObject();
-    quic.addProperty(StringProperty("Id", "quic"));
-    quic.addProperty(StringProperty("Port", "7425"));
-
-    auto tls = PropertyObject();
-    tls.addProperty(StringProperty("Id", "tls"));
-    tls.addProperty(IntProperty("Port", 7421));
-    tls.addProperty(IntProperty("SecurityMode", static_cast<Int>(SecurityMode::Encrypted)));
-    tls.addProperty(BoolProperty("CertificateRequired", False));
+    auto plain = PropertyObject();
+    plain.addProperty(StringProperty("Id", "plain"));
+    plain.addProperty(IntProperty("Port", 7420));
+    plain.addProperty(IntProperty("SecurityMode", static_cast<Int>(SecurityMode::None)));
+    plain.addProperty(BoolProperty("CertificateRequired", False));
 
     auto container = PropertyObject();
-    container.addProperty(ObjectProperty("quic", quic));
-    container.addProperty(ObjectProperty("tls", tls));
+    container.addProperty(ObjectProperty("plain", plain));
+    container.addProperty(ObjectProperty("tls", TestTransportOption("tls", 7421, SecurityMode::Encrypted)));
 
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
     capability.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(String("AvailableTransportOptions"), container);

@@ -58,7 +58,7 @@ inline bool HasTransportOptions(const PropertyObjectPtr& config)
     return TransportOptionIds(config).getCount() > 0;
 }
 
-// Builds only the selected option. Unassigned for a config without options.
+// The selected option, or unassigned for a config without options
 inline TransportOptionPtr ReadSelectedTransportOption(const PropertyObjectPtr& config)
 {
     if (!HasTransportOptions(config))
@@ -68,9 +68,9 @@ inline TransportOptionPtr ReadSelectedTransportOption(const PropertyObjectPtr& c
     const PropertyObjectPtr options = config.getPropertyValue(AvailableTransportOptionsProperty);
     for (const auto& prop : options.getAllProperties())
     {
-        const PropertyObjectPtr option = options.getPropertyValue(prop.getName());
-        if (option.getPropertyValue("Id") == selected)
-            return TransportOptionFromObject(option);
+        const auto option = options.getPropertyValue(prop.getName()).asPtrOrNull<ITransportOption, TransportOptionPtr>();
+        if (option.assigned() && option.getId() == selected)
+            return option;
     }
 
     DAQ_THROW_EXCEPTION(NotFoundException, R"(The selected transport option "{}" is not available)", selected);

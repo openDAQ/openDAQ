@@ -346,6 +346,7 @@ TEST_F(AddConfigTransportTest, OptionsAreReadOnlyProperties)
         const auto options = OptionsObject(selecting);
         ASSERT_TRUE(options.isFrozen());
         const PropertyObjectPtr tls = options.getPropertyValue("tls");
+        ASSERT_TRUE(tls.supportsInterface<ITransportOption>());
         ASSERT_EQ(tls.getPropertyValue("Id"), "tls");
         ASSERT_EQ(tls.getPropertyValue("Port"), 7500);
         ASSERT_EQ(tls.getPropertySelectionValue("SecurityMode"), "Encrypted");

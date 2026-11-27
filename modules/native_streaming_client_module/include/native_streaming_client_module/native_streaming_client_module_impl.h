@@ -39,14 +39,10 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
-    DevicePtr onCreateDevice(const StringPtr& deviceConnectionString,
-                             const ComponentPtr& parent,
-                             const PropertyObjectPtr& config) override;
     DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
                                           const PropertyObjectPtr& config,
                                           const LoginParametersPtr& loginParameters) override;
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateAuthenticatedStreaming(const StringPtr& connectionString,
                                                 const PropertyObjectPtr& config,
                                                 const LoginParametersPtr& loginParameters) override;
@@ -56,14 +52,6 @@ private:
     DeviceTypePtr createPseudoDeviceType();
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
-
-    DevicePtr createDeviceInternal(const StringPtr& connectionString,
-                                   const ComponentPtr& parent,
-                                   const PropertyObjectPtr& config,
-                                   const LoginParametersPtr& loginParameters);
-    StreamingPtr createStreamingInternal(const StringPtr& connectionString,
-                                         const PropertyObjectPtr& config,
-                                         const LoginParametersPtr& loginParameters);
 
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
@@ -95,7 +83,6 @@ private:
         const PropertyObjectPtr& config,
         bool secure,
         const LoginParametersPtr& loginParameters);
-    static DictPtr<IString, IString> ParseConfigCredentials(const PropertyObjectPtr& config);
     static DictPtr<IString, IString> GetLoginCredentials(const LoginParametersPtr& loginParameters);
     void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 

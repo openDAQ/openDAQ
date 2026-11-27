@@ -48,6 +48,11 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfigPrivate, IBaseObject)
      * Unset values take the current defaults of the given types.
      * A Mirrored Device type lists only the selected Streaming type.
      * The bound config has no streaming options when no Streaming type is selected or the selected one is not among the given types.
+     * The supplied credentials of the authentication configs are not kept.
+     * The deprecated `Username` and `Password` of a type config are reset to their defaults when its authentication config
+     * has the `UserNamePassword` method, as the credential of such a type is supplied through the authentication config.
+     * A type without that method keeps them: its module has no authentication config to get the credential from, so it
+     * still reads them from the type config.
      */
     virtual ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) = 0;
 

@@ -1105,22 +1105,10 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
     };
 
-    // Binding drops the credentials supplied on the user-provided config, so they are cached before. The device credentials are
-    // used to connect, the streaming ones are kept by the created device.
-    DictPtr<IString, IString> deviceCredentials;
-    DictPtr<IString, IString> streamingCredentials;
-    if (inputAddDeviceConfig.assigned())
-    {
-        deviceCredentials = GetSuppliedCredential(inputAddDeviceConfig);
-        const auto options = inputAddDeviceConfig.getStreamingOptions();
-        if (options.assigned() && options.getStreamingConfig().assigned())
-            streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
-    }
-
     const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
     {
         if (inputAddDeviceConfig.assigned())
-            return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+            return inputAddDeviceConfig;
 
         const auto deviceType = selectDeviceType();
         if (inputConfig.assigned())
@@ -1128,7 +1116,17 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
     };
 
-    const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+    const AddDeviceConfigPtr unboundAddDeviceConfig = toAddDeviceConfig();
+
+    // Binding drops the supplied credentials, so they are cached before. The device credentials are used to connect,
+    // the streaming ones are kept by the created device.
+    const DictPtr<IString, IString> deviceCredentials = GetSuppliedCredential(unboundAddDeviceConfig);
+    DictPtr<IString, IString> streamingCredentials;
+    if (const auto options = unboundAddDeviceConfig.getStreamingOptions(); options.assigned() && options.getStreamingConfig().assigned())
+        streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
+
+    const AddDeviceConfigPtr addDeviceConfig =
+        unboundAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
     ApplyConnectionStringTransportOptions(addDeviceConfig, connectionStringOptions);
     WarnIfPortSetOverridesConnectionString(GetPortSet(addDeviceConfig), connectionStringPtr, loggerComponent);
 
@@ -1953,14 +1951,18 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             continue;
 
         PropertyObjectPtr streamingTypeConfig;
+        AuthenticationConfigPtr authenticationConfig;
         if (addStreamingConfig.assigned())
         {
             streamingTypeConfig =
                 CreateConnectionConfig(addStreamingConfig, streamingType, addStreamingConfig.getTypeConfig(), targetConnectionString);
+            authenticationConfig = addStreamingConfig.getAuthenticationConfig();
         }
         else
         {
-            streamingTypeConfig = fromLegacyAddStreamingConfig(typeConfig, streamingType);
+            const AddStreamingConfigPtr legacyStreamingConfig = fromLegacyAddStreamingConfig(typeConfig, streamingType);
+            streamingTypeConfig = legacyStreamingConfig.getTypeConfig();
+            authenticationConfig = legacyStreamingConfig.getAuthenticationConfig();
 
             // The module connects by the selection properties; a config without them gets the default option
             if (const auto options = streamingType.getAvailableTransportOptions(); options.getCount() > 0)
@@ -1980,18 +1982,6 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                          GetConnectionPort(portSet, targetConnectionString, selected));
                 }
             }
-        }
-
-        AuthenticationConfigPtr authenticationConfig;
-        if (addStreamingConfig.assigned())
-        {
-            authenticationConfig = addStreamingConfig.getAuthenticationConfig();
-        }
-        else
-        {
-            // A legacy config has no authentication config of its own
-            authenticationConfig = streamingType.createAuthenticationConfig();
-            applyLegacyCredentials(authenticationConfig, streamingTypeConfig);
         }
 
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through

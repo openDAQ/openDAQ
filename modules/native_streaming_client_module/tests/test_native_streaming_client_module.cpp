@@ -6,6 +6,8 @@
 #include <gmock/gmock.h>
 
 #include <opendaq/module_ptr.h>
+#include <opendaq/login_parameters_factory.h>
+#include <opendaq/authentication_method_factory.h>
 #include <coretypes/common.h>
 
 #include <opendaq/context_factory.h>
@@ -73,6 +75,11 @@ TEST_F(NativeStreamingClientModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 }
 
+static LoginParametersPtr anonymousLogin()
+{
+    return LoginParametersBuilder().setAuthenticationMethod(StandardAnonymousAuthenticationMethod()).build();
+}
+
 TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();
@@ -88,8 +95,16 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
     auto config = PropertyObject();
     config.addProperty(StringProperty("TransportOption", "ws"));
 
-    ASSERT_THROW(module.createDevice("daq.ns://127.0.0.1", nullptr, config), NotFoundException);
-    ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr, config), NotFoundException);
+    ASSERT_THROW(module.createAuthenticatedDevice("daq.ns://127.0.0.1", nullptr, config, anonymousLogin()), NotFoundException);
+    ASSERT_THROW(module.createAuthenticatedDevice("daq.nd://127.0.0.1", nullptr, config, anonymousLogin()), NotFoundException);
+}
+
+TEST_F(NativeStreamingClientModuleTest, PlainCreateCreatesNothing)
+{
+    auto module = CreateModule();
+
+    ASSERT_FALSE(module.createDevice("daq.nd://127.0.0.1", nullptr).assigned());
+    ASSERT_FALSE(module.createStreaming("daq.ns://127.0.0.1", nullptr).assigned());
 }
 
 // The module manager adds the transport option to the config; the module does not pick one itself
@@ -101,7 +116,7 @@ TEST_F(NativeStreamingClientModuleTest, TransportOptionRequired)
     {
         try
         {
-            module.createDevice(connectionString, nullptr);
+            module.createAuthenticatedDevice(connectionString, nullptr, nullptr, anonymousLogin());
             FAIL() << connectionString << ": the device was created";
         }
         catch (const InvalidParameterException& e)
@@ -110,7 +125,7 @@ TEST_F(NativeStreamingClientModuleTest, TransportOptionRequired)
         }
     }
 
-    ASSERT_THROW(module.createStreaming("daq.ns://127.0.0.1", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createAuthenticatedStreaming("daq.ns://127.0.0.1", nullptr, anonymousLogin()), InvalidParameterException);
 }
 
 TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
@@ -355,7 +370,7 @@ TEST_F(NativeStreamingClientModuleTest, UnknownTransportOptionRefused)
 
             try
             {
-                module.createDevice(std::string(prefix) + "://127.0.0.1/", nullptr, config);
+                module.createAuthenticatedDevice(std::string(prefix) + "://127.0.0.1/", nullptr, config, anonymousLogin());
                 FAIL() << id << " " << option << ": the device was created";
             }
             catch (const NotFoundException& e)
@@ -370,8 +385,8 @@ TEST_F(NativeStreamingClientModuleTest, UnknownTransportOptionRefused)
 TEST_F(NativeStreamingClientModuleTest, SecurePrefixesRefused)
 {
     const auto module = CreateModule();
-    ASSERT_THROW(module.createDevice("daq.nds://127.0.0.1:7422/", nullptr), InvalidParameterException);
-    ASSERT_THROW(module.createDevice("daq.nss://127.0.0.1:7422/", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createAuthenticatedDevice("daq.nds://127.0.0.1:7422/", nullptr, nullptr, anonymousLogin()), InvalidParameterException);
+    ASSERT_THROW(module.createAuthenticatedDevice("daq.nss://127.0.0.1:7422/", nullptr, nullptr, anonymousLogin()), InvalidParameterException);
 }
 
 #if NATIVE_STREAMING_ENABLE_TLS
@@ -555,7 +570,7 @@ TEST_P(ConnectionStringTest, CreateDeviceWrongConnectionString)
 
     StringPtr connectionString = GetParam();
 
-    ASSERT_THROW(module.createDevice(connectionString, nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createAuthenticatedDevice(connectionString, nullptr, nullptr, anonymousLogin()), InvalidParameterException);
 }
 
 TEST_P(ConnectionStringTest, CreateStreamingWrongConnectionString)
@@ -564,7 +579,7 @@ TEST_P(ConnectionStringTest, CreateStreamingWrongConnectionString)
 
     StringPtr connectionString = GetParam();
 
-    ASSERT_THROW(module.createStreaming(connectionString, nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createAuthenticatedStreaming(connectionString, nullptr, anonymousLogin()), InvalidParameterException);
 }
 
 INSTANTIATE_TEST_SUITE_P(

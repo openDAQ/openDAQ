@@ -2,6 +2,7 @@
 #include "test_helpers/test_helpers.h"
 #include "test_helpers/device_modules.h"
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/add_device_config_private_ptr.h>
 
 using namespace daq;
 
@@ -30,7 +31,14 @@ public:
 
         const PropertyObjectPtr stored = device.asPtr<IComponentPrivate>(true).getComponentConfig();
         ASSERT_TRUE(stored.assigned());
-        test_helpers::testPropObjsEquality(translated, stored);
+        test_helpers::testPropObjsEquality(bound(instance, translated), stored);
+    }
+
+    // The stored config is bound, so the expected one is bound the same way.
+    static AddDeviceConfigPtr bound(const InstancePtr& instance, const AddDeviceConfigPtr& config)
+    {
+        return config.asPtr<IAddDeviceConfigPrivate>().bind(
+            instance.getAvailableDeviceTypes(), instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes());
     }
 };
 
@@ -70,7 +78,7 @@ TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfigStoresCreatedConfig)
 
     const AddDeviceConfigPtr stored = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(stored.assigned());
-    test_helpers::testPropObjsEquality(instance.createAddDeviceConfig(DeviceInfo(connectionString)), stored);
+    test_helpers::testPropObjsEquality(bound(instance, instance.createAddDeviceConfig(DeviceInfo(connectionString))), stored);
     ASSERT_EQ(stored.getStreamingOptions().getStreamingMode(), StreamingMode::MinHops);
 }
 

@@ -1245,7 +1245,7 @@ TEST_F(ModuleManagerAddConfigTest, CreateStreamingConfig)
     ASSERT_EQ(module->createdConnectionStrings, List<IString>("free://a", "free://b", "free://c"));
     ASSERT_EQ(PropertyObjectPtr(module->createdConfigs[0]).getPropertyValue("Port"), 1);
     ASSERT_EQ(PropertyObjectPtr(module->createdConfigs[1]).getPropertyValue("Port"), 2);
-    ASSERT_FALSE(module->createdConfigs[2].assigned());
+    ASSERT_EQ(PropertyObjectPtr(module->createdConfigs[2]).getPropertyValue("Port"), 7420);
 
     StreamingPtr streaming;
     ASSERT_EQ(utils->createStreaming(&streaming, String("mockstr://a"), addStreamingConfig.asPtr<IPropertyObject>(), nullptr),

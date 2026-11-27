@@ -164,6 +164,38 @@ static void writePortSet(const PropertyObjectPtr& entry, Int port)
         entry.addProperty(IntProperty(PortConfigProperty, port));
 }
 
+static void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig)
+{
+    if (!authenticationConfig.assigned() || !typeConfig.assigned() || !typeConfig.hasProperty(LegacyAddDeviceConfig::Username))
+        return;
+
+    const StringPtr username = typeConfig.getPropertyValue(LegacyAddDeviceConfig::Username);
+    if (username.getLength() == 0 || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
+        return;
+
+    const StringPtr password =
+        typeConfig.hasProperty(LegacyAddDeviceConfig::Password) ? StringPtr(typeConfig.getPropertyValue(LegacyAddDeviceConfig::Password)) : String("");
+    authenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
+    authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
+}
+
+static PropertyObjectPtr toLegacyTypeConfig(const PropertyObjectPtr& typeConfig, const AuthenticationConfigPtr& authenticationConfig)
+{
+    const PropertyObjectPtr legacyTypeConfig = typeConfig.asPtr<IPropertyObjectInternal>().clone();
+    if (!authenticationConfig.assigned() || authenticationConfig.getSelectedAuthenticationMethod().getId() != StandardUserNamePasswordId)
+        return legacyTypeConfig;
+
+    const auto credential = authenticationConfig.getSuppliedCredential();
+    if (credential.getCount() == 0)
+        return legacyTypeConfig;
+
+    if (legacyTypeConfig.hasProperty(LegacyAddDeviceConfig::Username) && credential.hasKey("UserName"))
+        legacyTypeConfig.setPropertyValue(LegacyAddDeviceConfig::Username, credential.get("UserName"));
+    if (legacyTypeConfig.hasProperty(LegacyAddDeviceConfig::Password) && credential.hasKey("Password"))
+        legacyTypeConfig.setPropertyValue(LegacyAddDeviceConfig::Password, credential.get("Password"));
+    return legacyTypeConfig;
+}
+
 }
 
 PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
@@ -224,21 +256,6 @@ PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType
     return config.detach();
 }
 
-void applyLegacyCredentials(const AuthenticationConfigPtr& authenticationConfig, const PropertyObjectPtr& typeConfig)
-{
-    if (!authenticationConfig.assigned() || !typeConfig.assigned() || !typeConfig.hasProperty(LegacyAddDeviceConfig::Username))
-        return;
-
-    const StringPtr username = typeConfig.getPropertyValue(LegacyAddDeviceConfig::Username);
-    if (username.getLength() == 0 || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
-        return;
-
-    const StringPtr password =
-        typeConfig.hasProperty(LegacyAddDeviceConfig::Password) ? StringPtr(typeConfig.getPropertyValue(LegacyAddDeviceConfig::Password)) : String("");
-    authenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
-    authenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", username}, {"Password", password}}));
-}
-
 AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const DeviceTypePtr& deviceType,
                                              const DictPtr<IString, IStreamingType>& streamingTypes,
@@ -264,7 +281,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
     const auto deviceEntry = detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig);
     detail::translateTypeConfig(config.getTypeConfig(), deviceEntry, general);
-    applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
+    detail::applyLegacyCredentials(config.getAuthenticationConfig(), config.getTypeConfig());
     selectLegacyTransportOption(config);
     if (const Int port = detail::portSetIn(deviceEntry, config.getTypeConfig(), config.getAvailableTransportOptions().getCount() > 0);
         port != -1)
@@ -274,7 +291,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
     {
         const auto streamingEntry = detail::sectionOf(streamingSection, typeId);
         detail::translateTypeConfig(streamingConfig.getTypeConfig(), streamingEntry, general);
-        applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
+        detail::applyLegacyCredentials(streamingConfig.getAuthenticationConfig(), streamingConfig.getTypeConfig());
         selectLegacyTransportOption(streamingConfig);
         const bool streamingHasOptions = streamingConfig.getAvailableTransportOptions().getCount() > 0;
         if (const Int port = detail::portSetIn(streamingEntry, streamingConfig.getTypeConfig(), streamingHasOptions); port != -1)
@@ -323,29 +340,29 @@ Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
     return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
 }
 
-PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
+AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)
 {
-    if (!config.assigned() || !config.hasProperty(LegacyAddDeviceConfig::DeviceSection) ||
-        !config.hasProperty(LegacyAddDeviceConfig::StreamingSection) || !config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
-        return config;
+    auto addStreamingConfig = AddStreamingConfig(streamingType);
+    if (config.assigned() && config.hasProperty(LegacyAddDeviceConfig::DeviceSection) &&
+        config.hasProperty(LegacyAddDeviceConfig::StreamingSection) && config.hasProperty(LegacyAddDeviceConfig::GeneralSection))
+    {
+        const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
+        const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
+        detail::translateTypeConfig(addStreamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, streamingType.getId()), general);
+    }
+    else if (config.assigned())
+    {
+        addStreamingConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("TypeConfig", config);
+    }
 
-    const auto general = detail::createGeneral(config.getPropertyValue(LegacyAddDeviceConfig::GeneralSection), False);
-    const PropertyObjectPtr streamingSection = config.getPropertyValue(LegacyAddDeviceConfig::StreamingSection);
-
-    auto typeConfig = streamingType.createDefaultConfig();
-    detail::translateTypeConfig(typeConfig, detail::sectionOf(streamingSection, streamingType.getId()), general);
-    return typeConfig;
+    detail::applyLegacyCredentials(addStreamingConfig.getAuthenticationConfig(), addStreamingConfig.getTypeConfig());
+    return addStreamingConfig;
 }
 
 PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
 {
-    const auto cloneTypeConfig = [](const PropertyObjectPtr& typeConfig) -> PropertyObjectPtr
-    {
-        return typeConfig.asPtr<IPropertyObjectInternal>().clone();
-    };
-
     auto deviceSection = PropertyObject();
-    const auto deviceEntry = cloneTypeConfig(config.getTypeConfig());
+    const auto deviceEntry = detail::toLegacyTypeConfig(config.getTypeConfig(), config.getAuthenticationConfig());
     detail::writePortSet(deviceEntry, GetPortSet(config));
     deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), deviceEntry));
 
@@ -363,7 +380,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
             if (!streamingConfig.assigned())
                 continue;
 
-            const auto streamingEntry = cloneTypeConfig(streamingConfig.getTypeConfig());
+            const auto streamingEntry = detail::toLegacyTypeConfig(streamingConfig.getTypeConfig(), streamingConfig.getAuthenticationConfig());
             detail::writePortSet(streamingEntry, GetPortSet(streamingConfig));
             streamingSection.addProperty(ObjectProperty(typeId, streamingEntry));
         }

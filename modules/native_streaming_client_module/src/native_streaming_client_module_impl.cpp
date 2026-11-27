@@ -378,25 +378,10 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     }
 }
 
-DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
-                                                      const ComponentPtr& parent,
-                                                      const PropertyObjectPtr& config)
-{
-    return createDeviceInternal(connectionString, parent, config, nullptr);
-}
-
 DevicePtr NativeStreamingClientModule::onCreateAuthenticatedDevice(const StringPtr& connectionString,
                                                                    const ComponentPtr& parent,
                                                                    const PropertyObjectPtr& config,
                                                                    const LoginParametersPtr& loginParameters)
-{
-    return createDeviceInternal(connectionString, parent, config, loginParameters);
-}
-
-DevicePtr NativeStreamingClientModule::createDeviceInternal(const StringPtr& connectionString,
-                                                            const ComponentPtr& parent,
-                                                            const PropertyObjectPtr& config,
-                                                            const LoginParametersPtr& loginParameters)
 {
     validateConnectionParameters(connectionString, config);
 
@@ -506,8 +491,12 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
     defaultConfig.addProperty(IntProperty("Port", DEFAULT_PORT));
-    defaultConfig.addProperty(StringProperty("Username", ""));
-    defaultConfig.addProperty(StringProperty("Password", ""));
+    defaultConfig.addProperty(StringPropertyBuilder("Username", "")
+                                  .setDescription("Deprecated: supply the credential through the authentication config instead")
+                                  .build());
+    defaultConfig.addProperty(StringPropertyBuilder("Password", "")
+                                  .setDescription("Deprecated: supply the credential through the authentication config instead")
+                                  .build());
 
     daq::ClientTypeTools::DefineConfigProperties(defaultConfig);
 
@@ -639,10 +628,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const LoginParametersPtr& loginParameters)
 {
     PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-    // Login parameters are only assigned on the authenticated path (`createAuthenticatedDevice`/`createAuthenticatedStreaming`).
-    // Without them, the plain `createDevice`/`createStreaming` is used (e.g. by an older module manager) - backward compatibility
-    // with credentials passed via the "Username"/"Password" config properties.
-    const auto credentials = loginParameters.assigned() ? GetLoginCredentials(loginParameters) : ParseConfigCredentials(config);
+    const auto credentials = GetLoginCredentials(loginParameters);
 
     copyConfigPropertyValue("ClientType", config, transportLayerConfig);
     copyConfigPropertyValue("ExclusiveControlDropOthers", config, transportLayerConfig);
@@ -669,30 +655,6 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     transportClientHandler->connect(modifiedHost.toStdString(), std::to_string(port), path.toStdString());
 
     return transportClientHandler;
-}
-
-DictPtr<IString, IString> NativeStreamingClientModule::ParseConfigCredentials(const PropertyObjectPtr& config)
-{
-    auto credentials = Dict<IString, IString>();
-    if (!config.assigned())
-        return credentials;
-
-    const StringPtr username = config.hasProperty("Username") ? StringPtr(config.getPropertyValue("Username")) : StringPtr("");
-    const StringPtr password = config.hasProperty("Password") ? StringPtr(config.getPropertyValue("Password")) : StringPtr("");
-
-    if (username.getLength() == 0)
-    {
-        // a password without a user name is a misconfiguration, not an anonymous connection request
-        if (password.getLength() > 0)
-            DAQ_THROW_EXCEPTION(GeneralErrorException, "The \"Password\" config property is set, but \"Username\" is empty - a user name is required for a password-based connection");
-
-        // no user name - anonymous connection
-        return credentials;
-    }
-
-    credentials.set("UserName", username);
-    credentials.set("Password", password);
-    return credentials;
 }
 
 DictPtr<IString, IString> NativeStreamingClientModule::GetLoginCredentials(const LoginParametersPtr& loginParameters)
@@ -752,21 +714,9 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
     return nativeStreaming;
 }
 
-StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
-{
-    return createStreamingInternal(connectionString, config, nullptr);
-}
-
 StreamingPtr NativeStreamingClientModule::onCreateAuthenticatedStreaming(const StringPtr& connectionString,
                                                                          const PropertyObjectPtr& config,
                                                                          const LoginParametersPtr& loginParameters)
-{
-    return createStreamingInternal(connectionString, config, loginParameters);
-}
-
-StreamingPtr NativeStreamingClientModule::createStreamingInternal(const StringPtr& connectionString,
-                                                                  const PropertyObjectPtr& config,
-                                                                  const LoginParametersPtr& loginParameters)
 {
     validateStreamingConnectionParameters(connectionString, config);
 

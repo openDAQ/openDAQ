@@ -14,8 +14,12 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add `MultiReader2`, a reader that keeps equal-rate signals aligned onto the main input's tick grid. It is set up only through `configure` with an `IMultiReader2Params` object and returns one status per read, with each input's error. Under the `Exclude` error policy it sets an erroring input aside and takes it back once it is healthy. Its limits are counted in each input's own data: an input falls out of sync at 3 s and rejoins within a third of that, and queued data is dropped at 5 s or 100 MB per input, or 1 GB across all inputs. `IMultiReader2Params::setAdditionalOptions` overrides them with the `SyncLimitSeconds`, `CriticalLimitSeconds`, `CriticalLimitBytes` and `TotalLimitBytes` keys; a time limit of 0 is not enforced. The existing `MultiReader` is unchanged. Available in C and Python. `MultiReader2` is experimental: its API may change in future releases.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) The reference FB module's sum and power readers and the multi CSV recorder read through `MultiReader2`, on the new header-only `ReaderFbBase` base for function blocks.
 
 ## Python
+
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add `daq.MultiReader2Params(inputs, **params)` and `daq.MultiReader2(params)`. `read(count)` returns numpy arrays by slot or by input, with the ticks, times and status; `read_into`, `skip_samples`, `configure` and `reevaluate` complete it. The `additional_options` param takes a dict of the reader's limits. Experimental, like `MultiReader2` itself.
 
 ## Bug fixes
 

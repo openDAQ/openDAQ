@@ -45,8 +45,6 @@ void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption
 {
     cls.doc() = "Describes one way to connect to a component: a transport, its port and its security mode.";
 
-    m.def("TransportOptionFromBuilder", &daq::TransportOptionFromBuilder_Create);
-
     cls.def_property_readonly("id",
         [](daq::ITransportOption *object)
         {

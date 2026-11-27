@@ -41,11 +41,3 @@ daqErrCode daqTransportOption_getCertificateRequired(daqTransportOption* self, d
 {
     return reinterpret_cast<daq::ITransportOption*>(self)->getCertificateRequired(required);
 }
-
-daqErrCode daqTransportOption_createTransportOptionFromBuilder(daqTransportOption** obj, daqTransportOptionBuilder* builder)
-{
-    daq::ITransportOption* ptr = nullptr;
-    daqErrCode err = daq::createTransportOptionFromBuilder(&ptr, reinterpret_cast<daq::ITransportOptionBuilder*>(builder));
-    *obj = reinterpret_cast<daqTransportOption*>(ptr);
-    return err;
-}

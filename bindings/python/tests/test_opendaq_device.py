@@ -99,8 +99,6 @@ class TestTransportOption(opendaq_test.TestCase):
         self.assertEqual(option.security_mode, opendaq.SecurityMode.Encrypted)
         self.assertTrue(option.certificate_required)
 
-        self.assertEqual(opendaq.TransportOptionFromBuilder(builder).id, 'tls')
-
     def test_builder_from_existing(self):
         builder = opendaq.TransportOptionBuilder('tls')
         builder.port = 7422

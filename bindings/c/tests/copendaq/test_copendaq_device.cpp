@@ -312,7 +312,7 @@ TEST_F(COpendaqDeviceTest, TransportOption)
 
     const auto builder = daq::TransportOptionBuilder("tls").setPort(7422).setSecurityMode(daq::SecurityMode::Encrypted).setCertificateRequired(True);
     daqTransportOption* option = nullptr;
-    ASSERT_EQ(daqTransportOption_createTransportOptionFromBuilder(&option, (daqTransportOptionBuilder*) builder.getObject()), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_build((daqTransportOptionBuilder*) builder.getObject(), &option), DAQ_SUCCESS);
     const auto optionPtr = daq::TransportOptionPtr::Adopt((daq::ITransportOption*) option);
 
     daqString* optionId = nullptr;

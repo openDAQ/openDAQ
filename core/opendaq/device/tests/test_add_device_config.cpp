@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_device_config_private_ptr.h>
+#include <opendaq/add_streaming_config_private_ptr.h>
+#include <opendaq/authentication_method_factory.h>
 #include <opendaq/add_device_config_legacy.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/address_info_utils.h>
@@ -346,6 +348,15 @@ TEST_F(AddDeviceConfigTest, WireFormBelowVersion4IsLegacy)
     ASSERT_EQ(serializeWithVersion3(config), serializeWithVersion3(toLegacyAddDeviceConfig(config)));
 }
 
+TEST_F(AddDeviceConfigTest, NoAuthenticationConfigWithoutAuthenticationMethods)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+    ASSERT_FALSE(config.getAuthenticationConfig().assigned());
+    ASSERT_FALSE(config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig().assigned());
+    ASSERT_FALSE(AddStreamingConfig(createStreamingType("a")).getAuthenticationConfig().assigned());
+}
+
 TEST_F(AddDeviceConfigTest, StandaloneStreamingConfig)
 {
     const auto streamingType = createStreamingType("a", "dev");
@@ -513,6 +524,92 @@ TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
     const auto streamingTypes = Dict<IString, IStreamingType>({{"linked", createStreamingType("linked", "dev")}});
 
     ASSERT_FALSE(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions().assigned());
+}
+
+static StreamingTypePtr createCredentialStreamingType(const StringPtr& id, bool userNamePassword)
+{
+    PropertyObjectPtr defaultTypeConfig = PropertyObject();
+    defaultTypeConfig.addProperty(StringProperty("Username", ""));
+    defaultTypeConfig.addProperty(StringProperty("Password", ""));
+
+    auto builder = StreamingTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id).setDefaultConfig(defaultTypeConfig);
+    if (userNamePassword)
+        builder.addAuthenticationMethod(StandardAnonymousAuthenticationMethod()).addAuthenticationMethod(
+            StandardUserNamePasswordAuthenticationMethod());
+    return builder.build();
+}
+
+// Bind creates the add streaming config for the given Streaming type of the same ID - its values applied, the unset ones
+// taking the defaults of the given type.
+TEST_F(AddDeviceConfigTest, StreamingConfigBindRebindsToGivenType)
+{
+    const AddStreamingConfigPtr unboundConfig = AddStreamingConfig(createStreamingType("a"));
+    unboundConfig.getTypeConfig().setPropertyValue("Id", "changed");
+
+    const PropertyObjectPtr givenTypeNestedConfig = PropertyObject();
+    givenTypeNestedConfig.addProperty(StringProperty("Id", "a"));
+    givenTypeNestedConfig.addProperty(IntProperty("Extra", 5));
+    const StreamingTypePtr givenType =
+        StreamingTypeBuilder().setId("a").setName("a").setConnectionStringPrefix("a").setDefaultConfig(givenTypeNestedConfig).build();
+
+    const AddStreamingConfigPtr boundConfig =
+        unboundConfig.asPtr<IAddStreamingConfigPrivate>().bind(Dict<IString, IStreamingType>({{"a", givenType}}));
+
+    const PropertyObjectPtr boundTypeConfig = boundConfig.getTypeConfig();
+    ASSERT_EQ(boundConfig.getStreamingType(), givenType);
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Id"), "changed");
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Extra"), 5);
+}
+
+// Bind fails when the Streaming type of the config is not among the given types.
+TEST_F(AddDeviceConfigTest, StreamingConfigBindUnknownType)
+{
+    const AddStreamingConfigPtr unboundConfig = AddStreamingConfig(createStreamingType("a"));
+    const AddStreamingConfigPrivatePtr unboundConfigPrivate = unboundConfig.asPtr<IAddStreamingConfigPrivate>();
+
+    ASSERT_THROW(unboundConfigPrivate.bind(Dict<IString, IStreamingType>({{"b", createStreamingType("b")}})), NotFoundException);
+    ASSERT_THROW(unboundConfigPrivate.bind(nullptr), NotFoundException);
+}
+
+// Bind keeps the selected authentication method, but drops the supplied credential and resets the deprecated
+// Username/Password of a type with the UserNamePassword method.
+TEST_F(AddDeviceConfigTest, StreamingConfigBindDropsCredentialsOfAuthenticatedType)
+{
+    const StreamingTypePtr streamingType = createCredentialStreamingType("a", true);
+    const AddStreamingConfigPtr unboundConfig = AddStreamingConfig(streamingType);
+    const PropertyObjectPtr unboundTypeConfig = unboundConfig.getTypeConfig();
+    unboundTypeConfig.setPropertyValue("Username", "user");
+    unboundTypeConfig.setPropertyValue("Password", "pw");
+    const AuthenticationConfigPtr unboundAuthenticationConfig = unboundConfig.getAuthenticationConfig();
+    unboundAuthenticationConfig.setAuthenticationMethod(StandardUserNamePasswordId);
+    unboundAuthenticationConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pw"}}));
+
+    const AddStreamingConfigPtr boundConfig =
+        unboundConfig.asPtr<IAddStreamingConfigPrivate>().bind(Dict<IString, IStreamingType>({{"a", streamingType}}));
+
+    const PropertyObjectPtr boundTypeConfig = boundConfig.getTypeConfig();
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Username"), "");
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Password"), "");
+    const AuthenticationConfigPtr boundAuthenticationConfig = boundConfig.getAuthenticationConfig();
+    ASSERT_EQ(boundAuthenticationConfig.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
+    ASSERT_EQ(boundAuthenticationConfig.getSuppliedCredential().getCount(), 0u);
+}
+
+// Bind keeps the Username/Password of a type without authentication methods, as its module still reads them.
+TEST_F(AddDeviceConfigTest, StreamingConfigBindKeepsCredentialPropsOfTypeWithoutAuthentication)
+{
+    const StreamingTypePtr streamingType = createCredentialStreamingType("a", false);
+    const AddStreamingConfigPtr unboundConfig = AddStreamingConfig(streamingType);
+    const PropertyObjectPtr unboundTypeConfig = unboundConfig.getTypeConfig();
+    unboundTypeConfig.setPropertyValue("Username", "user");
+    unboundTypeConfig.setPropertyValue("Password", "pw");
+
+    const AddStreamingConfigPtr boundConfig =
+        unboundConfig.asPtr<IAddStreamingConfigPrivate>().bind(Dict<IString, IStreamingType>({{"a", streamingType}}));
+
+    const PropertyObjectPtr boundTypeConfig = boundConfig.getTypeConfig();
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Username"), "user");
+    ASSERT_EQ(boundTypeConfig.getPropertyValue("Password"), "pw");
 }
 
 TEST_F(AddDeviceConfigTest, SortAddressInfos)

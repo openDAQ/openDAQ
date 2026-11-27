@@ -11,7 +11,8 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
-#include <opendaq/device_private.h>
+#include <opendaq/device_private_ptr.h>
+#include <opendaq/add_streaming_config_private_ptr.h>
 #include <string>
 #include <future>
 #include <boost/algorithm/string.hpp>
@@ -69,21 +70,16 @@ static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
-// Temporary bridge, until `IAuthenticationConfig` becomes a real part of the add-device/add-streaming
-// config schema (see `IDevice::createDefaultAddDeviceConfig`). Until then, a caller smuggles the `IAuthenticationConfig`
-// through the plain `config` property object under this property name instead. Not part of the public add-device config schema - a hack,
-// deliberately, until the real integration replaces it. Any other place that needs to smuggle one through
-// (e.g. an application, or `GenericDevice::updateDevice`'s reload path)
-// must match this exact key.
-static constexpr const char* AuthenticationConfigConfigKey = "__AuthenticationConfig";
-
-// The module manager's own extraction of the `IAuthenticationConfig` smuggled onto an add-device/add-streaming
-// `config` (see `AuthenticationConfigConfigKey`) - returns unassigned if `config` is unassigned or carries none.
-inline AuthenticationConfigPtr ExtractAuthenticationConfig(const PropertyObjectPtr& config)
+// The credential supplied on the authentication config of an add-device/add-streaming config - nullptr if none.
+template <typename ConfigPtr>
+DictPtr<IString, IString> GetSuppliedCredential(const ConfigPtr& addConfig)
 {
-    if (!config.assigned() || !config.hasProperty(AuthenticationConfigConfigKey))
+    const AuthenticationConfigPtr authenticationConfig = addConfig.getAuthenticationConfig();
+    if (!authenticationConfig.assigned())
         return nullptr;
-    return config.getPropertyValue(AuthenticationConfigConfigKey).asPtrOrNull<IAuthenticationConfig>();
+
+    const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
+    return credential.getCount() > 0 ? credential : nullptr;
 }
 
 // Only Root devices are created as the root. Unspecified devices can be created either way.
@@ -761,23 +757,17 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
-AuthenticationConfigPtr ModuleManagerImpl::resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const
-{
-    if (authenticationConfig.assigned())
-        return authenticationConfig;
-    if (!componentType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
-        return nullptr;
-    return componentType.createAuthenticationConfig();
-}
-
-DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const
+DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const AuthenticationConfigPtr& authenticationConfig,
+                                                                const CredentialRequestPtr& credentialRequest,
+                                                                const DictPtr<IString, IString>& cachedCredential) const
 {
     // A field-less method (e.g. "Anonymous") needs no credentials at all - no provider consultation, no
     // supplied-credential check, regardless of whether one is registered.
     if (authenticationConfig.getSelectedAuthenticationMethod().getFields().getCount() == 0)
         return Dict<IString, IString>();
 
-    const DictPtr<IString, IString> suppliedCredential = authenticationConfig.getSuppliedCredential();
+    const DictPtr<IString, IString> suppliedCredential =
+        cachedCredential.assigned() ? cachedCredential : authenticationConfig.getSuppliedCredential();
 
     if (suppliedCredential.assigned() && suppliedCredential.getCount() > 0)
     {
@@ -819,11 +809,6 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
                                             const PropertyObjectPtr& inputConfig)
 {
-    // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
-    // smuggles an `IAuthenticationConfig` onto the top-level `config` it passes in, rather than a dedicated
-    // parameter.
-    const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(inputConfig);
-
     // Parse the connection string
     const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);
     auto connectionStringPtr = String(pureConnectionString);
@@ -918,7 +903,7 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     const auto toAddDeviceConfig = [&]() -> AddDeviceConfigPtr
     {
         if (inputAddDeviceConfig.assigned())
-            return inputAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
+            return inputAddDeviceConfig;
 
         const auto deviceType = selectDeviceType();
         if (inputConfig.assigned())
@@ -926,7 +911,17 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
         return createAddDeviceConfigForType(deviceType, capabilities, streamingTypes);
     };
 
-    const AddDeviceConfigPtr addDeviceConfig = toAddDeviceConfig();
+    const AddDeviceConfigPtr unboundAddDeviceConfig = toAddDeviceConfig();
+
+    // Binding drops the supplied credentials, so they are cached before. The device credentials are used to connect,
+    // the streaming ones are kept by the created device.
+    const DictPtr<IString, IString> deviceCredentials = GetSuppliedCredential(unboundAddDeviceConfig);
+    DictPtr<IString, IString> streamingCredentials;
+    if (const auto options = unboundAddDeviceConfig.getStreamingOptions(); options.assigned() && options.getStreamingConfig().assigned())
+        streamingCredentials = GetSuppliedCredential(options.getStreamingConfig());
+
+    const AddDeviceConfigPtr addDeviceConfig =
+        unboundAddDeviceConfig.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes);
 
     // Check the device type and resolve the address
     const auto resolveConnectionString = [&](const AddDeviceConfigPtr& config) -> StringPtr
@@ -969,10 +964,15 @@ DevicePtr ModuleManagerImpl::onCreateDevice(const StringPtr& connectionString,
     PropertyObjectPtr deviceTypeConfig = addDeviceConfig.getTypeConfig();
     PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connectionStringOptions);
 
-    const DevicePtr device = connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig);
+    const AuthenticationConfigPtr authenticationConfig = addDeviceConfig.getAuthenticationConfig();
+
+    const DevicePtr device =
+        connectDevice(connectionStringPtr, parent, deviceType, deviceTypeConfig, authenticationConfig, deviceCredentials);
     if (device.assigned())
     {
         onCompleteCapabilities(device, discoveredDeviceInfo);
+        if (const auto devicePrivate = device.asPtrOrNull<IDevicePrivate>(true); devicePrivate.assigned())
+            devicePrivate.setStreamingCredentials(streamingCredentials);
         if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
             componentPrivate.setComponentConfig(addDeviceConfig);
     }
@@ -983,10 +983,9 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
                                            const ComponentPtr& parent,
                                            const DeviceTypePtr& deviceType,
                                            const PropertyObjectPtr& deviceTypeConfig,
-                                           const AuthenticationConfigPtr& authenticationConfig)
+                                           const AuthenticationConfigPtr& authenticationConfig,
+                                           const DictPtr<IString, IString>& cachedCredential)
 {
-    const bool authenticationConfigSupplied = authenticationConfig.assigned();
-
     const auto hasDeviceType = [&deviceType](const ModulePtr& module)
     {
         DictPtr<IString, IDeviceType> types;
@@ -1004,32 +1003,22 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
         if (!hasDeviceType(library.module))
             continue;
 
-        const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-        if (authenticationConfigSupplied && !authenticationSupported)
-        {
-            LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
-        }
-
-        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
-        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
-        const AuthenticationConfigPtr resolvedAuthConfig =
-            authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-
         DevicePtr device;
         DictPtr<IString, IString> credentials;
         ErrCode err;
-        if (authenticationSupported)
+        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+        // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
+        if (authenticationConfig.assigned())
         {
             const auto credentialRequest = CredentialRequestBuilder()
                                                .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
-                                               .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                               .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                .setComponentType(deviceType)
                                                .build();
-            credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+            credentials = resolveCredentials(authenticationConfig, credentialRequest, cachedCredential);
 
             auto loginParameters = LoginParametersBuilder()
-                                       .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                       .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                        .setCredentials(credentials)
                                        .build();
             err = library.module->createAuthenticatedDevice(&device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
@@ -1053,14 +1042,13 @@ DevicePtr ModuleManagerImpl::connectDevice(const StringPtr& connectionStringPtr,
                     deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
             }
 
-            if (authenticationSupported)
-            {
-                if (const auto& componentPrivate = device.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
+            // The credentials used to connect - supplied or obtained from the credential provider - are kept by the device
+            const auto devicePrivate = device.asPtrOrNull<IDevicePrivate>(true);
+            if (devicePrivate.assigned() && credentials.assigned() && credentials.getCount() > 0)
+                devicePrivate.setDeviceCredentials(credentials);
 
-                // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
-                // mechanism (e.g. a vault) is ready.
-            }
+            // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+            // mechanism (e.g. a vault) is ready.
         }
 
         return device;
@@ -1351,13 +1339,9 @@ ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming,
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
-    // Temporary bridge (see `ExtractAuthenticationConfig`): a caller that wants an authenticated connection
-    // smuggles an `IAuthenticationConfig` onto `config`, rather than a dedicated parameter.
-    const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(PropertyObjectPtr::Borrow(config));
-
     StreamingPtr streamingPtr;
     const ErrCode errCode = wrapHandlerReturn(
-        this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config, authenticationConfig, DevicePtr::Borrow(owner));
+        this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config, DevicePtr::Borrow(owner));
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *streaming = streamingPtr.detach();
@@ -1716,13 +1700,24 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapability
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
                                                   const PropertyObjectPtr& config,
-                                                  const AuthenticationConfigPtr& authenticationConfig,
-                                                  const DevicePtr& owner) const
+                                                  const DevicePtr& owner)
 {
-    const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
-    const StreamingTypePtr configType = addStreamingConfig.assigned() ? addStreamingConfig.getStreamingType() : nullptr;
+    DictPtr<IString, IStreamingType> streamingTypes;
+    checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+    // Turn the input into an add streaming config. No code below reads the input config.
     const std::string prefix = getPrefixFromConnectionString(connectionString);
-    if (configType.assigned() && configType.getConnectionStringPrefix() != prefix)
+    AddStreamingConfigPtr unboundAddStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
+    if (!unboundAddStreamingConfig.assigned())
+    {
+        const auto streamingType = FindTypeByPrefix<StreamingTypePtr>(streamingTypes, prefix);
+        if (!streamingType.assigned())
+            return nullptr;
+        unboundAddStreamingConfig = fromLegacyAddStreamingConfig(config, streamingType);
+    }
+
+    const StreamingTypePtr configType = unboundAddStreamingConfig.getStreamingType();
+    if (configType.getConnectionStringPrefix() != prefix)
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException,
                             R"(Prefix "{}" differs from the prefix "{}" of the streaming type "{}")",
@@ -1731,10 +1726,15 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                             configType.getId());
     }
 
-    const PropertyObjectPtr inputTypeConfig = addStreamingConfig.assigned() ? addStreamingConfig.getTypeConfig() : config;
-    PropertyObjectPtr typeConfig;
-    if (inputTypeConfig.assigned())
-        checkErrorInfo(inputTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+    if (!streamingTypes.hasKey(configType.getId()))
+        return nullptr;
+
+    // Binding drops the supplied credential, so it is cached before.
+    const DictPtr<IString, IString> cachedCredential = GetSuppliedCredential(unboundAddStreamingConfig);
+    const AddStreamingConfigPtr addStreamingConfig =
+        unboundAddStreamingConfig.asPtr<IAddStreamingConfigPrivate>().bind(streamingTypes);
+    const PropertyObjectPtr streamingTypeConfig = addStreamingConfig.getTypeConfig();
+    const AuthenticationConfigPtr authenticationConfig = addStreamingConfig.getAuthenticationConfig();
 
     StreamingPtr streaming;
 
@@ -1746,31 +1746,16 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
         if (OPENDAQ_FAILED(errCode))
             daqClearErrorInfo();
-        if (!types.assigned())
+        if (!types.assigned() || !types.hasKey(configType.getId()))
             continue;
 
-        const StreamingTypePtr streamingType = configType.assigned()
-                                                   ? (types.hasKey(configType.getId()) ? types.get(configType.getId()) : nullptr)
-                                                   : FindTypeByPrefix<StreamingTypePtr>(types, prefix);
-        if (!streamingType.assigned())
-            continue;
+        const StreamingTypePtr streamingType = types.get(configType.getId());
 
-        const auto streamingTypeConfig =
-            addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
-
-        if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
-        {
-            LOG_W("Streaming with given connection string '{}' does not support authentication; creating it without authentication.", connectionString);
-        }
-
-        const AuthenticationConfigPtr resolvedAuthConfig = resolveDefaultAuthenticationConfig(authenticationConfig, streamingType);
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
-        const bool authenticated = resolvedAuthConfig.assigned();
-
         try
         {
-            if (authenticated)
+            if (authenticationConfig.assigned())
             {
                 StringPtr manufacturer, serialNumber, model, displayName;
                 if (owner.assigned())
@@ -1790,13 +1775,13 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                    .setSerialNumber(serialNumber)
                                                    .setModel(model)
                                                    .setDisplayName(displayName)
-                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                   .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                    .setComponentType(streamingType)
                                                    .build();
-                const DictPtr<IString, IString> credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+                const DictPtr<IString, IString> credentials = resolveCredentials(authenticationConfig, credentialRequest, cachedCredential);
 
                 const auto loginParameters = LoginParametersBuilder()
-                                                 .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                 .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                  .setCredentials(credentials)
                                                  .build();
                 streaming = module.createAuthenticatedStreaming(connectionString, streamingTypeConfig, loginParameters);

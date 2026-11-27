@@ -7,14 +7,13 @@ type. Each scenario names the concrete API calls and expected outcome (return va
 side effect) so it can be implemented directly, ideally against `credential_demo_module` the way
 `credential_providers.cpp` already does.
 
-**Temporary workaround**
-There is only the plain, config-only `addDevice`/
-`addStreaming` calls. A caller that wants an authenticated connection stashes the
-`IAuthenticationConfig` onto the plain `config` property object under the `"__AuthenticationConfig"` property
-name, temporarily, until `IAuthenticationConfig` becomes a real part of the add-device config schema - see
-`examples/applications/cpp/credential_providers/credential_providers.cpp`'s `WithAuthenticationConfig` helper
-for the current, correct pattern. Every `addDevice(connectionString, authConfig)` call below should be read as
-`addDevice(connectionString, WithAuthenticationConfig(authConfig))`.
+**Where the authentication config lives**
+The authentication config is a part of the add-device/add-streaming config. `authConfig` below stands for
+`config.getAuthenticationConfig()` of an add-device config (`instance.createAddDeviceConfig(deviceInfo)`) - or,
+for streaming, of an add-streaming config (`device.createAddStreamingConfig(connectionString)`) - and every
+`addDevice(connectionString, authConfig)`/`addStreaming(connectionString, streamingAuthConfig)` call below
+should be read as passing that owning `config` - see
+`examples/applications/cpp/credential_providers/credential_providers.cpp` for the pattern.
 
 At most one credential provider can ever be registered for an entire `Instance`
 (`IInstanceBuilder::setCredentialProvider`, before build) - there is no per-config provider selection anywhere
@@ -38,15 +37,14 @@ I can decide whether to offer an "authenticated connect" option in my UI at all.
   id string) per method added - the first one added starts out selected.
 - **Given** a Device or Streaming type whose module never called `addAuthenticationMethod` at all
   **When** I call `componentType.createAuthenticationConfig()`
-  **Then** it throws `NotSupportedException` ("This component type supports no authentication method") -
-  there is no implicit "every type supports at least Anonymous" fallback; a type that wants Anonymous among
+  **Then** it returns null - there is no implicit "every type supports at least Anonymous" fallback; a type that wants Anonymous among
   its options has to add `StandardAnonymousAuthenticationMethod()` explicitly, the way `credential_demo_module`
   does.
 - **Given** a Server or FunctionBlock type (sorts authentication is not a concept for at all, regardless of how
   the type was built)
-  **When** I call `componentType.createAuthenticationConfig()` or `IComponentTypePrivate::getSupportedAuthenticationMethods()`
-  **Then** both throw `NotImplementedException` - distinguishable from the "Device/Streaming type, zero
-  methods added" `NotSupportedException` case above: a developer can tell "this sort never supports auth at
+  **When** I call `componentType.createAuthenticationConfig()`
+  **Then** it throws `NotImplementedException` - distinguishable from the "Device/Streaming type, zero
+  methods added" null case above: a developer can tell "this sort never supports auth at
   all" apart from "this specific type just doesn't right now."
 - **Given** the plain, anonymous path is what's wanted instead
   **When** I call `instance.addDevice(connectionString)` on any type, whether or not it supports authentication
@@ -95,7 +93,7 @@ straight to `addDevice` with no changes, and have it succeed when the user enter
 
 - **Given** a `CmdLineCredentialProvider` (or equivalent, supporting the default method's format) registered on
   the instance
-  **And** `authConfig = deviceType.createAuthenticationConfig()` used as-is (default `"AuthenticationMethod"`
+  **And** `authConfig = config.getAuthenticationConfig()` used as-is (default `"AuthenticationMethod"`
   selection)
   **When** I call `instance.addDevice(connectionString, authConfig)` and supply correct credentials at the
   prompt
@@ -122,7 +120,7 @@ straight to `addDevice` with no changes, and have it succeed when the user enter
 
 ### 3.1 — Correct supplied credential, provider registered
 
-- **Given** `authConfig = deviceType.createAuthenticationConfig()` with the desired `"AuthenticationMethod"`
+- **Given** `authConfig = config.getAuthenticationConfig()` with the desired `"AuthenticationMethod"`
   selected (`setAuthenticationMethod`) and `"SuppliedCredential"` set (`setSuppliedCredential`) to a
   correctly-shaped, correct `credential`, with a format-compatible credential provider registered on the
   instance
@@ -204,17 +202,16 @@ only thing left to tune here is `"SuppliedCredential"`, besides the selected met
   **Then** both succeed independently - the streaming leg's authentication outcome (success or failure) is
   unaffected by how the device itself was connected, and vice versa.
 
-### 5.2 — Auto-attached streaming authenticates via the streaming type's *default* method, same as a device would
+### 5.2 — Auto-attached streaming authenticates via the streaming config nested in the add-device config
 
-As an application developer relying on `PrioritizedStreamingProtocols`/`AutomaticallyConnectStreaming`, I want
-to know whether this path can end up needing a registered provider behind my back, since there's no way to
-attach my own authentication config to it.
+As an application developer relying on auto-attached streaming, I want to know whether this path can end up
+needing a registered provider behind my back, and how to control its authentication.
 
-`StreamingSourceManager`'s auto-attach has no explicit `IAuthenticationConfig` of its own to supply, but
-`ModuleManagerImpl::onCreateStreaming` resolves the streaming type's own *default* authentication config
-regardless - exactly the same unconditional resolution a plain, config-less `addDevice` goes through (see
-§7's last bullet). Whether auto-attach ends up authenticated or not is entirely a property of the streaming
-type's default (first-added) method, not something the auto-attach mechanism itself decides.
+`StreamingSourceManager`'s auto-attach uses the add-streaming config selected in the add-device config's
+streaming options - its authentication config is
+`config.getStreamingOptions().getStreamingConfig().getAuthenticationConfig()`, set up the same way as the
+device's own (method selection, supplied credential). Left untouched, it is on the streaming type's *default*
+(first-added) method, and a device added with no add-device config at all gets that default as well.
 
 - **Given** a device added with auto-attach streaming config enabled, to a streaming type whose *default*
   method is field-less (e.g. `credential_demo_module`'s `"CredentialDemoStreaming"`, which adds Anonymous
@@ -231,8 +228,11 @@ type's default (first-added) method, not something the auto-attach mechanism its
   abort the whole `addDevice` call, only leaves that streaming source un-attached (device.getStreamingSources()
   not containing it), the same way 6.2's failed reconnect leaves the device itself simply absent rather than
   failing `loadConfiguration` outright.
-- There is no way to attach auto-attach's *own* authentication config at all - the only way to control which
-  method it resolves to is indirectly, via which method the streaming type's module chose to add first.
+- **Given** a device added with an add-device config whose nested streaming config selects a method with
+  fields and has `"SuppliedCredential"` set, and no credential provider registered on the instance
+  **When** the device connects
+  **Then** the auto-attached streaming source is present, authenticated with the supplied credential (see
+  `CredentialDemoModuleIntegrationTest.AddDeviceConnectsLinkedStreamingWithSuppliedCredential`).
 
 ---
 
@@ -288,27 +288,24 @@ corrupted some other way (hand-edited, truncated, etc.).
 
 Unlike 6.3 (a corrupted save, caught by `IAuthenticationConfig` deserialization itself), this is about the save
 being perfectly self-consistent but the *module* having since changed what it supports - e.g. updated between
-save and reload. The device's own reload path (`GenericDevice::updateDevice`) re-attaches the deserialized
-config verbatim onto a fresh add-device config, through the exact same `addDevice` call a live connection
-would use; `ModuleManagerImpl::resolveDefaultAuthenticationConfig` returns an already-supplied config as-is,
-without ever re-deriving it from the live device type - so there is no cross-check against what the type
-*currently* supports beyond the coarse "does it support authentication at all right now" check.
+save and reload. The device's own reload path (`GenericDevice::updateDevice`) binds the saved add-device config
+to the live device type, and copies the saved selected method id (and any supplied credential) into its
+authentication config - created from the live type's own supported methods - before the same `addDevice` call a
+live connection would use. So the saved method is always checked against what the type *currently* supports.
 
 - **Given** a device saved with a method the live module no longer recognizes at all (renamed, removed), while
   the live device type still supports authentication via some *other* method(s)
   **When** the new instance reloads it with a compatible provider registered
-  **Then** there is no clean, generic "unknown method" failure at the framework level - the stale method and
-  its saved fields are carried straight through to a credential request, and whether that's accepted is
-  entirely up to the module's own per-method verification (e.g. `credential_demo_module`'s authenticator
-  throws `AuthenticationFailedException` for an unrecognized method id - a module-specific outcome, not a
-  framework guarantee).
+  **Then** selecting the saved method on the live type's authentication config fails with
+  `NotFoundException` ("not one of this config's supported authentication methods") - a generic framework-level
+  failure, before any credential request is built or the module is called.
 - **Given** a device saved with authentication, where the live device type has since dropped authentication
   support *entirely*
   **When** the new instance reloads it
   **Then** the saved authentication config is silently discarded and the device reconnects via the plain,
-  unauthenticated path instead (a warning logged, not a failure) - the same `authenticationConfigSupplied &&
-  !authenticationSupported` fallback a live `addDevice` call with an unsupported type hits (§7).
-- **Given** either case above actually fails (e.g. `AuthenticationFailedException`, or no compatible provider
+  unauthenticated path instead - the live type's add-device config has no authentication config to copy it into
+  (§7).
+- **Given** either case above actually fails (e.g. `NotFoundException`, or no compatible provider
   registered for whatever method ends up used)
   **Then** that failure is caught locally by the device's own reload handling and only logged as a warning -
   it does not fail `loadConfiguration` as a whole; this one device is simply absent afterward, same as §6.2.
@@ -333,16 +330,12 @@ against.
 
 ## 7. Boundary & negative checks worth having somewhere, even briefly
 
-- Calling `componentType.createAuthenticationConfig()`/`getSupportedAuthenticationMethods()` on a Server or
-  FunctionBlock type - confirm both throw `NotImplementedException` regardless of anything the type was built
-  with, distinct from a Device/Streaming type that simply has zero methods added (`NotSupportedException`, see
-  §1.1).
-- Calling `instance.addDevice(connectionString, authConfig)` with an authentication config attached, against a
-  type that does **not** support authentication at all - confirm this does **not** throw: the module manager
-  logs a warning ("does not support authentication; creating it without authentication") and creates the
-  device via the plain, unauthenticated path instead, exactly as if no config had been attached (see
-  `ModuleManagerImpl::createDeviceInternal`'s own `authenticationConfigSupplied && !authenticationSupported`
-  check).
+- Calling `componentType.createAuthenticationConfig()` on a Server or FunctionBlock type - confirm it throws
+  `NotImplementedException` regardless of anything the type was built with, distinct from a Device/Streaming
+  type that simply has zero methods added (null, see §1.1).
+- Calling `config.getAuthenticationConfig()` on the add-device config of a type that does **not** support
+  authentication at all - confirm it returns null: such a config has no authentication config
+  to set up, and the device is created via the plain, unauthenticated path.
 - Two authentication attempts to the *same* connection string in quick succession without an intervening
   `removeDevice` (e.g. accidental double-click in a UI) - confirm the second attempt's failure/success mode is
   well-defined rather than racing the first.

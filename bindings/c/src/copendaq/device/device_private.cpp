@@ -56,3 +56,23 @@ daqErrCode daqDevicePrivate_forceUnlock(daqDevicePrivate* self)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->forceUnlock();
 }
+
+daqErrCode daqDevicePrivate_setDeviceCredentials(daqDevicePrivate* self, daqDict* credentials)
+{
+    return reinterpret_cast<daq::IDevicePrivate*>(self)->setDeviceCredentials(reinterpret_cast<daq::IDict*>(credentials));
+}
+
+daqErrCode daqDevicePrivate_getDeviceCredentials(daqDevicePrivate* self, daqDict** credentials)
+{
+    return reinterpret_cast<daq::IDevicePrivate*>(self)->getDeviceCredentials(reinterpret_cast<daq::IDict**>(credentials));
+}
+
+daqErrCode daqDevicePrivate_setStreamingCredentials(daqDevicePrivate* self, daqDict* credentials)
+{
+    return reinterpret_cast<daq::IDevicePrivate*>(self)->setStreamingCredentials(reinterpret_cast<daq::IDict*>(credentials));
+}
+
+daqErrCode daqDevicePrivate_getStreamingCredentials(daqDevicePrivate* self, daqDict** credentials)
+{
+    return reinterpret_cast<daq::IDevicePrivate*>(self)->getStreamingCredentials(reinterpret_cast<daq::IDict**>(credentials));
+}

@@ -13,6 +13,7 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/security_exceptions.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/module_impl.h>
 #include <opendaq/module_manager_utils_ptr.h>
@@ -36,6 +37,16 @@
 #include "test_helpers/device_modules.h"
 
 using NativeDeviceModulesTest = testing::Test;
+
+// The param - whether the legacy add-device config is used to supply the credentials (see test_helpers::configModeName)
+class NativeDeviceModulesCredentialsTest : public testing::TestWithParam<bool>
+{
+};
+
+// The param - whether the legacy add-device config is used to set the client type (see test_helpers::configModeName)
+class NativeDeviceModulesConfigTest : public testing::TestWithParam<bool>
+{
+};
 
 using namespace daq;
 
@@ -201,7 +212,7 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
     return instance;
 }
 
-static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password)
+static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password, bool useLegacyConfig)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -217,18 +228,23 @@ static InstancePtr CreateClientInstanceForUser(const std::string& user, const st
     addNativeClientModule(instance);
     addRefDeviceModule(instance);
 
-    auto config = instance.createDefaultAddDeviceConfig();
+    auto config = test_helpers::createAddDeviceConfig(instance, "daq.nd://127.0.0.1", useLegacyConfig);
+    if (!useLegacyConfig)
+    {
+        const AddDeviceConfigPtr addDeviceConfig = config;
+        addDeviceConfig.getTypeConfig().setPropertyValue("RestoreClientConfigOnReconnect", False);
+        addDeviceConfig.getStreamingOptions().setStreamingType("OpenDAQNativeStreaming");
+    }
+    else
+    {
+        PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+        PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+        nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
 
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-
-
-    nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
-
-    PropertyObjectPtr general = config.getPropertyValue("General");
-    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
-    general.setPropertyValue("Username", user);
-    general.setPropertyValue("Password", password);
+        PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+    }
+    test_helpers::setCredentials(config, user, password, useLegacyConfig);
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -294,7 +310,7 @@ TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
     server.detach();
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsername)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsername)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -313,28 +329,24 @@ TEST_F(NativeDeviceModulesTest, ConnectUsername)
 
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"), AuthenticationFailedException);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setCredentials(config, "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
     auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceJure.assigned());
     clientInstance.removeDevice(deviceJure);
 
-    generalConfig.setPropertyValue("Username", "tomaz");
-    generalConfig.setPropertyValue("Password", "tomaz123");
+    test_helpers::setCredentials(config, "tomaz", "tomaz123", GetParam());
     auto deviceTomaz = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceTomaz.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectAllowAnonymous)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -356,20 +368,17 @@ TEST_F(NativeDeviceModulesTest, ConnectAllowAnonymous)
     ASSERT_TRUE(deviceAnonymous.assigned());
     clientInstance.removeDevice(deviceAnonymous);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setCredentials(config, "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
     auto deviceJure = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(deviceJure.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsernameDeviceConfig)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -386,23 +395,19 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceConfig)
 
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"));
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1"), AuthenticationFailedException);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "wrongPass");
-    ASSERT_ANY_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config));
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "wrongPass", GetParam());
+    ASSERT_THROW(clientInstance.addDevice("daq.nd://127.0.0.1", config), AuthenticationFailedException);
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "jure123");
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "jure123", GetParam());
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
+TEST_P(NativeDeviceModulesCredentialsTest, ConnectUsernameDeviceAndStreamingConfig)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
@@ -424,16 +429,10 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
         addNativeClientModule(clientInstance);
     }
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
-    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
-    PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
 
-    nativeDeviceConfig.setPropertyValue("Username", "jure");
-    nativeDeviceConfig.setPropertyValue("Password", "jure123");
-    nativeStreamingConfig.setPropertyValue("Username", "tomaz");
-    nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
+    test_helpers::setDeviceCredentials(config, "OpenDAQNativeConfiguration", "jure", "jure123", GetParam());
+    test_helpers::setStreamingCredentials(config, "OpenDAQNativeStreaming", "tomaz", "tomaz123", GetParam());
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 }
@@ -508,7 +507,7 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlTwice)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -523,7 +522,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance);
-        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     }
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
@@ -533,7 +532,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        ASSERT_THROW(test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl), ControlClientRejectedException);
+        ASSERT_THROW(test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, GetParam()), ControlClientRejectedException);
     }
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -541,12 +540,12 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     {
         clientInstance = test_helpers::createInstance("[[none]]");
         addNativeClientModule(clientInstance);
-        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
         ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
     }
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlAndControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -560,7 +559,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
     // one config and one streaming connection
@@ -569,7 +568,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
 
     auto secondClient = test_helpers::createInstance("[[none]]");
     addNativeClientModule(secondClient);
-    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::Control), ControlClientRejectedException);
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::Control, GetParam()), ControlClientRejectedException);
 
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -577,11 +576,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    clientInstance = test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    clientInstance = test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeControlAndExclusiveControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -595,7 +594,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::Control);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::Control, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
     // one config and one streaming connection
@@ -604,7 +603,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
 
     auto secondClient = test_helpers::createInstance("[[none]]");
     addNativeClientModule(secondClient);
-    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::ExclusiveControl),
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(secondClient, url, ClientType::ExclusiveControl, GetParam()),
                  ControlClientRejectedException);
 
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
@@ -613,11 +612,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl);
+    test_helpers::connectInstanceWithClientType(clientInstance, url, ClientType::ExclusiveControl, GetParam());
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlDropOthers)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -632,14 +631,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
 
@@ -658,6 +657,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
             clientInstance3,
             url,
             ClientType::ExclusiveControl,
+            GetParam(),
             // should cause all other control clients to disconnect
             true
         );  
@@ -672,7 +672,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeViewOnly)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -687,14 +687,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
     {
         addNativeClientModule(clientInstance1);
 
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl, GetParam());
         ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
     }
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly, GetParam());
         ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
     }
 
@@ -704,7 +704,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[2].getClientTypeName(), "ViewOnly");
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeViewOnlyDropOthers)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -718,14 +718,14 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::Control, GetParam());
     }
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
     auto clientInstance2 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance2);
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly);
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ViewOnly, GetParam());
     }
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
 
@@ -743,7 +743,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
         addNativeClientModule(clientInstance3);
 
         // should cause all other control clients to disconnect
-        test_helpers::connectInstanceWithClientType(clientInstance3, url, ClientType::ExclusiveControl, true);  
+        test_helpers::connectInstanceWithClientType(clientInstance3, url, ClientType::ExclusiveControl, GetParam(), true);  
     }
 
     ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
@@ -757,7 +757,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 5u);
 }
 
-TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
+TEST_P(NativeDeviceModulesConfigTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
 {
     const std::string url = "daq.nd://127.0.0.1";
 
@@ -771,7 +771,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
     auto clientInstance1 = test_helpers::createInstance("[[none]]");
     {
         addNativeClientModule(clientInstance1);
-        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance1, url, ClientType::ExclusiveControl, GetParam());
     }
 
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
@@ -786,7 +786,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
         addNativeClientModule(clientInstance2);
 
         // should cause first exclusive control client to disconnect
-        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, true);  
+        test_helpers::connectInstanceWithClientType(clientInstance2, url, ClientType::ExclusiveControl, GetParam(), true);  
     }
 
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
@@ -797,7 +797,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
     ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 3u);
 }
 
-TEST_F(NativeDeviceModulesTest, PartialSerialization)
+TEST_P(NativeDeviceModulesCredentialsTest, PartialSerialization)
 {
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123", List<IString>("user")));
@@ -816,10 +816,8 @@ TEST_F(NativeDeviceModulesTest, PartialSerialization)
     auto clientInstance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(clientInstance);
 
-    auto config = clientInstance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr generalConfig = config.getPropertyValue("General");
-    generalConfig.setPropertyValue("Username", "jure");
-    generalConfig.setPropertyValue("Password", "jure123");
+    auto config = test_helpers::createAddDeviceConfig(clientInstance, "daq.nd://127.0.0.1", GetParam());
+    test_helpers::setCredentials(config, "jure", "jure123", GetParam());
 
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -4143,7 +4141,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
     {
@@ -4176,7 +4174,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client doesn't have permissions to change operation mode for all server devices, but can read the operation mode
-        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass", GetParam());
     }
 
     {
@@ -4279,7 +4277,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 
 #endif
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissions)
 {
     auto CreateUsers = []()
     {
@@ -4312,7 +4310,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client has all permissions to change operation mode for all server devices
-        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass", GetParam());
     }
 
     {
@@ -4353,7 +4351,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissionsForInvisibleDevice)
 {
     auto CreateUsers = []()
     {
@@ -4386,7 +4384,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client has all permissions to change operation mode for all server devices
-        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass", GetParam());
     }
 
     {
@@ -4440,7 +4438,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+TEST_P(NativeDeviceModulesCredentialsTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
     {
@@ -4473,7 +4471,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
         // create server and client isntances
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions, true));
         // client has permissions to change operation mode for all server devices except the most nested sub device
-        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass", GetParam());
     }
 
     {
@@ -5768,5 +5766,9 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
         removed.get();
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeDeviceModulesCredentialsTest, testing::Bool(), test_helpers::configModeName);
+INSTANTIATE_TEST_SUITE_P(ConfigModes, NativeDeviceModulesConfigTest, testing::Bool(), test_helpers::configModeName);
+
 }
 // namespace test_native_device_modules

@@ -4,6 +4,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_type_factory.h>
+#include <opendaq/authentication_method_factory.h>
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_impl.h>
@@ -154,9 +155,10 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& host,
                                                           const StringPtr& port,
                                                           const StringPtr& path,
-                                                          uint16_t& protocolVersion)
+                                                          uint16_t& protocolVersion,
+                                                          const LoginParametersPtr& loginParameters)
 {
-    auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig);
+    auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, loginParameters);
 
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
@@ -323,9 +325,10 @@ void NativeStreamingClientModule::populateDefaultTransportLayerConfig(PropertyOb
     }
 }
 
-DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
-                                                      const ComponentPtr& parent,
-                                                      const PropertyObjectPtr& config)
+DevicePtr NativeStreamingClientModule::onCreateAuthenticatedDevice(const StringPtr& connectionString,
+                                                                   const ComponentPtr& parent,
+                                                                   const PropertyObjectPtr& config,
+                                                                   const LoginParametersPtr& loginParameters)
 {
     if (!connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException);
@@ -363,7 +366,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
         }
 
-        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig);
+        auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig, loginParameters);
 
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
@@ -404,7 +407,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else if (nativeType == NativeType::config)
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
-        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
+        device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion, loginParameters);
             
         auto deviceType = createDeviceType();
         checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
@@ -441,8 +444,12 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
     defaultConfig.addProperty(IntProperty("Port", 7420));
-    defaultConfig.addProperty(StringProperty("Username", ""));
-    defaultConfig.addProperty(StringProperty("Password", ""));
+    defaultConfig.addProperty(StringPropertyBuilder("Username", "")
+                                  .setDescription("Deprecated: supply the credential through the authentication config instead")
+                                  .build());
+    defaultConfig.addProperty(StringPropertyBuilder("Password", "")
+                                  .setDescription("Deprecated: supply the credential through the authentication config instead")
+                                  .build());
 
     daq::ClientTypeTools::DefineConfigProperties(defaultConfig);
 
@@ -515,10 +522,11 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const StringPtr& host,
     const StringPtr& port,
     const StringPtr& path,
-    const PropertyObjectPtr& config)
+    const PropertyObjectPtr& config,
+    const LoginParametersPtr& loginParameters)
 {
     PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-    PropertyObjectPtr authenticationConfig = parseAuthenticationConfig(config);
+    const auto credentials = GetLoginCredentials(loginParameters);
 
     copyConfigPropertyValue("ClientType", config, transportLayerConfig);
     copyConfigPropertyValue("ExclusiveControlDropOthers", config, transportLayerConfig);
@@ -534,30 +542,24 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
         transportLayerConfig.addProperty(StringProperty("ClientId", fmt::format("{}/{}", transportClientUuidBase, transportClientIndex++)));
     }
 
-    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
-    if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
-        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
+    auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, credentials);
+    // throws AuthenticationFailedException when the server rejects the credentials, NotFoundException on other failures
+    transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString());
 
     return transportClientHandler;
 }
 
-PropertyObjectPtr NativeStreamingClientModule::parseAuthenticationConfig(const PropertyObjectPtr& config)
+DictPtr<IString, IString> NativeStreamingClientModule::GetLoginCredentials(const LoginParametersPtr& loginParameters)
 {
-    auto normalizedObject = PropertyObject();
+    const StringPtr methodId = loginParameters.getAuthenticationMethod().getId();
+    // "Anonymous" method - no credentials, connect anonymously
+    if (methodId == StandardAnonymousId)
+        return Dict<IString, IString>();
 
-    normalizedObject.addProperty(StringProperty("Username", ""));
-    normalizedObject.addProperty(StringProperty("Password", ""));
+    if (methodId == StandardUserNamePasswordId)
+        return loginParameters.getCredentials();
 
-    if (config.assigned())
-    {
-        if (config.hasProperty("Username"))
-            normalizedObject.setPropertyValue("Username", config.getPropertyValue("Username"));
-
-        if (config.hasProperty("Password"))
-            normalizedObject.setPropertyValue("Password", config.getPropertyValue("Password"));
-    }
-
-    return normalizedObject;
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Authentication method \"{}\" is not supported by the native client", methodId);
 }
 
 void NativeStreamingClientModule::copyConfigPropertyValue(const StringPtr& propName,
@@ -603,7 +605,9 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
     return nativeStreaming;
 }
 
-StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
+StreamingPtr NativeStreamingClientModule::onCreateAuthenticatedStreaming(const StringPtr& connectionString,
+                                                                         const PropertyObjectPtr& config,
+                                                                         const LoginParametersPtr& loginParameters)
 {
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
@@ -617,7 +621,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
-    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig);
+    auto transportClient = createAndConnectTransportClient(host, port, path, parsedConfig, loginParameters);
     return createNativeStreaming(connectionString, transportClient, initTimeout);
 }
 
@@ -706,6 +710,8 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setConnectionStringPrefix("daq.ns")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setDeviceKind(DeviceKind::Adapter)
+        .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+        .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
         .build();
 }
 
@@ -718,6 +724,8 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setConnectionStringPrefix("daq.nd")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .setDeviceKind(DeviceKind::Mirrored)
+        .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+        .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
         .build();
 }
 

@@ -32,8 +32,8 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Carries the authentication settings used for a single connection attempt to a component.
  *
- * A component created with authentication keeps the config it was authenticated with (see
- * `IComponentPrivate::setAuthenticationConfig`), so that reloading it later goes through the same
+ * A device created with authentication keeps the config it was authenticated with as a part of its add-device
+ * config (see `IAddDeviceConfig::getAuthenticationConfig`), so that reloading it later goes through the same
  * credential-request process again.
  *
  * Is itself a Property object - `"AuthenticationMethod"` is a Selection property whose candidates are the
@@ -72,9 +72,9 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationConfig, IBaseObject)
 
     /*!
      * @brief Gets every authentication method this config supports, keyed by their own id - the full set of
-     * `"AuthenticationMethod"` selection candidates, i.e. the same shape `IComponentTypePrivate::getSupportedAuthenticationMethods()`
-     * has, since this config was built from exactly that set. An equal, typed alternative to reading the
-     * candidates generically off the `"AuthenticationMethod"` property.
+     * `"AuthenticationMethod"` selection candidates, i.e. the methods the component type this config was built
+     * from supports. An equal, typed alternative to reading the candidates generically off the
+     * `"AuthenticationMethod"` property.
      * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
      */
     // [templateType(authenticationMethods, IString, IAuthenticationMethod)]

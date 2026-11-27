@@ -71,7 +71,7 @@ void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
             return objectPtr.getAuthenticationMethods().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets every authentication method this config supports, keyed by their own id - the full set of `\"AuthenticationMethod\"` selection candidates, i.e. the same shape `IComponentTypePrivate::getSupportedAuthenticationMethods()` has, since this config was built from exactly that set. An equal, typed alternative to reading the candidates generically off the `\"AuthenticationMethod\"` property.");
+        "Gets every authentication method this config supports, keyed by their own id - the full set of `\"AuthenticationMethod\"` selection candidates, i.e. the methods the component type this config was built from supports. An equal, typed alternative to reading the candidates generically off the `\"AuthenticationMethod\"` property.");
     cls.def_property("supplied_credential",
         [](daq::IAuthenticationConfig *object)
         {

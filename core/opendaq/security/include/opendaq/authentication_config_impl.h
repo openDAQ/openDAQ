@@ -46,6 +46,10 @@ public:
     ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
 
+    // A clone keeps the implementation, so that it is an `IAuthenticationConfig` as well, e.g. when cloned as a part of
+    // an add-device/add-streaming config.
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+
     // Serialization is entirely custom (replaces the inherited generic `IPropertyObject` one, like
     // `DeviceTypeImpl`'s own pattern) - writes only `supportedAuthenticationMethods` (the real
     // `IAuthenticationMethod` objects this config was built from - format/parameters included, not just
@@ -53,6 +57,10 @@ public:
     // config directly from those two pieces via the real constructor, then restores the saved selection -
     // fully self-contained, no module/type registry re-consultation needed.
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    // The same form, so that the config saved as a part of an add-device config keeps the selected method's id
+    // rather than its selection index. `updateInternal` selects the saved method by that id.
+    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

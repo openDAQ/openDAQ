@@ -6,7 +6,7 @@
 #include <coreobjects/property_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
-#include <opendaq/component_type_private_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,6 +42,8 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
     Super::addProperty(SparseSelectionProperty(
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
+    if (const auto authenticationConfig = deviceType.createAuthenticationConfig(); authenticationConfig.assigned())
+        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, authenticationConfig));
 
     if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
@@ -52,8 +54,6 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
     Super::addProperty(ObjectProperty(add_device_config::Streaming, options));
-    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
-        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial)
@@ -125,10 +125,12 @@ ErrCode AddDeviceConfigImpl::getAuthenticationConfig(IAuthenticationConfig** con
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    if (this->deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This device type supports no authentication method");
-
-    return daqTry([&] { *config = objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
+    return daqTry([&]
+    {
+        *config = objPtr.hasProperty(add_device_config::AuthenticationConfig)
+                      ? objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach()
+                      : nullptr;
+    });
 }
 
 ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
@@ -162,6 +164,12 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
             config = Bind(saved, deviceTypes, streamingTypes, scanOnAddDefault);
         };
         JsonDeserializer().callCustomProc(bindSaved, serializer.getOutput());
+
+        AddStreamingConfigImpl::ClearLegacyCredentials(config.getTypeConfig(), config.getAuthenticationConfig());
+        if (const auto options = config.getStreamingOptions(); options.assigned())
+            for (const auto& [_, streamingConfig] : options.getAvailableStreamingConfigs())
+                AddStreamingConfigImpl::ClearLegacyCredentials(streamingConfig.getTypeConfig(), streamingConfig.getAuthenticationConfig());
+
         *bound = config.detach();
     });
 }

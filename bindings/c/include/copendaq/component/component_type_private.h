@@ -36,7 +36,6 @@ extern "C"
 
     typedef struct daqComponentTypePrivate daqComponentTypePrivate;
     typedef struct daqModuleInfo daqModuleInfo;
-    typedef struct daqDict daqDict;
     typedef struct daqSerializer daqSerializer;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_PRIVATE_INTF_ID;
@@ -44,7 +43,6 @@ extern "C"
 
     daqErrCode EXPORTED daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info);
     daqErrCode EXPORTED daqComponentTypePrivate_serializeWithoutDefaultConfig(daqComponentTypePrivate* self, daqSerializer* serializer);
-    daqErrCode EXPORTED daqComponentTypePrivate_getSupportedAuthenticationMethods(daqComponentTypePrivate* self, daqDict** authenticationMethods);
 
 #ifdef __cplusplus
 }

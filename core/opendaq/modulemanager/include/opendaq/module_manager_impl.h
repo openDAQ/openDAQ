@@ -81,7 +81,8 @@ private:
                             const ComponentPtr& parent,
                             const DeviceTypePtr& deviceType,
                             const PropertyObjectPtr& deviceTypeConfig,
-                            const AuthenticationConfigPtr& authenticationConfig);
+                            const AuthenticationConfigPtr& authenticationConfig,
+                            const DictPtr<IString, IString>& cachedCredential);
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
@@ -122,18 +123,15 @@ private:
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString,
                                    const PropertyObjectPtr& config,
-                                   const AuthenticationConfigPtr& authenticationConfig,
-                                   const DevicePtr& owner) const;
-
-    // Returns `authenticationConfig` unchanged if assigned. Otherwise builds and returns the default config for
-    // `componentType`, or unassigned if `componentType` doesn't support authentication.
-    AuthenticationConfigPtr resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const;
+                                   const DevicePtr& owner);
 
     // Resolves the credentials for `credentialRequest` - for auth method with at least one field. Consumes
-    // whichever single credential provider this manager was constructed with. If
-    // `authenticationConfig.getSuppliedCredential()` returns one, it is used directly instead of asking the
-    // provider to obtain one.
-    DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
+    // whichever single credential provider this manager was constructed with. If `cachedCredential` (the one
+    // cached from a user-provided config before binding) or else `authenticationConfig.getSuppliedCredential()`
+    // returns one, it is used directly instead of asking the provider to obtain one.
+    DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig,
+                                                 const CredentialRequestPtr& credentialRequest,
+                                                 const DictPtr<IString, IString>& cachedCredential = nullptr) const;
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);

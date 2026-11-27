@@ -44,12 +44,14 @@ class NativeStreamingClientImpl : public std::enable_shared_from_this<NativeStre
 public:
     explicit NativeStreamingClientImpl(const ContextPtr& context,
                                        const PropertyObjectPtr& transportLayerProperties,
-                                       const PropertyObjectPtr& authenticationObject,
+                                       const DictPtr<IString, IString>& credentials,
                                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
 
     ~NativeStreamingClientImpl();
 
-    bool connect(std::string host,
+    /// blocks until connected or timed out; throws AuthenticationFailedException when the server
+    /// rejects the credentials, NotFoundException on any other connection failure
+    void connect(std::string host,
                  std::string port,
                  std::string path = "/");
 
@@ -89,7 +91,7 @@ public:
 protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
-    daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);
+    daq::native_streaming::Authentication initClientAuthentication(const DictPtr<IString, IString>& credentials);
     void initClient(std::string host,
                     std::string port,
                     std::string path);
@@ -110,7 +112,8 @@ protected:
     {
         Connected = 0,
         ServerUnreachable,
-        ServerUnsupported
+        ServerUnsupported,
+        AuthenticationFailed
     };
 
     void onConnectionFailed(const std::string& errorMessage, const ConnectionResult result);
@@ -122,7 +125,7 @@ protected:
 
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
-    PropertyObjectPtr authenticationObject;
+    DictPtr<IString, IString> credentials;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerComponentPtr loggerComponent;
 
@@ -204,14 +207,14 @@ class NativeStreamingClientHandler
 public:
     explicit NativeStreamingClientHandler(const ContextPtr& context,
                                           const PropertyObjectPtr& transportLayerProperties,
-                                          const PropertyObjectPtr& authenticationObject);
+                                          const DictPtr<IString, IString>& credentials);
 
     ~NativeStreamingClientHandler();
 
     std::shared_ptr<boost::asio::io_context> getIoContext();
 
     // simply forwards calls to client handler
-    bool connect(std::string host, std::string port, std::string path = "/");
+    void connect(std::string host, std::string port, std::string path = "/");
 
     void subscribeSignal(const StringPtr& signalStringId);
     void unsubscribeSignal(const StringPtr& signalStringId);

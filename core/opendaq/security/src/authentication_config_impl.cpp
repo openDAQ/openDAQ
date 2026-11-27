@@ -19,6 +19,7 @@ namespace authentication_config
 static constexpr const char* AuthenticationMethodPropertyName = "AuthenticationMethod";
 static constexpr const char* SuppliedCredentialPropertyName = "SuppliedCredential";
 static constexpr const char* SupportedAuthenticationMethodsSerializedKey = "SupportedAuthenticationMethods";
+static constexpr const char* SelectedAuthenticationMethodIdSerializedKey = "SelectedAuthenticationMethodId";
 }
 
 AuthenticationConfigImpl::AuthenticationConfigImpl(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods)
@@ -99,6 +100,19 @@ ErrCode AuthenticationConfigImpl::getSuppliedCredential(IDict** credential)
     });
 }
 
+ErrCode AuthenticationConfigImpl::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+
+    return daqTry([&]
+    {
+        auto lock = getRecursiveConfigLock2();
+        auto obj = createWithImplementation<IPropertyObject, AuthenticationConfigImpl>(supportedAuthenticationMethods);
+        dynamic_cast<AuthenticationConfigImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
+        *cloned = obj.detach();
+    });
+}
+
 ErrCode AuthenticationConfigImpl::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
 {
     const ErrCode errCode = Super::setPropertySelectionValue(propertyName, value);
@@ -152,8 +166,8 @@ ErrCode AuthenticationConfigImpl::setPropertyValue(IString* propertyName, IBaseO
     return Super::setPropertyValue(propertyName, value);
 }
 
-// Serialization is entirely custom - replaces the inherited generic `IPropertyObject` one, mirroring
-// `DeviceTypeImpl`'s own pattern. Writes only `supportedAuthenticationMethods` (the real `IAuthenticationMethod`
+// Serialization is entirely custom - replaces the inherited generic `IPropertyObject` one.
+// Writes only `supportedAuthenticationMethods` (the real `IAuthenticationMethod`
 // objects this config was built from) and the currently selected id - `"SuppliedCredential"` is never written.
 ErrCode AuthenticationConfigImpl::serialize(ISerializer* serializer)
 {
@@ -165,11 +179,28 @@ ErrCode AuthenticationConfigImpl::serialize(ISerializer* serializer)
         supportedAuthenticationMethods.serialize(SerializerPtr::Borrow(serializer));
 
         const StringPtr selectedId = objPtr.getPropertySelectionValue(authentication_config::AuthenticationMethodPropertyName);
-        serializer->key("selectedAuthenticationMethodId");
+        serializer->key(authentication_config::SelectedAuthenticationMethodIdSerializedKey);
         serializer->writeString(selectedId.getCharPtr(), selectedId.getLength());
 
         serializer->endObject();
         return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode AuthenticationConfigImpl::serializeForUpdate(ISerializer* serializer)
+{
+    return serialize(serializer);
+}
+
+// Selects the saved method on this config - fails if it is not one of this config's supported methods
+ErrCode AuthenticationConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject* /*context*/)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry([&]
+    {
+        const StringPtr selectedId = SerializedObjectPtr::Borrow(obj).readString(authentication_config::SelectedAuthenticationMethodIdSerializedKey);
+        checkErrorInfo(setAuthenticationMethod(selectedId));
     });
 }
 
@@ -199,7 +230,7 @@ ErrCode AuthenticationConfigImpl::Deserialize(ISerializedObject* serialized, IBa
         const DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods =
             serializedObj.readObject(authentication_config::SupportedAuthenticationMethodsSerializedKey, BaseObjectPtr::Borrow(context), FunctionPtr::Borrow(factoryCallback))
                 .asPtr<IDict>();
-        const StringPtr selectedId = serializedObj.readString("selectedAuthenticationMethodId");
+        const StringPtr selectedId = serializedObj.readString(authentication_config::SelectedAuthenticationMethodIdSerializedKey);
 
         AuthenticationConfigPtr authConfig = createWithImplementation<IAuthenticationConfig, AuthenticationConfigImpl>(supportedAuthenticationMethods);
         authConfig.setAuthenticationMethod(selectedId);

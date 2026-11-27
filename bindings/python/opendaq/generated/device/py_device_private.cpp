@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IDevicePrivate, daq::IBaseObject> declareIDevicePrivate(pybind11::module_ m)
 {
@@ -98,4 +98,34 @@ void defineIDevicePrivate(pybind11::module_ m, PyDaqIntf<daq::IDevicePrivate, da
             objectPtr.forceUnlock();
         },
         "");
+    cls.def_property("device_credentials",
+        [](daq::IDevicePrivate *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePrivatePtr::Borrow(object);
+            return objectPtr.getDeviceCredentials().detach();
+        },
+        [](daq::IDevicePrivate *object, std::variant<daq::IDict*, py::dict>& credentials)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePrivatePtr::Borrow(object);
+            objectPtr.setDeviceCredentials(getVariantValue<daq::IDict*>(credentials));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the credentials used for connecting to the device - supplied by the user or obtained from the credential provider. / Keeps the credentials used for connecting to the device - supplied by the user or obtained from the credential provider.");
+    cls.def_property("streaming_credentials",
+        [](daq::IDevicePrivate *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePrivatePtr::Borrow(object);
+            return objectPtr.getStreamingCredentials().detach();
+        },
+        [](daq::IDevicePrivate *object, std::variant<daq::IDict*, py::dict>& credentials)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePrivatePtr::Borrow(object);
+            objectPtr.setStreamingCredentials(getVariantValue<daq::IDict*>(credentials));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the credentials required for auto-connecting the streaming selected in the add-device config attached to the device. / Keeps the credentials supplied for auto-connecting the streaming selected in the add-device config attached to the device while the attached config itself does not contain them.");
 }

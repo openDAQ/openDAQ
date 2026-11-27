@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coreobjects/property_object.h>
+#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,6 +41,38 @@ DECLARE_OPENDAQ_INTERFACE(IDevicePrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC unlock(IUser * user) = 0;
     virtual ErrCode INTERFACE_FUNC isLockedInternal(Bool * locked) = 0;
     virtual ErrCode INTERFACE_FUNC forceUnlock() = 0;
+
+    // [templateType(credentials, IString, IString)]
+    /*!
+     * @brief Keeps the credentials used for connecting to the device - supplied by the user or obtained from the
+     * credential provider.
+     * @param credentials The credentials, keyed by credential field id. nullptr if none were used.
+     */
+    virtual ErrCode INTERFACE_FUNC setDeviceCredentials(IDict* credentials) = 0;
+
+    // [templateType(credentials, IString, IString)]
+    /*!
+     * @brief Gets the credentials used for connecting to the device - supplied by the user or obtained from the
+     * credential provider.
+     * @param[out] credentials The credentials, keyed by credential field id. nullptr if none were used.
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceCredentials(IDict** credentials) = 0;
+
+    // [templateType(credentials, IString, IString)]
+    /*!
+     * @brief Keeps the credentials supplied for auto-connecting the streaming selected in the add-device config attached to
+     * the device while the attached config itself does not contain them.
+     * @param credentials The supplied credentials, keyed by credential field id. nullptr if none were supplied.
+     */
+    virtual ErrCode INTERFACE_FUNC setStreamingCredentials(IDict* credentials) = 0;
+
+    // [templateType(credentials, IString, IString)]
+    /*!
+     * @brief Gets the credentials required for auto-connecting the streaming selected in the add-device config attached to
+     * the device.
+     * @param[out] credentials The supplied credentials, keyed by credential field id. nullptr if none were supplied.
+     */
+    virtual ErrCode INTERFACE_FUNC getStreamingCredentials(IDict** credentials) = 0;
 };
 /*!@}*/
 

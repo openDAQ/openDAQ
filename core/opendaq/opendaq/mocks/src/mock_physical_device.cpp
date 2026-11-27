@@ -255,14 +255,16 @@ void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
     {
         ifaceNames = config.getPropertyValue("ifaceNames");
     }
-    if (config.hasProperty("onSubmitConfig") && config.getProperty("onSubmitConfig").getValueType() == CoreType::ctProc)
-    {
-        onSubmitConfig = config.getPropertyValue("onSubmitConfig");
-    }
-    if (config.hasProperty("onRetrieveConfig") && config.getProperty("onRetrieveConfig").getValueType() == CoreType::ctFunc)
-    {
-        onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
-    }
+}
+
+void MockPhysicalDeviceImpl::setOnSubmitNetworkConfig(const ProcedurePtr& callback)
+{
+    onSubmitConfig = callback;
+}
+
+void MockPhysicalDeviceImpl::setOnRetrieveNetworkConfig(const FunctionPtr& callback)
+{
+    onRetrieveConfig = callback;
 }
 
 void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)

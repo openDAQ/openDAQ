@@ -3,19 +3,18 @@
 #
 # Discovers every available device (local and remote) and, for each one, calls
 # "process_authentication" - the hook standing in for what an application does when the user
-# clicks "Add authenticated device" in a GUI: take the authentication config the device type
-# offers, select a method on it, supply a credential for it, and call
-# "instance.add_device(connection_string, config)" with that config carrying the authentication
-# config (see "with_authentication_config" below for how it's attached).
+# clicks "Add authenticated device" in a GUI: create the add-device config for the device, select a
+# method on its authentication config, supply a credential for it, and call
+# "instance.add_device(connection_string, config)" with that add-device config.
 #
 # The instance is built with a credential provider registered, since an authenticated connection
 # needs one able to supply a credential when none is directly supplied on the config.
 # CmdLineCredentialProvider prompts on stdin for whatever fields the selected method asks for.
 #
 # The device type itself carries the authentication methods it supports - a module declares them
-# keyed by id, reached through "device_type.create_authentication_config()". That returns one
-# self-contained config whose "AuthenticationMethod" selection property lists every supported
-# method; switching methods means moving that selection, not fetching a different config.
+# keyed by id. The add-device config's "authentication_config" is one self-contained config whose
+# "AuthenticationMethod" selection property lists every supported method; switching methods means
+# moving that selection, not fetching a different config.
 #
 # The credential demo module (DAQMODULES_CREDENTIAL_DEMO_MODULE) is the module that actually
 # supports authentication: it advertises "Credential demo device" with the methods
@@ -30,19 +29,6 @@ import opendaq as daq
 # "daq_utils.py" isn't necessarily alongside it.
 def print_indented(msg, depth):
     print('  ' * depth, msg)
-
-
-# Temporary bridge until `IAuthenticationConfig` becomes a real part of the add-device/add-streaming
-# config schema - a caller that wants an authenticated connection smuggles it onto an otherwise plain
-# config property object under this key, which the module manager looks for and honors. This key must
-# match the one used internally (see `AuthenticationConfigConfigKey` in `module_manager_impl.cpp`).
-AUTHENTICATION_CONFIG_CONFIG_KEY = "__AuthenticationConfig"
-
-
-def with_authentication_config(authentication_config):
-    config = daq.PropertyObject()
-    config.add_property(daq.ObjectProperty(AUTHENTICATION_CONFIG_CONFIG_KEY, authentication_config))
-    return config
 
 
 # Builds the instance the application runs on, with the credential provider a GUI would offer
@@ -63,29 +49,23 @@ def build_instance():
     return builder.build()
 
 
-# Finds the device type that would handle a discovered device. The type carried on the device
-# info is looked up in the instance's own registry, since that is the real, fully-populated type
-# (with its actual supported authentication methods) the module manager resolves authentication
-# against. Returns None if no type matches.
-def resolve_device_type(available_device_types, device_info):
-    device_type = device_info.device_type
-    if device_type is None:
+# Creates the add-device config for a discovered device, with the device type the module manager
+# would add it with. Returns None if no loaded device type can add it.
+def create_add_device_config(instance, device_info):
+    try:
+        return instance.create_add_device_config(device_info)
+    except RuntimeError:
         return None
 
-    if device_type.id in available_device_types.keys():
-        return daq.IDeviceType.cast_from(available_device_types[device_type.id])
 
-    return device_type
-
-
-# Builds the authentication config for a device type, or returns None if the type does not
-# support authentication.
-def create_authentication_config(device_type):
-    if device_type is None:
+# The authentication config of an add-device config, or None if its device type does not support
+# authentication.
+def get_authentication_config(add_device_config):
+    if add_device_config is None:
         return None
 
     try:
-        return device_type.create_authentication_config()
+        return add_device_config.authentication_config
     except RuntimeError:
         return None
 
@@ -93,7 +73,7 @@ def create_authentication_config(device_type):
 # Selects one of the supported methods by id - returns False if the config doesn't support it.
 def select_authentication_method(authentication_config, authentication_method_id):
     try:
-        authentication_config.authentication_method_id = authentication_method_id
+        authentication_config.authentication_method = authentication_method_id
         return True
     except RuntimeError:
         return False
@@ -113,18 +93,19 @@ def print_authentication_support(authentication_config):
     print_indented('- Selected method: ' + selected.id + ' - ' + selected.description, 1)
 
 
-def process_authentication(instance, device_info, authentication_config):
+def process_authentication(instance, device_info, add_device_config):
     # Supplied directly here for the sake of this scaffold - leaving it unset instead would make
     # the registered credential provider (CmdLineCredentialProvider) prompt for it on stdin.
     # The "supplied_credential" setter takes a real `daq.Dict`, not a plain Python dict.
     credential = daq.Dict()
     credential["UserName"] = "user"
     credential["Password"] = "pass"
-    authentication_config.supplied_credential = credential
+    add_device_config.authentication_config.supplied_credential = credential
 
     device = None
     try:
-        device = instance.add_device(device_info.connection_string, with_authentication_config(authentication_config))
+        # The binding doesn't expose IAddDeviceConfig as an IPropertyObject - "add_device" needs it cast
+        device = instance.add_device(device_info.connection_string, daq.IPropertyObject.cast_from(add_device_config))
     except RuntimeError:
         pass
 
@@ -134,13 +115,13 @@ def process_authentication(instance, device_info, authentication_config):
 if __name__ == "__main__":
     instance = build_instance()
 
-    available_device_types = instance.available_device_types
     available_devices = instance.available_devices
 
     print('Discovered ' + str(len(available_devices)) + ' device(s):\n')
     for device_info in available_devices:
-        device_type = resolve_device_type(available_device_types, device_info)
-        authentication_config = create_authentication_config(device_type)
+        add_device_config = create_add_device_config(instance, device_info)
+        device_type = add_device_config.device_type if add_device_config is not None else None
+        authentication_config = get_authentication_config(add_device_config)
 
         # Selected before printing, so "Selected method" below reflects the method this scaffold is
         # actually about to authenticate with, rather than whichever one the config starts out on.
@@ -155,7 +136,7 @@ if __name__ == "__main__":
         print_authentication_support(authentication_config)
 
         if user_pass_available:
-            process_authentication(instance, device_info, authentication_config)
+            process_authentication(instance, device_info, add_device_config)
         elif authentication_config is not None:
             print("Username and password authentication is not available for this device")
         print()

@@ -18,6 +18,7 @@
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
 
@@ -64,6 +65,8 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
  * A missing `General` key takes the default of the legacy `General` section.
  * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into the type configs.
  * They replace only values that equal the `General` default.
+ * A non-empty `Username` of a type config selects the `UserNamePassword` method of its authentication config, if it has one.
+ * The `Username` and `Password` are then supplied as the credential of that method.
  * `PrimaryAddressType` `IPv6` gives IPv6, and any other value gives IPv4.
  * A `PrimaryAddressType` other than `IPv4`, `IPv6` or blank logs a warning.
  *
@@ -93,22 +96,23 @@ PUBLIC_EXPORT AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectP
 PUBLIC_EXPORT Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd);
 
 /*!
- * @brief Translates a legacy config into the type config of a Streaming type.
+ * @brief Translates a legacy config into an Add streaming config.
  * @param config The config
  * @param streamingType The Streaming type the config is created for
- * @returns The type config, or the config as given when it isn't a legacy config
+ * @returns The Add streaming config
  * @throws InvalidValueException when the type config rejects a value of the `Streaming` entry.
  * @throws NotFoundException when a `General` selection value is not in its selection.
  * @throws ConversionFailedException when a `General` value can't be converted to its property's type.
  *
  * A legacy config has `Device`, `Streaming` and `General` sections.
- * Any other config, null included, is returned as given.
- * The type config is the default config of the Streaming type.
+ * The type config of a legacy config is the default config of the Streaming type.
  * It takes the values of the type's entry in the `Streaming` section, copied as `fromLegacyAddDeviceConfig` copies them.
  * The `General` keys `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` go into it as in `fromLegacyAddDeviceConfig`.
  * Without an entry for the type, the type config takes only the `General` keys.
+ * Any other config is the type config itself, and null gives the default config of the Streaming type.
+ * The `Username` and `Password` of the type config go into the authentication config as in `fromLegacyAddDeviceConfig`.
  */
-PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
+PUBLIC_EXPORT AddStreamingConfigPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType);
 
 /*!
  * @brief Translates an Add device config into a legacy config with `Device`, `Streaming` and `General` sections.
@@ -117,9 +121,11 @@ PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjec
  *
  * The `Device` section holds a copy of the type config, keyed by the Device type ID.
  * The `Streaming` section holds a copy of each listed streaming config.
+ * The copies hold the values of their type configs.
+ * The deprecated `Username` and `Password` of a copy instead hold the credential supplied for the selected `UserNamePassword`
+ * method of its authentication config, when there is one.
  * The `General` section holds every legacy key.
  * Its `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` hold their defaults.
- * The type configs hold their values.
  * `PrimaryAddressType` is `IPv4` or `IPv6`, never blank.
  * `AllowedStreamingProtocols` is empty.
  * A selected Streaming type gives a `PrioritizedStreamingProtocols` list with only its ID.

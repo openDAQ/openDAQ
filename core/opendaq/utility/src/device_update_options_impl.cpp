@@ -424,13 +424,23 @@ bool DeviceUpdateOptionsImpl::readDevice(const StringPtr& localId, const rapidjs
     if (jsonObject.HasMember("connectionString") && jsonObject["connectionString"].IsString())
         connectionString = jsonObject["connectionString"].GetString();
 
-    // Not hand-parsed like the plain string fields above - it's a real, nested, tagged object
-    // (with nested IAuthenticationMethod, ICredentialField inside it), so the sub-value has to be deserialized.
-    if (jsonObject.HasMember("AuthenticationConfig"))
+    // The authentication config of the add-device config the device was saved with. Not hand-parsed like the plain
+    // string fields above - it's a real, nested, tagged object (with nested IAuthenticationMethod, ICredentialField
+    // inside it), so the sub-value has to be deserialized.
+    const rapidjson::Value* savedAuthenticationConfig = nullptr;
+    if (jsonObject.HasMember("ComponentConfig") && jsonObject["ComponentConfig"].IsObject())
+    {
+        const auto& componentConfig = jsonObject["ComponentConfig"];
+        if (componentConfig.HasMember("propValues") && componentConfig["propValues"].IsObject() &&
+            componentConfig["propValues"].HasMember("AuthenticationConfig"))
+            savedAuthenticationConfig = &componentConfig["propValues"]["AuthenticationConfig"];
+    }
+
+    if (savedAuthenticationConfig != nullptr)
     {
         rapidjson::StringBuffer buffer;
         rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        jsonObject["AuthenticationConfig"].Accept(writer);
+        savedAuthenticationConfig->Accept(writer);
 
         const auto deserializer = JsonDeserializer();
         authenticationConfig = deserializer.deserialize(String(buffer.GetString()), nullptr, nullptr).asPtrOrNull<IAuthenticationConfig>();

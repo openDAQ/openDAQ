@@ -1,4 +1,7 @@
 #include <opendaq/add_streaming_config_impl.h>
+#include <opendaq/transport_option_impl.h>
+#include <opendaq/container_utils.h>
+#include <opendaq/add_config_transport_selection.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/component_type_private_ptr.h>
 
@@ -10,14 +13,24 @@ static const char* TypeConfig = "TypeConfig";
 static const char* AuthenticationConfig = "AuthenticationConfig";
 
 static const char* StreamingTypeKey = "streamingType";
+static const char* SelectedTransportOptionKey = "selectedTransportOption";
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType)
+    : AddStreamingConfigImpl(streamingType, DictPtr<IString, ITransportOption>())
+{
+}
+
+AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType,
+                                               const DictPtr<IString, ITransportOption>& transportOptions)
     : AddStreamingConfigImpl(streamingType, Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
     if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
         Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, streamingType.createAuthenticationConfig()));
+
+    add_config::AddTransportSelectionProperties(objPtr,
+                                                transportOptions.assigned() ? transportOptions : streamingType.getAvailableTransportOptions());
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial)
@@ -60,6 +73,7 @@ ErrCode AddStreamingConfigImpl::clone(IPropertyObject** cloned)
         auto lock = getRecursiveConfigLock2();
         auto obj = createWithImplementation<IPropertyObject, AddStreamingConfigImpl>(streamingType, Partial());
         dynamic_cast<AddStreamingConfigImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
+        add_config::FreezeAvailableTransportOptions(obj);
         *cloned = obj.detach();
     });
 }
@@ -70,6 +84,31 @@ ErrCode AddStreamingConfigImpl::getSerializeId(ConstCharPtr* id) const
 
     *id = SerializeId();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode AddStreamingConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
+{
+    return add_config::GetAvailableTransportOptions(objPtr, transportOptions);
+}
+
+ErrCode AddStreamingConfigImpl::setTransportOption(IString* id)
+{
+    return add_config::SetTransportOption(objPtr, id);
+}
+
+ErrCode AddStreamingConfigImpl::getSelectedTransportOption(ITransportOption** transportOption)
+{
+    return add_config::GetSelectedTransportOption(objPtr, transportOption);
+}
+
+ErrCode AddStreamingConfigImpl::setPort(Int port)
+{
+    return add_config::SetPort(objPtr, port);
+}
+
+ErrCode AddStreamingConfigImpl::getPort(Int* port)
+{
+    return add_config::GetPort(objPtr, port);
 }
 
 ConstCharPtr AddStreamingConfigImpl::SerializeId()
@@ -101,14 +140,58 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
 ErrCode AddStreamingConfigImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
     OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
-    if (forUpdate)
-        return OPENDAQ_SUCCESS;
 
     return daqTry([&]
     {
         const auto serializerPtr = SerializerPtr::Borrow(serializer);
+        if (forUpdate)
+        {
+            // The base class does not save a value equal to the default, and the default is the first option of this config.
+            // A load creates the config from the type, whose first option may be another one.
+            // So the selection is always saved, under its own key.
+            if (add_config::HasTransportOptions(objPtr))
+            {
+                const StringPtr selected = objPtr.getPropertyValue(TransportOptionConfigProperty);
+                serializerPtr.key(add_streaming_config::SelectedTransportOptionKey);
+                serializerPtr.writeString(selected);
+            }
+
+            return;
+        }
+
         serializerPtr.key(add_streaming_config::StreamingTypeKey);
         streamingType.asPtr<ISerializable>().serialize(serializerPtr);
+    });
+}
+
+ErrCode AddStreamingConfigImpl::serializePropertyValue(const StringPtr& name,
+                                                       const ObjectPtr<IBaseObject>& value,
+                                                       ISerializer* serializer,
+                                                       bool forUpdate)
+{
+    // The saved form leaves out two properties:
+    // - AvailableTransportOptions: a load takes the options from the type, a bind from the source config;
+    // - TransportOption: the selection is saved under its own key (see serializeCustomValues).
+    if (forUpdate && (name == add_config::AvailableTransportOptionsProperty || name == TransportOptionConfigProperty))
+        return OPENDAQ_SUCCESS;
+
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
+}
+
+ErrCode AddStreamingConfigImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    const ErrCode errCode = Super::updateInternal(obj, context);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (errCode == OPENDAQ_IGNORED)
+        return errCode;
+
+    return daqTry([&]
+    {
+        const auto saved = SerializedObjectPtr::Borrow(obj);
+        // A selection that the loaded config does not list fails the load, also for a type without options.
+        // The streaming must not change its transport silently.
+        if (saved.hasKey(add_streaming_config::SelectedTransportOptionKey))
+            checkErrorInfo(setTransportOption(saved.readString(add_streaming_config::SelectedTransportOptionKey)));
     });
 }
 

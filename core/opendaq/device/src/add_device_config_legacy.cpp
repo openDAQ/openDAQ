@@ -4,6 +4,8 @@
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/transport_option_factory.h>
+#include <opendaq/transport_selection_utils.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
@@ -107,6 +109,42 @@ static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyO
             target.setPropertyValue(name, general.getPropertyValue(name));
 }
 
+// Returns the port that a legacy entry sets on the add config, or -1.
+// The entry's Port is a set port if the module has no Port of its own.
+// If the module has its own Port:
+// - for a type without transport options, the value stays in the module's Port;
+// - for a type with transport options, any value except the default is a set port.
+static Int portSetIn(const PropertyObjectPtr& entry, const PropertyObjectPtr& typeConfig, bool typeHasOptions)
+{
+    if (!entry.hasProperty(PortConfigProperty) || entry.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return -1;
+
+    const Int port = entry.getPropertyValue(PortConfigProperty);
+    if (port < 0)
+        return -1;
+
+    if (!typeConfig.hasProperty(PortConfigProperty) || typeConfig.getProperty(PortConfigProperty).getValueType() != ctInt)
+        return port;
+
+    if (!typeHasOptions)
+        return -1;
+
+    const Int defaultPort = typeConfig.getProperty(PortConfigProperty).getDefaultValue();
+    return port == defaultPort ? -1 : port;
+}
+
+// Writes the set port to the Port of the entry. Adds the property if the entry has none.
+static void writePortSet(const PropertyObjectPtr& entry, Int port)
+{
+    if (port == -1)
+        return;
+
+    if (entry.hasProperty(PortConfigProperty))
+        entry.setPropertyValue(PortConfigProperty, port);
+    else
+        entry.addProperty(IntProperty(PortConfigProperty, port));
+}
+
 }
 
 PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
@@ -184,15 +222,26 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
         if (!hasStreamingSection || streamingSection.hasProperty(typeId))
             candidates.set(typeId, streamingType);
 
-    auto config = AddDeviceConfig(deviceType, getListableStreamingTypes(candidates, loggerComponent), scanOnAdd);
+    auto config = AddDeviceConfig(deviceType, getListableStreamingTypes(candidates, loggerComponent), nullptr, scanOnAdd);
     config.setScanOnAdd(general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd));
     const auto options = config.getStreamingOptions();
     const auto streamingConfigs = options.assigned() ? options.getAvailableStreamingConfigs() : Dict<IString, IAddStreamingConfig>();
 
     const auto deviceSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::DeviceSection);
-    detail::translateTypeConfig(config.getTypeConfig(), detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig), general);
+    const auto deviceEntry = detail::sectionOf(deviceSection, deviceType.getId(), legacyConfig);
+    detail::translateTypeConfig(config.getTypeConfig(), deviceEntry, general);
+    if (const Int port = detail::portSetIn(deviceEntry, config.getTypeConfig(), config.getAvailableTransportOptions().getCount() > 0);
+        port != -1)
+        config.setPort(port);
+
     for (const auto& [typeId, streamingConfig] : streamingConfigs)
-        detail::translateTypeConfig(streamingConfig.getTypeConfig(), detail::sectionOf(streamingSection, typeId), general);
+    {
+        const auto streamingEntry = detail::sectionOf(streamingSection, typeId);
+        detail::translateTypeConfig(streamingConfig.getTypeConfig(), streamingEntry, general);
+        const bool streamingHasOptions = streamingConfig.getAvailableTransportOptions().getCount() > 0;
+        if (const Int port = detail::portSetIn(streamingEntry, streamingConfig.getTypeConfig(), streamingHasOptions); port != -1)
+            streamingConfig.setPort(port);
+    }
 
     const StringPtr addressType = general.getPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType);
     if (addressType == LegacyAddDeviceConfig::IPv6)
@@ -258,7 +307,9 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     };
 
     auto deviceSection = PropertyObject();
-    deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), cloneTypeConfig(config.getTypeConfig())));
+    const auto deviceEntry = cloneTypeConfig(config.getTypeConfig());
+    detail::writePortSet(deviceEntry, GetPortSet(config));
+    deviceSection.addProperty(ObjectProperty(config.getDeviceType().getId(), deviceEntry));
 
     auto streamingSection = PropertyObject();
     auto general = createLegacyGeneralConfig(config.getScanOnAdd());
@@ -270,7 +321,11 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     if (options.assigned())
     {
         for (const auto& [typeId, streamingConfig] : options.getAvailableStreamingConfigs())
-            streamingSection.addProperty(ObjectProperty(typeId, cloneTypeConfig(streamingConfig.getTypeConfig())));
+        {
+            const auto streamingEntry = cloneTypeConfig(streamingConfig.getTypeConfig());
+            detail::writePortSet(streamingEntry, GetPortSet(streamingConfig));
+            streamingSection.addProperty(ObjectProperty(typeId, streamingEntry));
+        }
 
         const auto selected = options.getStreamingConfig();
         if (selected.assigned())

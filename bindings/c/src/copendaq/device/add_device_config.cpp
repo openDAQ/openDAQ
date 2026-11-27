@@ -61,3 +61,28 @@ daqErrCode daqAddDeviceConfig_getAuthenticationConfig(daqAddDeviceConfig* self, 
 {
     return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
 }
+
+daqErrCode daqAddDeviceConfig_getAvailableTransportOptions(daqAddDeviceConfig* self, daqDict** transportOptions)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getAvailableTransportOptions(reinterpret_cast<daq::IDict**>(transportOptions));
+}
+
+daqErrCode daqAddDeviceConfig_setTransportOption(daqAddDeviceConfig* self, daqString* id)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->setTransportOption(reinterpret_cast<daq::IString*>(id));
+}
+
+daqErrCode daqAddDeviceConfig_getSelectedTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getSelectedTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
+}
+
+daqErrCode daqAddDeviceConfig_setPort(daqAddDeviceConfig* self, daqInt port)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->setPort(port);
+}
+
+daqErrCode daqAddDeviceConfig_getPort(daqAddDeviceConfig* self, daqInt* port)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getPort(port);
+}

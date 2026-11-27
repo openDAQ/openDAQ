@@ -38,6 +38,13 @@ extern "C"
         daqComponentTypeSortStreaming
     } daqComponentTypeSort;
 
+    typedef enum daqSecurityMode
+    {
+        daqSecurityModeNone = 0,
+        daqSecurityModeSigned,
+        daqSecurityModeEncrypted
+    } daqSecurityMode;
+
 #ifdef __cplusplus
 }
 #endif

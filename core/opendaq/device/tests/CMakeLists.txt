@@ -9,6 +9,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_device.cpp
                  test_tree_traversal.cpp
                  test_server_capability.cpp
+                 test_device_type.cpp
                  test_device_domain.cpp
                  test_log_file_info.cpp
                  test_user_lock.cpp
@@ -16,6 +17,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_connected_client_info.cpp
                  test_add_device_config.cpp
                  test_add_device_config_legacy.cpp
+                 test_add_config_transport.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

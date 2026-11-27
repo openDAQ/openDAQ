@@ -1,5 +1,7 @@
 #include <opendaq/server_type_impl.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/transport_option_impl.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -20,15 +22,26 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
                                const StringPtr& name,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
-                               ServerKind serverKind)
-    : Super(detail::serverTypeStructType, id, name, description, defaultConfig,
-            Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}))
+                               ServerKind serverKind,
+                               const DictPtr<IString, ITransportOption>& transportOptions)
+    : Super(detail::serverTypeStructType,
+            id,
+            name,
+            description,
+            defaultConfig,
+            Dict<IString, IBaseObject>({{"ServerKind", static_cast<Int>(serverKind)}}),
+            transportOptions)
     , serverKind(serverKind)
 {
 }
 
 ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
-    : ServerTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getServerKind())
+    : ServerTypeImpl(builder.getId(),
+                     builder.getName(),
+                     builder.getDescription(),
+                     builder.getDefaultConfig(),
+                     builder.getServerKind(),
+                     builder.getAvailableTransportOptions())
 {
 }
 
@@ -77,6 +90,12 @@ void ServerTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool with
         {
             serializerPtr.key("description");
             serializerPtr.writeString(description);
+        }
+
+        if (transportOptions.getCount() > 0)
+        {
+            serializerPtr.key("availableTransportOptions");
+            transportOptions.serialize(serializerPtr);
         }
 
         if (withDefaultConfig && defaultConfig.assigned())
@@ -132,6 +151,10 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("description"))
             description = serializedObj.readString("description");
 
+        DictPtr<IString, ITransportOption> transportOptions;
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions = serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr).asPtr<IDict>();
+
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
@@ -139,7 +162,8 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         const auto serverKind =
             serializedObj.hasKey("serverKind") ? detail::toServerKind(serializedObj.readInt("serverKind")) : ServerKind::Unspecified;
 
-        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, serverKind);
+        auto serverType =
+            createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, serverKind, transportOptions);
 
         if (serializedObj.hasKey("moduleInfo"))
         {

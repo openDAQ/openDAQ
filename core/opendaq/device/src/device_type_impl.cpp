@@ -1,6 +1,7 @@
 #include <opendaq/device_type_impl.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/authentication_method_factory.h>
+#include <opendaq/transport_option_impl.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -16,8 +17,9 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix,
                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                               DeviceKind deviceKind)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                               DeviceKind deviceKind,
+                               const DictPtr<IString, ITransportOption>& transportOptions)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , deviceKind(deviceKind)
 {
 }
@@ -29,7 +31,8 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDefaultConfig(),
                      builder.getConnectionStringPrefix(),
                      builder.getSupportedAuthenticationMethods(),
-                     builder.getDeviceKind())
+                     builder.getDeviceKind(),
+                     builder.getAvailableTransportOptions())
 {
 }
 
@@ -82,6 +85,12 @@ void DeviceTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool with
         {
             serializerPtr.key("prefix");
             serializerPtr.writeString(prefix);
+        }
+
+        if (transportOptions.getCount() > 0)
+        {
+            serializerPtr.key("availableTransportOptions");
+            transportOptions.serialize(serializerPtr);
         }
 
         if (withDefaultConfig && defaultConfig.assigned())
@@ -159,8 +168,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("deviceKind"))
             deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
 
+        DictPtr<IString, ITransportOption> transportOptions;
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions = serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr).asPtr<IDict>();
+
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
-            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, deviceKind);
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, deviceKind, transportOptions);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

@@ -57,6 +57,8 @@ PUBLIC_EXPORT PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IStrin
  * The legacy config has `Device`, `Streaming` and `General` sections, holds the type config and `General` keys itself, or is null.
  * A null legacy config is read as an empty one.
  * Values are copied only for properties that both the legacy section and the type config have.
+ * A `Port` in `Device.<id>` or `Streaming.<id>` other than the default becomes the port set on the config (see IAddDeviceConfig::setPort).
+ * A type without transport options keeps its own `Port` in the type config only.
  * A missing `General` or `Device.<id>` section is read from the legacy config itself.
  * A missing `Streaming` section lists every loaded Streaming type the Device type can take.
  * A present `Streaming` section lists only those that have an entry in it.
@@ -120,6 +122,7 @@ PUBLIC_EXPORT PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjec
  * The `General` section holds every legacy key.
  * Its `Username`, `Password`, `ClientType` and `ExclusiveControlDropOthers` hold their defaults.
  * The type configs hold their values.
+ * A port set on the config or on a streaming config is written to `Port` in its `Device.<id>` or `Streaming.<id>`.
  * `PrimaryAddressType` is `IPv4` or `IPv6`, never blank.
  * `AllowedStreamingProtocols` is empty.
  * A selected Streaming type gives a `PrioritizedStreamingProtocols` list with only its ID.

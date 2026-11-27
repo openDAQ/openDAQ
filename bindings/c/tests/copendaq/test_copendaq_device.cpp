@@ -301,3 +301,160 @@ TEST_F(COpendaqDeviceTest, AvailableStreamingTypesOfRootDeviceIsEmpty)
     const auto typesPtr = daq::DictPtr<daq::IString, daq::IStreamingType>::Adopt((daq::IDict*) types);
     ASSERT_EQ(typesPtr.getCount(), 0u);
 }
+
+using TransportOptionsPtr = daq::DictPtr<daq::IString, daq::ITransportOption>;
+
+TEST_F(COpendaqDeviceTest, TransportOption)
+{
+    static_assert(daqSecurityModeNone == static_cast<int>(daq::SecurityMode::None));
+    static_assert(daqSecurityModeSigned == static_cast<int>(daq::SecurityMode::Signed));
+    static_assert(daqSecurityModeEncrypted == static_cast<int>(daq::SecurityMode::Encrypted));
+
+    const auto builder = daq::TransportOptionBuilder("tls").setPort(7422).setSecurityMode(daq::SecurityMode::Encrypted).setCertificateRequired(True);
+    daqTransportOption* option = nullptr;
+    ASSERT_EQ(daqTransportOption_createTransportOptionFromBuilder(&option, (daqTransportOptionBuilder*) builder.getObject()), DAQ_SUCCESS);
+    const auto optionPtr = daq::TransportOptionPtr::Adopt((daq::ITransportOption*) option);
+
+    daqString* optionId = nullptr;
+    daqTransportOption_getId(option, &optionId);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) optionId), "tls");
+
+    daqInt port = 0;
+    daqTransportOption_getPort(option, &port);
+    ASSERT_EQ(port, 7422);
+
+    daqSecurityMode mode = daqSecurityModeNone;
+    daqTransportOption_getSecurityMode(option, &mode);
+    ASSERT_EQ(mode, daqSecurityModeEncrypted);
+
+    daqBool required = False;
+    daqTransportOption_getCertificateRequired(option, &required);
+    ASSERT_TRUE(required);
+}
+
+TEST_F(COpendaqDeviceTest, TransportOptionBuilder)
+{
+    const daq::StringPtr id = "tls";
+    daqTransportOptionBuilder* builder = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilder(&builder, (daqString*) id.getObject()), DAQ_SUCCESS);
+    const auto builderPtr = daq::TransportOptionBuilderPtr::Adopt((daq::ITransportOptionBuilder*) builder);
+
+    daqString* builderId = nullptr;
+    daqTransportOptionBuilder_getId(builder, &builderId);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) builderId), "tls");
+
+    ASSERT_EQ(daqTransportOptionBuilder_setPort(builder, 7422), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_setSecurityMode(builder, daqSecurityModeEncrypted), DAQ_SUCCESS);
+    ASSERT_EQ(daqTransportOptionBuilder_setCertificateRequired(builder, True), DAQ_SUCCESS);
+
+    daqInt builderPort = 0;
+    daqTransportOptionBuilder_getPort(builder, &builderPort);
+    ASSERT_EQ(builderPort, 7422);
+
+    daqTransportOption* built = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_build(builder, &built), DAQ_SUCCESS);
+    const auto builtPtr = daq::TransportOptionPtr::Adopt((daq::ITransportOption*) built);
+    ASSERT_EQ(builtPtr.getId(), "tls");
+    ASSERT_EQ(builtPtr.getPort(), 7422);
+    ASSERT_EQ(builtPtr.getSecurityMode(), daq::SecurityMode::Encrypted);
+    ASSERT_TRUE(builtPtr.getCertificateRequired());
+
+    daqTransportOptionBuilder* copy = nullptr;
+    ASSERT_EQ(daqTransportOptionBuilder_createTransportOptionBuilderFromExisting(&copy, built), DAQ_SUCCESS);
+    const auto copyPtr = daq::TransportOptionBuilderPtr::Adopt((daq::ITransportOptionBuilder*) copy);
+    ASSERT_EQ(copyPtr.getId(), "tls");
+    ASSERT_EQ(copyPtr.getSecurityMode(), daq::SecurityMode::Encrypted);
+}
+
+TEST_F(COpendaqDeviceTest, ComponentTypeTransportOptions)
+{
+    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}});
+    const daq::StringPtr id = "dev";
+
+    daqComponentTypeBuilder* builder = nullptr;
+    daqComponentTypeBuilder_createComponentTypeBuilder(&builder);
+    const auto builderPtr = daq::ComponentTypeBuilderPtr::Adopt((daq::IComponentTypeBuilder*) builder);
+    daqComponentTypeBuilder_setTypeSort(builder, daqComponentTypeSortDevice);
+    daqComponentTypeBuilder_setId(builder, (daqString*) id.getObject());
+    ASSERT_EQ(daqComponentTypeBuilder_setAvailableTransportOptions(builder, (daqDict*) options.getObject()), DAQ_SUCCESS);
+
+    daqDict* builderOptions = nullptr;
+    daqComponentTypeBuilder_getAvailableTransportOptions(builder, &builderOptions);
+    ASSERT_EQ(TransportOptionsPtr::Adopt((daq::IDict*) builderOptions).getKeyList(),
+              daq::List<daq::IString>("tls"));
+
+    daqComponentType* type = nullptr;
+    daqComponentTypeBuilder_build(builder, &type);
+    const auto typePtr = daq::ComponentTypePtr::Adopt((daq::IComponentType*) type);
+
+    daqDict* typeOptions = nullptr;
+    daqComponentType_getAvailableTransportOptions(type, &typeOptions);
+    const TransportOptionsPtr typeOptionsPtr = TransportOptionsPtr::Adopt((daq::IDict*) typeOptions);
+    ASSERT_EQ(typeOptionsPtr.getCount(), 1u);
+    ASSERT_EQ(daq::TransportOptionPtr(typeOptionsPtr.get("tls")).getPort(), 7422);
+}
+
+TEST_F(COpendaqDeviceTest, ServerCapabilityTransportOptions)
+{
+    const daq::StringPtr protocolId = "protocol";
+    daqServerCapabilityConfig* capability = nullptr;
+    daqServerCapabilityConfig_createServerCapability(
+        &capability, (daqString*) protocolId.getObject(), (daqString*) protocolId.getObject(), daqProtocolTypeConfiguration);
+    const auto capabilityPtr = daq::ServerCapabilityConfigPtr::Adopt((daq::IServerCapabilityConfig*) capability);
+
+    const auto options = daq::Dict<daq::IString, daq::ITransportOption>({{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}});
+    ASSERT_EQ(daqServerCapabilityConfig_setAvailableTransportOptions(capability, (daqDict*) options.getObject()), DAQ_SUCCESS);
+    const auto plain = daq::TransportOptionBuilder("plain").setPort(7420).build();
+    ASSERT_EQ(daqServerCapabilityConfig_addAvailableTransportOption(capability, (daqTransportOption*) plain.getObject()), DAQ_SUCCESS);
+
+    daqServerCapability* readable = nullptr;
+    daqBaseObject_borrowInterface(capability, DAQ_SERVER_CAPABILITY_INTF_ID, (daqBaseObject**) &readable);
+    daqDict* capabilityOptions = nullptr;
+    daqServerCapability_getAvailableTransportOptions(readable, &capabilityOptions);
+    ASSERT_EQ(TransportOptionsPtr::Adopt((daq::IDict*) capabilityOptions).getKeyList(),
+              daq::List<daq::IString>("tls", "plain"));
+}
+
+TEST_F(COpendaqDeviceTest, AddConfigTransportOption)
+{
+    const auto options = daq::Dict<daq::IString, daq::ITransportOption>(
+        {{"tls", daq::TransportOptionBuilder("tls").setPort(7422).build()}, {"plain", daq::TransportOptionBuilder("plain").setPort(7420).build()}});
+    const auto deviceType = daq::DeviceTypeBuilder()
+                                .setId("dev")
+                                .setConnectionStringPrefix("dev")
+                                .setDeviceKind(daq::DeviceKind::Mirrored)
+                                .setAvailableTransportOptions(options)
+                                .build();
+    const auto streamingType =
+        daq::StreamingTypeBuilder().setId("str").setConnectionStringPrefix("str").setAvailableTransportOptions(options).build();
+    const auto configPtr =
+        daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>({{"str", streamingType}}), nullptr, True);
+    auto* config = (daqAddDeviceConfig*) configPtr.getObject();
+
+    daqDict* configOptions = nullptr;
+    daqAddDeviceConfig_getAvailableTransportOptions(config, &configOptions);
+    ASSERT_EQ(TransportOptionsPtr::Adopt((daq::IDict*) configOptions).getCount(), 2u);
+
+    const daq::StringPtr plain = "plain";
+    ASSERT_EQ(daqAddDeviceConfig_setTransportOption(config, (daqString*) plain.getObject()), DAQ_SUCCESS);
+    daqTransportOption* selected = nullptr;
+    daqAddDeviceConfig_getSelectedTransportOption(config, &selected);
+    ASSERT_EQ(daq::TransportOptionPtr::Adopt((daq::ITransportOption*) selected).getId(), "plain");
+
+    daqInt port = 0;
+    daqAddDeviceConfig_getPort(config, &port);
+    ASSERT_EQ(port, 7420);
+    ASSERT_EQ(daqAddDeviceConfig_setPort(config, 7500), DAQ_SUCCESS);
+    daqAddDeviceConfig_getPort(config, &port);
+    ASSERT_EQ(port, 7500);
+
+    auto* streamingConfig = (daqAddStreamingConfig*) configPtr.getStreamingOptions().getAvailableStreamingConfigs().get("str").getObject();
+    daqAddStreamingConfig_getAvailableTransportOptions(streamingConfig, &configOptions);
+    ASSERT_EQ(TransportOptionsPtr::Adopt((daq::IDict*) configOptions).getCount(), 2u);
+    ASSERT_EQ(daqAddStreamingConfig_setTransportOption(streamingConfig, (daqString*) plain.getObject()), DAQ_SUCCESS);
+    daqAddStreamingConfig_getSelectedTransportOption(streamingConfig, &selected);
+    ASSERT_EQ(daq::TransportOptionPtr::Adopt((daq::ITransportOption*) selected).getId(), "plain");
+    ASSERT_EQ(daqAddStreamingConfig_setPort(streamingConfig, 7600), DAQ_SUCCESS);
+    daqAddStreamingConfig_getPort(streamingConfig, &port);
+    ASSERT_EQ(port, 7600);
+}

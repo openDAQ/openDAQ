@@ -81,7 +81,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
      * @brief Gets the reference type of the interface's reference domain ID.
      * @param[out] syncType The synchronization type string.
      *
-     * Lowercase. Known types are "local", "ptp", "ntp", "gps" and "irig"; others are allowed.
+     * Lowercase. Known types are "internal", "ptp", "ntp", "gps" and "irig"; others are allowed.
      * The reference domain ID is this value, or starts with it followed by ':'.
      */
     virtual ErrCode INTERFACE_FUNC getSyncType(IString** syncType) = 0;

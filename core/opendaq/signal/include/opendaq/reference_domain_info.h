@@ -61,7 +61,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * The ID has the form <reference-type>[:<type-specific-identity>]. PTP uses
      * "ptp:<domain-number>:<grandmaster identity as 16 lowercase hex digits>", eg. "ptp:0:001122fffe334455".
      * NTP uses "ntp:<server IP address>", eg. "ntp:192.0.2.10".
-     * While the device runs on its own clock, the ID is "local:<device-local-id>".
+     * While the device runs on its own clock, the ID is "internal:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 

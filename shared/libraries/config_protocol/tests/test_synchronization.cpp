@@ -226,17 +226,17 @@ TEST_F(ConfigSynchronizationTest, ReadOnlyUserCannotChangeSynchronization)
 
     const auto clientSync = getClientSyncComponent();
     ASSERT_THROW(clientSync.setSource("TestInterface"), AccessDeniedException);
-    ASSERT_THROW(clientSync.getInterfaces().get("PtpSyncInterface").setMode(SyncMode::Output), AccessDeniedException);
+    ASSERT_THROW(clientSync.getInterfaces().get("PTP").setMode(SyncMode::Output), AccessDeniedException);
 
     // The PTP config and each port set their own permissions to inherit, so each is written once
-    const PropertyObjectPtr clientConfig = clientSync.getInterfaces().get("PtpSyncInterface").getConfig();
+    const PropertyObjectPtr clientConfig = clientSync.getInterfaces().get("PTP").getConfig();
     ASSERT_THROW(clientConfig.setPropertyValue("DomainNumber", 5), AccessDeniedException);
     ASSERT_THROW(clientConfig.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", 3), AccessDeniedException);
 
     const auto serverSync = getServerSyncComponent();
-    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
-    ASSERT_EQ(serverSync.getInterfaces().get("PtpSyncInterface").getMode(), SyncMode::Off);
-    const auto serverConfig = serverSync.getInterfaces().get("PtpSyncInterface").getConfig();
+    ASSERT_EQ(serverSync.getSource().getId(), "InternalClock");
+    ASSERT_EQ(serverSync.getInterfaces().get("PTP").getMode(), SyncMode::Off);
+    const auto serverConfig = serverSync.getInterfaces().get("PTP").getConfig();
     ASSERT_EQ(serverConfig.getPropertyValue("DomainNumber"), 0);
     ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), 0);
 }
@@ -260,7 +260,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfaceGetId)
     auto clientSync = getClientSyncComponent();
     auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(clientSource.getId(), "ClockSyncInterface");
+    ASSERT_EQ(clientSource.getId(), "InternalClock");
 }
 
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSyncType)
@@ -271,8 +271,8 @@ TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSyncType)
     auto serverSource = serverSync.getSource();
     auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(serverSource.getSyncType(), "local");
-    ASSERT_EQ(clientSource.getSyncType(), "local");
+    ASSERT_EQ(serverSource.getSyncType(), "internal");
+    ASSERT_EQ(clientSource.getSyncType(), "internal");
 }
 
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
@@ -293,7 +293,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
     auto propObj = clientSource.asPtr<IPropertyObject>(true);
 
     // Test reading properties via property object interface
-    ASSERT_EQ(propObj.getPropertyValue("Id"), "ClockSyncInterface");
+    ASSERT_EQ(propObj.getPropertyValue("Id"), "InternalClock");
     ASSERT_NO_THROW(propObj.getPropertyValue("Mode"));
     ASSERT_NO_THROW(propObj.getPropertyValue("ReferenceDomainId"));
 }
@@ -447,8 +447,8 @@ TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
     auto clientSync = getClientSyncComponent();
     const auto clientSyncUpdatable = clientSync.asPtr<IUpdatable>(true);
 
-    ASSERT_EQ(clientSync.getSource().getId(), "ClockSyncInterface");
-    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "InternalClock");
+    ASSERT_EQ(serverSync.getSource().getId(), "InternalClock");
 
     auto serializer = JsonSerializer();
     ASSERT_ERROR_CODE_EQ(clientSyncUpdatable->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
@@ -462,8 +462,8 @@ TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
     const auto deserializer = JsonDeserializer();
     deserializer.update(clientSyncUpdatable, serializer.getOutput(), nullptr);
 
-    ASSERT_EQ(clientSync.getSource().getId(), "ClockSyncInterface");
-    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "InternalClock");
+    ASSERT_EQ(serverSync.getSource().getId(), "InternalClock");
 }
 
 TEST_F(ConfigSynchronizationTest, SaveLoadSourceModeFromClient)
@@ -479,8 +479,8 @@ TEST_F(ConfigSynchronizationTest, SaveLoadSourceModeFromClient)
     auto serializer = JsonSerializer();
     ASSERT_ERROR_CODE_EQ(clientSyncUpdatable->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
 
-    clientSync.setSource("ClockSyncInterface");
-    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
+    clientSync.setSource("InternalClock");
+    ASSERT_EQ(serverSync.getSource().getId(), "InternalClock");
 
     const auto deserializer = JsonDeserializer();
     deserializer.update(clientSyncUpdatable, serializer.getOutput(), nullptr);
@@ -493,14 +493,14 @@ TEST_F(ConfigSynchronizationTest, SaveLoadSourceModeFromClient)
 TEST_F(ConfigSynchronizationTest, ConnectWithSourceInInputMode)
 {
     auto serverSync = getServerSyncComponent();
-    serverSync.setSource("PtpSyncInterface");
-    serverSync.getInterfaces().get("PtpSyncInterface").setMode(SyncMode::Input);
+    serverSync.setSource("PTP");
+    serverSync.getInterfaces().get("PTP").setMode(SyncMode::Input);
 
     const DevicePtr newClientDevice = connectNewClient();
     const auto newClientSync = newClientDevice.getSynchronization();
-    ASSERT_EQ(newClientSync.getSource().getId(), "PtpSyncInterface");
-    ASSERT_EQ(newClientSync.getInterfaces().get("PtpSyncInterface").getMode(), SyncMode::Input);
-    ASSERT_EQ(newClientSync.getInterfaces().get("ClockSyncInterface").getMode(), SyncMode::Off);
+    ASSERT_EQ(newClientSync.getSource().getId(), "PTP");
+    ASSERT_EQ(newClientSync.getInterfaces().get("PTP").getMode(), SyncMode::Input);
+    ASSERT_EQ(newClientSync.getInterfaces().get("InternalClock").getMode(), SyncMode::Off);
 }
 
 TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)
@@ -531,8 +531,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PTP");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PTP");
 
     const auto serverConfig = serverInterface.getConfig();
     const auto clientConfig = clientInterface.getConfig();
@@ -549,8 +549,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PTP");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PTP");
 
     const auto serverConfig = serverInterface.getConfig();
     const auto clientConfig = clientInterface.getConfig();
@@ -564,12 +564,12 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
 
 TEST_F(ConfigSynchronizationTest, ConnectWithNonDefaultSource)
 {
-    getServerSyncComponent().setSource("PtpSyncInterface");
+    getServerSyncComponent().setSource("PTP");
 
     // "Source" sorts before "SourceSelection", so the server sends SourceSelection first
     // for a new client to accept a source other than the clock.
     DevicePtr newClientDevice;
     ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device whose source is PtpSyncInterface";
-    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
+    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PTP");
 }
 

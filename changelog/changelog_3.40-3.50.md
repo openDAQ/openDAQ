@@ -19,6 +19,7 @@
 
 ## Python
 
+- [#1346](https://github.com/openDAQ/openDAQ/pull/1346) Add a Synchronization tab to the Python GUI demo app: devices grouped by the reference domain at the start of their clock chain, an editable source, and the selected device's interfaces as cards with their mode, settings and statuses. The component tree shows a device's synchronization as a `Synchronization` row when it has an interface besides `InternalClock`, and its deprecated sync component as a `SyncComponent` row when that has any interface.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Expose the function block type options: the `FunctionBlockInputPolicy` enum and the read-only `IFunctionBlockType` properties `input_policy`, `singleton` and `common_settings_type_id`. `common_settings_type_id` is `None` when the type does not declare a common settings relationship. The options can only be read from Python, as the component type builder has no Python binding.
 
 ## Bug fixes
@@ -97,7 +98,7 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 ### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
 
 - `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.
-- The reference device reports the reference domain ID `local:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `local:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
+- The reference device reports the reference domain ID `internal:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `internal:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
 - The reference device's deprecated `SyncComponent` holds no interfaces; `IDevice::getSynchronization` replaces it.
 - Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
 - Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.

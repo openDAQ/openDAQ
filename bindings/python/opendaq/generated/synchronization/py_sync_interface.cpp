@@ -73,7 +73,7 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
             return objectPtr.getSyncType().toStdString();
         },
-        "Gets the synchronization type of the interface (eg. \"ptp\", \"ntp\", \"local\").");
+        "Gets the synchronization type of the interface (eg. \"ptp\", \"ntp\", \"internal\").");
     cls.def_property_readonly("reference_domain_id",
         [](daq::ISyncInterface *object)
         {

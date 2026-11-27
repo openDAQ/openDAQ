@@ -28,7 +28,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Creates a synchronization object that holds a ClockSyncInterface selected as the source.
  * @param manager The type manager.
- * @param deviceId The device-local ID; the ClockSyncInterface reference domain ID is "local:<deviceId>".
+ * @param deviceId The device-local ID; the InternalClock reference domain ID is "internal:<deviceId>".
  */
 inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
 {

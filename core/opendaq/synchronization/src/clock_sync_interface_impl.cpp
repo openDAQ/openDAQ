@@ -3,16 +3,16 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager, const StringPtr& deviceId)
-    : Super(manager, "ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
+    : Super(manager, "InternalClock", {SyncMode::Off, SyncMode::Input})
 {
     if (deviceId.assigned() && deviceId.getLength() != 0)
-        localReferenceDomainId = fmt::format("local:{}", deviceId);
+        internalReferenceDomainId = fmt::format("internal:{}", deviceId);
 }
 
 ErrCode ClockSyncInterfaceImpl::getSyncType(IString** syncType)
 {
     OPENDAQ_PARAM_NOT_NULL(syncType);
-    *syncType = String("local").detach();
+    *syncType = String("internal").detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -23,7 +23,7 @@ ErrCode ClockSyncInterfaceImpl::setAsSource(Bool source)
     {
         if (source)
         {
-            this->setReferenceDomainId(localReferenceDomainId);
+            this->setReferenceDomainId(internalReferenceDomainId);
             this->setSyncRoleStatus(SyncRoleStatus::Input);
             this->setSyncSourceStatus(SyncSourceStatus::Synced);
         }

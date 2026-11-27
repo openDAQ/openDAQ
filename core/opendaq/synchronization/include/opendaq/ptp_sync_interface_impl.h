@@ -37,7 +37,7 @@ public:
 
 protected:
     PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager,
-                             const StringPtr& name = "PtpSyncInterface",
+                             const StringPtr& name = "PTP",
                              const std::vector<SyncMode>& availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
 
     void createPortProperties(const StringPtr& portName);

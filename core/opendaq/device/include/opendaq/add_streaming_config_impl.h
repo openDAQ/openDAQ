@@ -15,12 +15,14 @@
  */
 #pragma once
 #include <opendaq/add_streaming_config_ptr.h>
+#include <opendaq/add_streaming_config_private.h>
+#include <opendaq/authentication_config_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class AddStreamingConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig>
+class AddStreamingConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig, IAddStreamingConfigPrivate>
 {
     class Partial
     {
@@ -31,7 +33,7 @@ class AddStreamingConfigImpl : public GenericPropertyObjectImpl<IPropertyObject,
     };
 
 public:
-    using Super = GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig>;
+    using Super = GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig, IAddStreamingConfigPrivate>;
 
     explicit AddStreamingConfigImpl(const StreamingTypePtr& streamingType);
     AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial);
@@ -40,9 +42,15 @@ public:
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
 
+    ErrCode INTERFACE_FUNC bind(IDict* streamingTypes, IAddStreamingConfig** bound) override;
+
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    // Resets the deprecated `Username` and `Password` of a type config whose authentication config has the
+    // `UserNamePassword` method, as the credential of such a type is supplied through the authentication config.
+    static void ClearLegacyCredentials(const PropertyObjectPtr& typeConfig, const AuthenticationConfigPtr& authenticationConfig);
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

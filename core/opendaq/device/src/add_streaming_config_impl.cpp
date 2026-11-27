@@ -1,5 +1,9 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/add_component_config_factory.h>
+#include <opendaq/authentication_method_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -50,6 +54,52 @@ ErrCode AddStreamingConfigImpl::getAuthenticationConfig(IAuthenticationConfig** 
                       ? objPtr.getPropertyValue(add_streaming_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach()
                       : nullptr;
     });
+}
+
+ErrCode AddStreamingConfigImpl::bind(IDict* streamingTypes, IAddStreamingConfig** bound)
+{
+    OPENDAQ_PARAM_NOT_NULL(bound);
+
+    return daqTry([&]
+    {
+        const auto types = DictPtr<IString, IStreamingType>::Borrow(streamingTypes);
+        const StringPtr typeId = streamingType.getId();
+        if (!types.assigned() || !types.hasKey(typeId))
+            DAQ_THROW_EXCEPTION(NotFoundException, "Streaming type \"{}\" is not available", typeId);
+
+        // A JSON round trip applies the values of this config to one created for the given type, as the bind of an add device config does.
+        const auto serializer = JsonSerializer();
+        checkErrorInfo(serializeForUpdate(serializer));
+
+        auto config = AddStreamingConfig(types.get(typeId));
+        const auto update = [&config](const SerializedObjectPtr& saved)
+        {
+            checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
+        };
+
+        try
+        {
+            JsonDeserializer().callCustomProc(update, serializer.getOutput());
+        }
+        catch (const DaqException& e)
+        {
+            DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
+        }
+
+        ClearLegacyCredentials(config.getTypeConfig(), config.getAuthenticationConfig());
+        *bound = config.detach();
+    });
+}
+
+void AddStreamingConfigImpl::ClearLegacyCredentials(const PropertyObjectPtr& typeConfig,
+                                                    const AuthenticationConfigPtr& authenticationConfig)
+{
+    if (!authenticationConfig.assigned() || !authenticationConfig.getAuthenticationMethods().hasKey(StandardUserNamePasswordId))
+        return;
+
+    for (const auto name : {"Username", "Password"})
+        if (typeConfig.hasProperty(name))
+            typeConfig.clearPropertyValue(name);
 }
 
 ErrCode AddStreamingConfigImpl::clone(IPropertyObject** cloned)

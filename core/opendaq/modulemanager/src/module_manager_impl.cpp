@@ -12,6 +12,7 @@
 #include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private_ptr.h>
+#include <opendaq/add_streaming_config_private_ptr.h>
 #include <string>
 #include <future>
 #include <boost/algorithm/string.hpp>
@@ -1699,12 +1700,24 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapability
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
                                                   const PropertyObjectPtr& config,
-                                                  const DevicePtr& owner) const
+                                                  const DevicePtr& owner)
 {
-    const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
-    const StreamingTypePtr configType = addStreamingConfig.assigned() ? addStreamingConfig.getStreamingType() : nullptr;
+    DictPtr<IString, IStreamingType> streamingTypes;
+    checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+    // Turn the input into an add streaming config. No code below reads the input config.
     const std::string prefix = getPrefixFromConnectionString(connectionString);
-    if (configType.assigned() && configType.getConnectionStringPrefix() != prefix)
+    AddStreamingConfigPtr unboundAddStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
+    if (!unboundAddStreamingConfig.assigned())
+    {
+        const auto streamingType = FindTypeByPrefix<StreamingTypePtr>(streamingTypes, prefix);
+        if (!streamingType.assigned())
+            return nullptr;
+        unboundAddStreamingConfig = fromLegacyAddStreamingConfig(config, streamingType);
+    }
+
+    const StreamingTypePtr configType = unboundAddStreamingConfig.getStreamingType();
+    if (configType.getConnectionStringPrefix() != prefix)
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException,
                             R"(Prefix "{}" differs from the prefix "{}" of the streaming type "{}")",
@@ -1713,10 +1726,15 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                             configType.getId());
     }
 
-    const PropertyObjectPtr inputTypeConfig = addStreamingConfig.assigned() ? addStreamingConfig.getTypeConfig() : config;
-    PropertyObjectPtr typeConfig;
-    if (inputTypeConfig.assigned())
-        checkErrorInfo(inputTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+    if (!streamingTypes.hasKey(configType.getId()))
+        return nullptr;
+
+    // Binding drops the supplied credential, so it is cached before.
+    const DictPtr<IString, IString> cachedCredential = GetSuppliedCredential(unboundAddStreamingConfig);
+    const AddStreamingConfigPtr addStreamingConfig =
+        unboundAddStreamingConfig.asPtr<IAddStreamingConfigPrivate>().bind(streamingTypes);
+    const PropertyObjectPtr streamingTypeConfig = addStreamingConfig.getTypeConfig();
+    const AuthenticationConfigPtr authenticationConfig = addStreamingConfig.getAuthenticationConfig();
 
     StreamingPtr streaming;
 
@@ -1728,19 +1746,10 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
         if (OPENDAQ_FAILED(errCode))
             daqClearErrorInfo();
-        if (!types.assigned())
+        if (!types.assigned() || !types.hasKey(configType.getId()))
             continue;
 
-        const StreamingTypePtr streamingType = configType.assigned()
-                                                   ? (types.hasKey(configType.getId()) ? types.get(configType.getId()) : nullptr)
-                                                   : FindTypeByPrefix<StreamingTypePtr>(types, prefix);
-        if (!streamingType.assigned())
-            continue;
-
-        const AddStreamingConfigPtr streamingConfig =
-            addStreamingConfig.assigned() ? addStreamingConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
-        const PropertyObjectPtr streamingTypeConfig = addStreamingConfig.assigned() ? typeConfig : streamingConfig.getTypeConfig();
-        const AuthenticationConfigPtr authenticationConfig = streamingConfig.getAuthenticationConfig();
+        const StreamingTypePtr streamingType = types.get(configType.getId());
 
         // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
         // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
@@ -1769,7 +1778,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                    .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())
                                                    .setComponentType(streamingType)
                                                    .build();
-                const DictPtr<IString, IString> credentials = resolveCredentials(authenticationConfig, credentialRequest);
+                const DictPtr<IString, IString> credentials = resolveCredentials(authenticationConfig, credentialRequest, cachedCredential);
 
                 const auto loginParameters = LoginParametersBuilder()
                                                  .setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod())

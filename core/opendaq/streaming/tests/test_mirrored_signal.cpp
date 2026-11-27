@@ -1,3 +1,4 @@
+#include <memory>
 #include <testutils/testutils.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -166,6 +167,50 @@ TEST_F(MirroredSignalTest, DestroyActiveSource)
     }
 
     ASSERT_TRUE(!signal.getActiveStreamingSource().assigned());
+}
+
+// A streaming whose connection string read releases the reference the test holds
+class ReleasingStreamingImpl : public MockStreamingImpl
+{
+public:
+    ReleasingStreamingImpl(const StringPtr& connectionString, StreamingPtr* owner)
+        : MockStreamingImpl(connectionString, NullContext())
+        , owner(owner)
+    {
+    }
+
+    ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override
+    {
+        if (releaseOnRead)
+            owner->release();
+        return MockStreamingImpl::getConnectionString(connectionString);
+    }
+
+    bool releaseOnRead = false;
+
+private:
+    StreamingPtr* owner;
+};
+
+// Streamings read the active source for every packet on their own threads, so the read must not reference the
+// streaming: that thread would destroy it when the last other reference goes meanwhile
+TEST_F(MirroredSignalTest, ReadingActiveSourceDoesNotReferenceTheStreaming)
+{
+    auto signal = createMirroredSignal("signal");
+    StreamingPtr streaming;
+    streaming = createWithImplementation<IStreaming, ReleasingStreamingImpl>(connStr, std::addressof(streaming));
+    const WeakRefPtr<IStreaming> weakStreaming = streaming;
+    streaming.addSignals({signal});
+    signal.setActiveStreamingSource(connStr);
+
+    auto impl = static_cast<ReleasingStreamingImpl*>(streaming.getObject());
+    impl->releaseOnRead = true;
+    ASSERT_EQ(signal.getActiveStreamingSource(), connStr);
+    ASSERT_TRUE(weakStreaming.getRef().assigned()) << "the read held the last reference and destroyed the streaming";
+
+    impl->releaseOnRead = false;
+    streaming.release();
+    ASSERT_FALSE(weakStreaming.getRef().assigned());
 }
 
 TEST_F(MirroredSignalTest, DeactivateStreaming)

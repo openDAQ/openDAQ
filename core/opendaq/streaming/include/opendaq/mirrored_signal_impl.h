@@ -109,6 +109,9 @@ private:
     std::vector<std::pair<StringPtr, WeakRefPtr<IStreaming>>> streamingSourcesRefs;
 
     WeakRefPtr<IStreaming> activeStreamingSourceRef;
+    // Kept with the reference above: streamings read it for every packet on their own threads, which must never end
+    // up holding the last reference to the streaming and so destroy it there
+    StringPtr activeStreamingSourceConnectionString;
 
     // The domain signal can change while this signal is subscribed. Unsubscribing has to release the domain signal
     // that was subscribed, not the current one.
@@ -193,6 +196,7 @@ void MirroredSignalBase<Interfaces...>::removed()
     if (listened && streamed)
         unsubscribeOnTeardown();
     activeStreamingSourceRef = nullptr;
+    activeStreamingSourceConnectionString = nullptr;
 
     StringPtr signalRemoteId;
     ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
@@ -330,6 +334,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
         {
             // source is already destroyed
             activeStreamingSourceRef = nullptr;
+            activeStreamingSourceConnectionString = nullptr;
         }
         else if (streamingConnectionStringPtr == activeStreamingSource.getConnectionString())
         {
@@ -339,6 +344,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
                 OPENDAQ_RETURN_IF_FAILED(errCode);
             }
             activeStreamingSourceRef = nullptr;
+            activeStreamingSourceConnectionString = nullptr;
         }
     }
 
@@ -591,6 +597,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     }
 
     activeStreamingSourceRef = streamingSource;
+    activeStreamingSourceConnectionString = connectionStringPtr;
     if (listened && streamed)
     {
         ErrCode errCode = subscribeInternal();
@@ -606,11 +613,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getActiveStreamingSource(IString** st
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
     auto lock = this->getRecursiveConfigLock2();
-    auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
-    if (activeStreamingSource.assigned())
-        *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
-    else
-        *streamingConnectionString = nullptr;
+    *streamingConnectionString = activeStreamingSourceConnectionString.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -626,6 +629,7 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
     if (listened && streamed)
         errCode = unsubscribeInternal();
     activeStreamingSourceRef = nullptr;
+    activeStreamingSourceConnectionString = nullptr;
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

@@ -129,6 +129,17 @@ class TestTransportOption(opendaq_test.TestCase):
         with self.assertRaises(RuntimeError):
             opendaq.TransportOptionBuilder('').build()
 
+    def test_is_property_object(self):
+        builder = opendaq.TransportOptionBuilder('tls')
+        builder.port = 7422
+        option = builder.build()
+
+        self.assertEqual(option.get_property_value('Id'), 'tls')
+        self.assertEqual(option.get_property_value('Port'), 7422)
+        with self.assertRaises(RuntimeError):
+            option.set_property_value('Port', 9000)
+        self.assertEqual(option.port, 7422)
+
 class TestDeviceAddConfig(opendaq_test.TestCase):
 
     def test_create_add_device_config(self):

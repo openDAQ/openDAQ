@@ -31,17 +31,17 @@
 #include "py_core_types/py_converter.h"
 
 
-PyDaqIntf<daq::ITransportOption, daq::IBaseObject> declareITransportOption(pybind11::module_ m)
+PyDaqIntf<daq::ITransportOption, daq::IPropertyObject> declareITransportOption(pybind11::module_ m)
 {
     py::enum_<daq::SecurityMode>(m, "SecurityMode")
         .value("None", daq::SecurityMode::None)
         .value("Signed", daq::SecurityMode::Signed)
         .value("Encrypted", daq::SecurityMode::Encrypted);
 
-    return wrapInterface<daq::ITransportOption, daq::IBaseObject>(m, "ITransportOption");
+    return wrapInterface<daq::ITransportOption, daq::IPropertyObject>(m, "ITransportOption");
 }
 
-void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption, daq::IBaseObject> cls)
+void defineITransportOption(pybind11::module_ m, PyDaqIntf<daq::ITransportOption, daq::IPropertyObject> cls)
 {
     cls.doc() = "Describes one way to connect to a component: a transport, its port and its security mode.";
 

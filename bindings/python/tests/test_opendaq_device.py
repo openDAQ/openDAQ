@@ -139,7 +139,6 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
 
     def test_port_without_transport_options(self):
         instance = opendaq.Instance()
-        # DISCARD PORT: on AEC_mix the native types list plain and tls, so a type without options is OPC UA with LT streaming
         config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.opcua://127.0.0.1'))
 
         self.assertEqual(len(config.device_type.available_transport_options), 0)
@@ -155,6 +154,22 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         self.assertEqual(streaming_config.port, -1)
         streaming_config.port = 7600
         self.assertEqual(streaming_config.port, 7600)
+
+    def test_native_transport_options(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
+
+        for add_config in (config, streaming_config):
+            option_ids = list(add_config.available_transport_options.keys())
+            self.assertEqual(option_ids[0], 'ws')
+            self.assertEqual(add_config.selected_transport_option.id, 'ws')
+            self.assertEqual(add_config.port, 7420)
+
+            # 'wss' is listed only when the Native modules are built with TLS
+            if 'wss' in option_ids:
+                add_config.transport_option = 'wss'
+                self.assertEqual(add_config.port, 7422)
 
 class TestTransportOption(opendaq_test.TestCase):
 

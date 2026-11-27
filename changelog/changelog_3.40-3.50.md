@@ -14,12 +14,12 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
-- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add `MultiReader2`, a reader that keeps equal-rate signals aligned onto the main input's tick grid. It is set up only through `configure` with an `IMultiReader2Params` object and returns one status per read, with each input's error. Under the `Exclude` error policy it sets an erroring input aside and takes it back once it is healthy. Its limits are counted in each input's own data: an input falls out of sync at 3 s and rejoins within a third of that, and queued data is dropped at 5 s or 100 MB per input, or 1 GB across all inputs. `IMultiReader2Params::setAdditionalOptions` overrides them with the `SyncLimitSeconds`, `CriticalLimitSeconds`, `CriticalLimitBytes` and `TotalLimitBytes` keys; a time limit of 0 is not enforced. The existing `MultiReader` is unchanged. Available in C and Python. `MultiReader2` is experimental: its API may change in future releases.
-- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) The reference FB module's sum and power readers and the multi CSV recorder read through `MultiReader2`, on the new header-only `ReaderFbBase` base for function blocks.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add the experimental `MultiReader2`, a reader that keeps equal-rate signals aligned on the main input's tick grid. It is set up through `configure` with an `IMultiReader2Params` object and returns one status per read, with each input's error. Under the `Exclude` error policy an erroring input is set aside until it is healthy again. The sync and memory limits can be overridden through `IMultiReader2Params::setAdditionalOptions`. Available in C and Python, and in .NET as generated bindings only. The existing `MultiReader` is unchanged.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) The reference FB module's sum and power readers and the multi CSV recorder read through `MultiReader2`, on the header-only `ReaderFbBase` example base.
 
 ## Python
 
-- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add `daq.MultiReader2Params(inputs, **params)` and `daq.MultiReader2(params)`. `read(count)` returns numpy arrays by slot or by input, with the ticks, times and status; `read_into`, `skip_samples`, `configure` and `reevaluate` complete it. The `additional_options` param takes a dict of the reader's limits. Experimental, like `MultiReader2` itself.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Add the experimental `daq.MultiReader2Params(inputs, **params)` and `daq.MultiReader2(params)`. `read(count)` returns numpy arrays with the ticks, times and status.
 
 ## Bug fixes
 
@@ -51,6 +51,7 @@
 - [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
 - [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
 - [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Fix a race between `IInputPort::setListener` and a packet notification running on another thread: the listener is swapped atomically and the previous one is released only once no thread is still reading it.
 
 ## Misc
 
@@ -66,6 +67,7 @@
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
 - [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
+- [#1397](https://github.com/openDAQ/openDAQ/pull/1397) RTGen: add the `bufferArray(param, count)` attribute for `void**` buffer arrays.
 
 ## Required application changes
 
@@ -97,6 +99,12 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 ### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
 
 `loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
+
+### [#1397](https://github.com/openDAQ/openDAQ/pull/1397) Reference reader blocks read through MultiReader2
+
+- `RefFBModulePowerReader` no longer has the `TickOffsetToleranceUs` property, and `RefFBModuleSumReader` and the multi CSV recorder no longer have the `ReaderNotificationMode` creation config property.
+- `RefFBModulePowerReader` uses the voltage input as the main input and is in error when the voltage signal has a unit other than volts. Its output starts at the first sample the inputs have in common.
+- `RefFBModuleSumReader` sets aside an input it can't use and keeps summing the rest. A port whose signal disconnects is removed.
 
 ## Required module changes
 
@@ -141,6 +149,11 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 + [interface] ISyncInterfaceInternal
 + [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
 + [enum] ServerKind
++ [interface] IMultiReader2
++ [interface] IMultiReader2Params
++ [interface] IMultiReader2Status
++ [interface] IMultiReader2InputStatus
++ [enum] MultiReader2ErrorPolicy, MultiReader2InputError
 ```
 
 ### Removed interfaces

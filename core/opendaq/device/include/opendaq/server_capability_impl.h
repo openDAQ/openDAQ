@@ -113,6 +113,7 @@ private:
 
     DictPtr<IString, ITransportOption> readTransportOptions();
     ErrCode writeTransportOptions(const DictPtr<IString, ITransportOption>& options);
+    bool hasPortWithoutTransportOptions();
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
@@ -413,15 +414,8 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
 
     return daqTry([&]
     {
-        // Keeps the default option in step with the port
-        auto options = readTransportOptions();
-        if (const auto first = FirstValue(options); first.assigned())
-        {
-            // replacing the value of a key keeps its place
-            const Int newPort = IntegerPtr::Borrow(port);
-            options.set(first.getId(), TransportOptionBuilderCopy(first).setPort(newPort).build());
-            OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
-        }
+        if (readTransportOptions().getCount() > 0)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability lists transport options, which give its port");
 
         return Super::setPropertyValue(String(Port), port);
     });
@@ -544,6 +538,13 @@ inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<I
     });
 }
 
+// A capability gives its port either by itself or by its transport options, never both
+inline bool ServerCapabilityConfigImpl::hasPortWithoutTransportOptions()
+{
+    const IntegerPtr port = objPtr.getPropertyValue(Port);
+    return port.assigned() && port != -1 && readTransportOptions().getCount() == 0;
+}
+
 inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
@@ -563,6 +564,9 @@ inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IDict* t
     {
         CheckKeyedByIds<ITransportOption>(transportOptions);
         const DictPtr<IString, ITransportOption> options = transportOptions;
+        if (options.getCount() > 0 && hasPortWithoutTransportOptions())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability has a port set, so it takes no transport options");
+
         OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
 
         // Older clients read the Port property
@@ -579,6 +583,9 @@ inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITranspor
 
     return daqTry([&]
     {
+        if (hasPortWithoutTransportOptions())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The capability has a port set, so it takes no transport options");
+
         const auto option = TransportOptionPtr::Borrow(transportOption);
         auto options = readTransportOptions();
         if (options.hasKey(option.getId()))

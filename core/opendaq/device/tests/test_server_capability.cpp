@@ -16,15 +16,6 @@ using ServerCapabilityTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-#if defined(__GNUC__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-    #pragma warning(push)
-    #pragma warning(disable : 4996)
-#endif
-
 TEST_F(ServerCapabilityTest, Factory)
 {
     ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
@@ -322,11 +313,22 @@ TEST_F(ServerCapabilityTest, SetTransportOptionsMirrorsPort)
 {
     ServerCapabilityConfigPtr capability =
         ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-            .setPort(1234)
             .setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421), TestTransportOption("plain", 7420)}));
 
     ASSERT_EQ(capability.getPort(), 7421);
     ASSERT_EQ(capability.getPropertyValue("Port"), 7421);
+}
+
+// A capability gives its port either by itself or by its transport options
+TEST_F(ServerCapabilityTest, TransportOptionsAfterPortFail)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(1234);
+
+    ASSERT_THROW(capability.setAvailableTransportOptions(TransportOptionsById({TestTransportOption("tls", 7421)})),
+                 InvalidStateException);
+    ASSERT_THROW(capability.addAvailableTransportOption(TestTransportOption("tls", 7421)), InvalidStateException);
+    ASSERT_EQ(capability.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_EQ(capability.getPort(), 1234);
 }
 
 TEST_F(ServerCapabilityTest, SetEmptyTransportOptionsKeepsPort)
@@ -339,20 +341,18 @@ TEST_F(ServerCapabilityTest, SetEmptyTransportOptionsKeepsPort)
     ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
 }
 
-TEST_F(ServerCapabilityTest, SetPortUpdatesDefaultOption)
+TEST_F(ServerCapabilityTest, SetPortWithTransportOptionsFails)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
                                                .setAvailableTransportOptions(TransportOptionsById(
-                                                   {TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}))
-                                               .setPort(8000);
+                                                   {TestTransportOption("tls", 7421, SecurityMode::Encrypted), TestTransportOption("plain", 7420)}));
+
+    ASSERT_THROW(capability.setPort(8000), InvalidStateException);
 
     const auto options = capability.getAvailableTransportOptions();
     ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(options.getValueList()[0].getPort(), 8000);
-    ASSERT_EQ(options.getValueList()[0].getSecurityMode(), SecurityMode::Encrypted);
-    ASSERT_EQ(options.getValueList()[1].getPort(), 7420);
-    ASSERT_EQ(capability.getPort(), 8000);
-    ASSERT_EQ(capability.getPropertyValue("Port"), 8000);
+    ASSERT_EQ(options.getValueList()[0].getPort(), 7421);
+    ASSERT_EQ(capability.getPort(), 7421);
 }
 
 // Unlike a dictionary, the list keeps a reordering, so the default option and the port follow it
@@ -367,12 +367,5 @@ TEST_F(ServerCapabilityTest, ReorderingChangesTheDefaultOption)
     ASSERT_EQ(capability.getPort(), 7420);
     ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
 }
-
-#ifdef _MSC_VER
-    #pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#endif
 
 END_NAMESPACE_OPENDAQ

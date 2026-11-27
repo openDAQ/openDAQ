@@ -1322,7 +1322,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 4840);
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
 }
@@ -1345,7 +1345,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 4840);
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://[::1]");
 }

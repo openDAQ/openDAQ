@@ -122,11 +122,9 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
 
     /*!
-     * @brief Gets the port of the default transport.
-     * @param[out] port The port of the device.
-     *
-     * @deprecated Use getAvailableTransportOptions instead.
-     * Returns the `Port` property.
+     * @brief Gets the port of the capability.
+     * @param[out] port The port given to setPort, or the port of the default (first) transport option when the
+     * capability lists options; -1 when neither is set.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
     

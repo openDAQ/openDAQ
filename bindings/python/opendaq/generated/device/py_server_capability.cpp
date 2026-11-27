@@ -125,24 +125,10 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-#if defined(__GNUC__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-    #pragma warning(push)
-    #pragma warning(disable : 4996)
-#endif
             return objectPtr.getPort().detach();
-#ifdef _MSC_VER
-    #pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#endif
         },
         py::return_value_policy::take_ownership,
-        "Gets the port of the default transport.");
+        "Gets the port of the capability.");
     cls.def_property_readonly("address_info",
         [](daq::IServerCapability *object)
         {

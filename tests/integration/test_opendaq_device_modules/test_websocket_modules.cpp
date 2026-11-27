@@ -517,13 +517,13 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     ASSERT_EQ(secureCap.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(plainCap.getPrefix(), "daq.lt");
     ASSERT_EQ(secureCap.getPrefix(), "daq.lts");
-    ASSERT_EQ(test_helpers::capabilityPort(plainCap), 7414);
-    ASSERT_EQ(test_helpers::capabilityPort(secureCap), 7415);
+    ASSERT_EQ(plainCap.getPort(), 7414);
+    ASSERT_EQ(secureCap.getPort(), 7415);
 
     auto device = client.addDevice(secureCap.getConnectionString(), test_helpers::lt_tls::secureDeviceConfig(client));
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getProtocolId(), test_helpers::lt_tls::SecureProtocolId);
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 7415);
+    ASSERT_EQ(connectionInfo.getPort(), 7415);
 }
 #endif
 
@@ -660,7 +660,7 @@ TEST_P(WebsocketModulesChannelTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), expectedPort());
+    ASSERT_EQ(connectionInfo.getPort(), expectedPort());
     ASSERT_EQ(connectionInfo.getPrefix(), expectedPrefix());
     ASSERT_EQ(connectionInfo.getConnectionString(), connectionString());
 }
@@ -683,7 +683,7 @@ TEST_P(WebsocketModulesChannelTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), expectedPort());
+    ASSERT_EQ(connectionInfo.getPort(), expectedPort());
     ASSERT_EQ(connectionInfo.getPrefix(), expectedPrefix());
     ASSERT_EQ(connectionInfo.getConnectionString(), connectionString("[::1]", ""));
 }

@@ -791,7 +791,7 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 7420);
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
 }
@@ -816,7 +816,7 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(test_helpers::capabilityPort(connectionInfo), 7420);
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
 }

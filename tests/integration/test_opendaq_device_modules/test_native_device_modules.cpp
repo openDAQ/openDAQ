@@ -1641,6 +1641,9 @@ TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
 
     ASSERT_TRUE(remoteDefaultConfig.assigned());
     test_helpers::testPropObjsEquality(serverDefaultConfig, remoteDefaultConfig);
+
+    remoteDefaultConfig.setPropertyValue("General.AutomaticallyConnectStreaming", false);
+    ASSERT_FALSE(remoteDefaultConfig.getPropertyValue("General.AutomaticallyConnectStreaming"));
 }
 
 TEST_F(NativeDeviceModulesTest, AvailableStreamingTypes)

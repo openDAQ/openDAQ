@@ -1105,6 +1105,10 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
     ASSERT_EQ(c.getDeviceType().getId(), "mockAvailableDev");
     ASSERT_EQ(c.getDeviceType().getConnectionStringPrefix(), s.getDeviceType().getConnectionStringPrefix());
+
+    c.addProperty(StringProperty("Note", ""));
+    c.setPropertyValue("Note", "lab");
+    ASSERT_EQ(c.getPropertyValue("Note"), "lab");
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)

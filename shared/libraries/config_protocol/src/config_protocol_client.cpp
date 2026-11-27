@@ -280,7 +280,7 @@ uint64_t ConfigProtocolClientComm::getTicksSinceOrigin(const std::string& global
 
 ListPtr<IDeviceInfo> ConfigProtocolClientComm::getAvailableDevices(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetAvailableDevices", 4));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetAvailableDevices", 4));
 }
 
 DictPtr<IString, IDeviceType> ConfigProtocolClientComm::getAvailableDeviceTypes(const std::string& globalId)
@@ -384,14 +384,14 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
 
 PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetComponentConfig", 13));
 }
 
 PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std::string& globalId)
 {
     if (getProtocolVersion() < 19)
         return PropertyObject();
-    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
+    return sendComponentCommandLocal(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
 }
 
 AddDeviceConfigPtr ConfigProtocolClientComm::createAddDeviceConfig(const std::string& globalId,
@@ -405,7 +405,7 @@ AddDeviceConfigPtr ConfigProtocolClientComm::createAddDeviceConfig(const std::st
         {{"ComponentGlobalId", String(globalId)}, {"Info", info}, {"Prefix", prefix.assigned() ? prefix : String("")}});
     auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
     const auto reply = sendRequestCallback(request);
-    return parseLocalRpcOrRejectReply(reply.parseRpcRequestOrReply());
+    return parseRpcOrRejectReplyLocal(reply.parseRpcRequestOrReply());
 }
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
@@ -570,7 +570,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     return getRpcReturnValue(reply);
 }
 
-BaseObjectPtr ConfigProtocolClientComm::parseLocalRpcOrRejectReply(const StringPtr& jsonReply)
+BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReplyLocal(const StringPtr& jsonReply)
 {
     ParamsDictPtr reply;
     try
@@ -903,6 +903,16 @@ StringPtr ConfigProtocolClientComm::requestSerializedRootDevice()
 {
     auto params = Dict<IString, IBaseObject>();
     return sendComponentCommandInternal(ClientCommand("GetSerializedRootDevice"), params, nullptr);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandLocal(const StringPtr& globalId, const ClientCommand& command)
+{
+    requireMinServerVersion(command);
+
+    const auto params = Dict<IString, IBaseObject>({{"ComponentGlobalId", globalId}});
+    auto request = createRpcRequestPacketBuffer(generateId(), command.getName(), params);
+    const auto reply = sendRequestCallback(request);
+    return parseRpcOrRejectReplyLocal(reply.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendCommand(const ClientCommand& command, const ParamsDictPtr& params)

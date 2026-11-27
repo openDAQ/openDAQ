@@ -21,17 +21,19 @@
 #include <coretypes/serializable.h>
 #include <coretypes/serialized_object.h>
 #include <coretypes/dictobject_factory.h>
+#include <coreobjects/property_object_impl.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// An immutable transport option, serialized as a tagged object with its security mode as a string. A server capability
-// and the add configs do not hold it as it is: they keep each option as a plain Property object, which any peer reads.
-class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
+class TransportOptionImpl final : public GenericPropertyObjectImpl<ITransportOption>
 {
 public:
+    using Super = GenericPropertyObjectImpl<ITransportOption>;
+
+    TransportOptionImpl();
     explicit TransportOptionImpl(ITransportOptionBuilder* builder);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
@@ -39,16 +41,13 @@ public:
     ErrCode INTERFACE_FUNC getSecurityMode(SecurityMode* securityMode) override;
     ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) override;
 
-    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-private:
-    StringPtr id;
-    Int port;
-    SecurityMode securityMode;
-    Bool certificateRequired;
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 };
 
 END_NAMESPACE_OPENDAQ

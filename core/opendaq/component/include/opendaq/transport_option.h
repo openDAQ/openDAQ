@@ -16,6 +16,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <coretypes/integer.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -47,10 +48,14 @@ enum class SecurityMode : EnumType
  * supports, with their default ports; a server capability lists the ones the server serves, with the ports it serves
  * them on.
  *
- * A server capability keeps each option as a plain Property object with the `"Id"`, `"Port"`, `"SecurityMode"` and
- * `"CertificateRequired"` properties, so that a peer that does not know this interface still reads the capability.
+ * The option is a Property object with the read-only `"Id"`, `"Port"`, `"SecurityMode"` and `"CertificateRequired"`
+ * properties.
  */
-DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ */
+DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
 {
     /*!
      * @brief Gets the id of the option, unique within a component type (e.g. "plain", "tls").

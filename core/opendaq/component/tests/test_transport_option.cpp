@@ -1,6 +1,9 @@
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/transport_option_impl.h>
 #include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <gtest/gtest.h>
@@ -80,10 +83,55 @@ TEST_F(TransportOptionTest, BuilderCopy)
     ASSERT_EQ(option.getPort(), 7422);
 }
 
-TEST_F(TransportOptionTest, NotAPropertyObject)
+TEST_F(TransportOptionTest, IsPropertyObject)
 {
-    const auto option = TransportOptionBuilder("plain").setPort(7420).build();
-    ASSERT_FALSE(option.supportsInterface<IPropertyObject>());
+    const auto option =
+        TransportOptionBuilder("tls").setPort(7422).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(True).build();
+
+    ASSERT_EQ(option.getPropertyValue("Id"), "tls");
+    ASSERT_EQ(option.getPropertyValue("Port"), 7422);
+    ASSERT_EQ(option.getPropertySelectionValue("SecurityMode"), "Encrypted");
+    ASSERT_EQ(option.getPropertyValue("CertificateRequired"), true);
+}
+
+// Like AddressInfo, the option can be the value of an object-type property
+TEST_F(TransportOptionTest, ChildOfPropertyObject)
+{
+    const auto option = TransportOptionBuilder("tls").setPort(7422).build();
+
+    auto parent = PropertyObject();
+    parent.addProperty(ObjectProperty("tls", option));
+
+    const TransportOptionPtr child = parent.getPropertyValue("tls").asPtr<ITransportOption>();
+    ASSERT_EQ(child.getId(), "tls");
+    ASSERT_EQ(child.getPort(), 7422);
+}
+
+TEST_F(TransportOptionTest, PropertiesAreReadOnly)
+{
+    const auto option = TransportOptionBuilder("tls").setPort(7422).build();
+
+    ASSERT_THROW(option.setPropertyValue("Id", "plain"), AccessDeniedException);
+    ASSERT_THROW(option.setPropertyValue("Port", 9000), AccessDeniedException);
+    ASSERT_THROW(option.setPropertyValue("SecurityMode", static_cast<Int>(SecurityMode::Encrypted)), AccessDeniedException);
+    ASSERT_THROW(option.setPropertyValue("CertificateRequired", true), AccessDeniedException);
+    ASSERT_EQ(option.getId(), "tls");
+    ASSERT_EQ(option.getPort(), 7422);
+}
+
+TEST_F(TransportOptionTest, Clone)
+{
+    const auto option =
+        TransportOptionBuilder("tls").setPort(7422).setSecurityMode(SecurityMode::Encrypted).setCertificateRequired(True).build();
+
+    const TransportOptionPtr cloned = option.asPtr<IPropertyObjectInternal>().clone().asPtr<ITransportOption>();
+
+    ASSERT_NE(cloned.getObject(), option.getObject());
+    ASSERT_EQ(cloned.getId(), "tls");
+    ASSERT_EQ(cloned.getPort(), 7422);
+    ASSERT_EQ(cloned.getSecurityMode(), SecurityMode::Encrypted);
+    ASSERT_TRUE(cloned.getCertificateRequired());
+    ASSERT_THROW(cloned.setPropertyValue("Port", 9000), AccessDeniedException);
 }
 
 TEST_F(TransportOptionTest, EmptyIdRejected)
@@ -108,7 +156,6 @@ TEST_F(TransportOptionTest, SerializeDeserialize)
     const std::string json = serializer.getOutput();
 
     ASSERT_NE(json.find(R"("__type":"TransportOption")"), std::string::npos);
-    ASSERT_NE(json.find(R"("securityMode":"Encrypted")"), std::string::npos);
 
     const TransportOptionPtr deserialized = JsonDeserializer().deserialize(String(json), nullptr, nullptr);
 
@@ -117,6 +164,7 @@ TEST_F(TransportOptionTest, SerializeDeserialize)
     ASSERT_EQ(deserialized.getPort(), 7422);
     ASSERT_EQ(deserialized.getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_TRUE(deserialized.getCertificateRequired());
+    ASSERT_THROW(deserialized.setPropertyValue("Port", 9000), AccessDeniedException);
 }
 
 TEST_F(TransportOptionTest, DeserializeEachSecurityMode)
@@ -137,8 +185,9 @@ TEST_F(TransportOptionTest, DeserializeUnknownSecurityModeRejected)
     TransportOptionBuilder("plain").setPort(7420).setSecurityMode(SecurityMode::Signed).build().serialize(serializer);
 
     std::string json = serializer.getOutput();
-    const std::string signedValue = R"("securityMode":"Signed")";
-    json.replace(json.find(signedValue), signedValue.size(), R"("securityMode":"Scrambled")");
+    const std::string signedValue = R"("SecurityMode":1)";
+    ASSERT_NE(json.find(signedValue), std::string::npos);
+    json.replace(json.find(signedValue), signedValue.size(), R"("SecurityMode":7)");
 
-    ASSERT_THROW(JsonDeserializer().deserialize(String(json), nullptr, nullptr), InvalidParameterException);
+    ASSERT_THROW(JsonDeserializer().deserialize(String(json), nullptr, nullptr), NotFoundException);
 }

@@ -114,23 +114,20 @@ void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig
         py::return_value_policy::take_ownership,
         "Gets the transport options the device can be added over.");
     cls.def_property("transport_option",
-        nullptr,
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getTransportOption().detach();
+        },
         [](daq::IAddDeviceConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
             objectPtr.setTransportOption(getVariantValue<daq::IString*>(id));
         },
-        "Selects the transport option the device is added over.");
-    cls.def_property_readonly("selected_transport_option",
-        [](daq::IAddDeviceConfig *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
-            return objectPtr.getSelectedTransportOption().detach();
-        },
         py::return_value_policy::take_ownership,
-        "Gets the selected transport option.");
+        "Gets the selected transport option. / Selects the transport option the device is added over.");
     cls.def_property("port",
         [](daq::IAddDeviceConfig *object)
         {

@@ -50,7 +50,7 @@ extern "C"
     daqErrCode EXPORTED daqAddStreamingConfig_getAuthenticationConfig(daqAddStreamingConfig* self, daqAuthenticationConfig** config);
     daqErrCode EXPORTED daqAddStreamingConfig_getAvailableTransportOptions(daqAddStreamingConfig* self, daqDict** transportOptions);
     daqErrCode EXPORTED daqAddStreamingConfig_setTransportOption(daqAddStreamingConfig* self, daqString* id);
-    daqErrCode EXPORTED daqAddStreamingConfig_getSelectedTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption);
+    daqErrCode EXPORTED daqAddStreamingConfig_getTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption);
     daqErrCode EXPORTED daqAddStreamingConfig_setPort(daqAddStreamingConfig* self, daqInt port);
     daqErrCode EXPORTED daqAddStreamingConfig_getPort(daqAddStreamingConfig* self, daqInt* port);
 

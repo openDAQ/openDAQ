@@ -72,9 +72,9 @@ daqErrCode daqAddDeviceConfig_setTransportOption(daqAddDeviceConfig* self, daqSt
     return reinterpret_cast<daq::IAddDeviceConfig*>(self)->setTransportOption(reinterpret_cast<daq::IString*>(id));
 }
 
-daqErrCode daqAddDeviceConfig_getSelectedTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption)
+daqErrCode daqAddDeviceConfig_getTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption)
 {
-    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getSelectedTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
 }
 
 daqErrCode daqAddDeviceConfig_setPort(daqAddDeviceConfig* self, daqInt port)

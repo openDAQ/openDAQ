@@ -77,23 +77,20 @@ void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreaming
         py::return_value_policy::take_ownership,
         "Gets the transport options the streaming can connect over.");
     cls.def_property("transport_option",
-        nullptr,
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getTransportOption().detach();
+        },
         [](daq::IAddStreamingConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
             objectPtr.setTransportOption(getVariantValue<daq::IString*>(id));
         },
-        "Selects the transport option the streaming connects over.");
-    cls.def_property_readonly("selected_transport_option",
-        [](daq::IAddStreamingConfig *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
-            return objectPtr.getSelectedTransportOption().detach();
-        },
         py::return_value_policy::take_ownership,
-        "Gets the selected transport option.");
+        "Gets the selected transport option. / Selects the transport option the streaming connects over.");
     cls.def_property("port",
         [](daq::IAddStreamingConfig *object)
         {

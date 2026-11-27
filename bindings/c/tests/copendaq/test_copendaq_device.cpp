@@ -438,7 +438,7 @@ TEST_F(COpendaqDeviceTest, AddConfigTransportOption)
     const daq::StringPtr plain = "plain";
     ASSERT_EQ(daqAddDeviceConfig_setTransportOption(config, (daqString*) plain.getObject()), DAQ_SUCCESS);
     daqTransportOption* selected = nullptr;
-    daqAddDeviceConfig_getSelectedTransportOption(config, &selected);
+    daqAddDeviceConfig_getTransportOption(config, &selected);
     ASSERT_EQ(daq::TransportOptionPtr::Adopt((daq::ITransportOption*) selected).getId(), "plain");
 
     daqInt port = 0;
@@ -452,7 +452,7 @@ TEST_F(COpendaqDeviceTest, AddConfigTransportOption)
     daqAddStreamingConfig_getAvailableTransportOptions(streamingConfig, &configOptions);
     ASSERT_EQ(TransportOptionsPtr::Adopt((daq::IDict*) configOptions).getCount(), 2u);
     ASSERT_EQ(daqAddStreamingConfig_setTransportOption(streamingConfig, (daqString*) plain.getObject()), DAQ_SUCCESS);
-    daqAddStreamingConfig_getSelectedTransportOption(streamingConfig, &selected);
+    daqAddStreamingConfig_getTransportOption(streamingConfig, &selected);
     ASSERT_EQ(daq::TransportOptionPtr::Adopt((daq::ITransportOption*) selected).getId(), "plain");
     ASSERT_EQ(daqAddStreamingConfig_setPort(streamingConfig, 7600), DAQ_SUCCESS);
     daqAddStreamingConfig_getPort(streamingConfig, &port);

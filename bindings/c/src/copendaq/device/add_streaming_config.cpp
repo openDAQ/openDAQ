@@ -47,9 +47,9 @@ daqErrCode daqAddStreamingConfig_setTransportOption(daqAddStreamingConfig* self,
     return reinterpret_cast<daq::IAddStreamingConfig*>(self)->setTransportOption(reinterpret_cast<daq::IString*>(id));
 }
 
-daqErrCode daqAddStreamingConfig_getSelectedTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption)
+daqErrCode daqAddStreamingConfig_getTransportOption(daqAddStreamingConfig* self, daqTransportOption** transportOption)
 {
-    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getSelectedTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getTransportOption(reinterpret_cast<daq::ITransportOption**>(transportOption));
 }
 
 daqErrCode daqAddStreamingConfig_setPort(daqAddStreamingConfig* self, daqInt port)

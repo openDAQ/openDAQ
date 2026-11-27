@@ -56,7 +56,7 @@ extern "C"
     daqErrCode EXPORTED daqAddDeviceConfig_getAuthenticationConfig(daqAddDeviceConfig* self, daqAuthenticationConfig** config);
     daqErrCode EXPORTED daqAddDeviceConfig_getAvailableTransportOptions(daqAddDeviceConfig* self, daqDict** transportOptions);
     daqErrCode EXPORTED daqAddDeviceConfig_setTransportOption(daqAddDeviceConfig* self, daqString* id);
-    daqErrCode EXPORTED daqAddDeviceConfig_getSelectedTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption);
+    daqErrCode EXPORTED daqAddDeviceConfig_getTransportOption(daqAddDeviceConfig* self, daqTransportOption** transportOption);
     daqErrCode EXPORTED daqAddDeviceConfig_setPort(daqAddDeviceConfig* self, daqInt port);
     daqErrCode EXPORTED daqAddDeviceConfig_getPort(daqAddDeviceConfig* self, daqInt* port);
 

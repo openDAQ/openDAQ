@@ -73,14 +73,14 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
 
         self.assertEqual(len(config.device_type.available_transport_options), 0)
         self.assertEqual(len(config.available_transport_options), 0)
-        self.assertIsNone(config.selected_transport_option)
+        self.assertIsNone(config.transport_option)
         self.assertEqual(config.port, -1)
         config.port = 7500
         self.assertEqual(config.port, 7500)
 
         streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
         self.assertEqual(len(streaming_config.available_transport_options), 0)
-        self.assertIsNone(streaming_config.selected_transport_option)
+        self.assertIsNone(streaming_config.transport_option)
         self.assertEqual(streaming_config.port, -1)
         streaming_config.port = 7600
         self.assertEqual(streaming_config.port, 7600)

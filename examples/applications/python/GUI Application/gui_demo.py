@@ -607,8 +607,9 @@ class App(tk.Tk):
                     self.tree_traverse_components_recursive(
                         item, display_type=display_type, tree_parent_id=tree_parent_id)
 
-        if device is not None and display_type == DisplayType.TOPOLOGY:
+        if device is not None and display_type in (DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW):
             self.tree_add_synchronization(device)
+        if device is not None and display_type == DisplayType.TOPOLOGY:
             custom_components = device.custom_components
             for item in custom_components:
                 if item.visible or self.context.view_hidden_components:
@@ -640,9 +641,8 @@ class App(tk.Tk):
             component_name = self.get_component_tree_name(component)
         elif daq.ISyncComponent.can_cast_from(component):
             icon = self.context.icons['link']
-            # Every device has one, so an empty one counts as none, unless its row shows the device's synchronization
-            skip = skip or (len(daq.ISyncComponent.cast_from(component).interfaces) == 0
-                            and self.shown_synchronization(component) is None)
+            # Every device has one, so an empty one counts as none
+            skip = skip or len(daq.ISyncComponent.cast_from(component).interfaces) == 0
         else:  # skipping unknown type components
             skip = not show_unknown
 
@@ -664,8 +664,11 @@ class App(tk.Tk):
 
     def tree_add_synchronization(self, device):
         # The synchronization is a property of the device, not a component, so its row is keyed by the
-        # property name and placed after the deprecated sync component
-        if self.device_synchronization(device) is None or not self.tree.exists(device.global_id):
+        # property name and placed after the deprecated sync component. Every device has the internal clock,
+        # so a synchronization with nothing else counts as none
+        synchronization = self.device_synchronization(device)
+        if (synchronization is None or not self.tree.exists(device.global_id)
+                or all(i.sync_type == 'internal' for i in synchronization.interfaces.values())):
             return
         iid = f'{device.global_id}/daqSynchronization'
         sync_component = f'{device.global_id}/Synchronization'
@@ -680,16 +683,6 @@ class App(tk.Tk):
             return daq.IDevice.cast_from(device).synchronization
         except RuntimeError:
             return None
-
-    def shown_synchronization(self, node):
-        # Outside the full topology a sync component row shows the device's synchronization instead, when
-        # that has more than the internal clock, the default with nothing to configure
-        if self.current_tab() == DisplayType.TOPOLOGY or not daq.ISyncComponent.can_cast_from(node):
-            return None
-        synchronization = self.device_synchronization(node.parent)
-        if synchronization is None or all(i.sync_type == 'internal' for i in synchronization.interfaces.values()):
-            return None
-        return synchronization
 
     DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
@@ -735,9 +728,9 @@ class App(tk.Tk):
                 mode = self.operation_mode_to_string(device.operation_mode)
                 if mode:
                     component_name = f'{component_name} | {mode}'
-        elif daq.ISyncComponent.can_cast_from(component) and self.current_tab() == DisplayType.TOPOLOGY:
-            # The full topology shows it beside the device's synchronization
-            component_name = f'{component_name} (deprecated)'
+        elif daq.ISyncComponent.can_cast_from(component):
+            # Its local id is also Synchronization, the name of the device's synchronization row
+            component_name = 'SyncComponent'
         return component_name
 
     def _build_component_state_labels(self, component, tags):
@@ -1192,10 +1185,6 @@ class App(tk.Tk):
                 return self.menu_device_groups(node, add_items)
             if daq.IServer.can_cast_from(node):
                 return self.menu_server_groups(node, add_items)
-            # The row shows the device's synchronization, which the sync component's update and clear
-            # actions would not reach
-            if self.shown_synchronization(node) is not None:
-                return []
         return [self.menu_update_items(node), self.menu_property_items(node)]
 
     def create_node_menu(self, node, include_add=True):
@@ -1263,10 +1252,6 @@ class App(tk.Tk):
         if found is None:
             return
         if not found.visible and not self.context.view_hidden_components:
-            return
-
-        if self.shown_synchronization(found) is not None:
-            SynchronizationView(self.right_side_panel, found.parent, self.context).pack(fill=tk.BOTH, expand=True)
             return
 
         block_view = BlockView(self.right_side_panel, found, self.context)

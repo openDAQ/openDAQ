@@ -42,7 +42,7 @@ Int GetPortSet(const ConfigPtr& config)
 template <typename ConfigPtr>
 bool AnnouncesSelectedTransportOption(const ConfigPtr& config, const ServerCapabilityPtr& capability)
 {
-    const TransportOptionPtr selected = config.getSelectedTransportOption();
+    const TransportOptionPtr selected = config.getTransportOption();
     if (!selected.assigned())
         return true;
 
@@ -68,7 +68,7 @@ std::optional<Int> GetCapabilityConnectionPort(const ConfigPtr& config, const Co
     if (const Int portSet = GetPortSet(config); portSet != -1)
         return portSet;
 
-    const TransportOptionPtr selected = config.getSelectedTransportOption();
+    const TransportOptionPtr selected = config.getTransportOption();
     if (!selected.assigned())
         return std::nullopt;
 

@@ -96,9 +96,9 @@ ErrCode AddStreamingConfigImpl::setTransportOption(IString* id)
     return add_config::SetTransportOption(objPtr, id);
 }
 
-ErrCode AddStreamingConfigImpl::getSelectedTransportOption(ITransportOption** transportOption)
+ErrCode AddStreamingConfigImpl::getTransportOption(ITransportOption** transportOption)
 {
-    return add_config::GetSelectedTransportOption(objPtr, transportOption);
+    return add_config::GetTransportOption(objPtr, transportOption);
 }
 
 ErrCode AddStreamingConfigImpl::setPort(Int port)

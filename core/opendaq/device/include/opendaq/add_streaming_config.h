@@ -90,7 +90,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it; null for a Streaming
      * type without options.
      */
-    virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
+    virtual ErrCode INTERFACE_FUNC getTransportOption(ITransportOption** transportOption) = 0;
 
     /*!
      * @brief Sets the port the streaming connects to.

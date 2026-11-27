@@ -55,7 +55,7 @@ public:
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
     ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
     ErrCode INTERFACE_FUNC setTransportOption(IString* id) override;
-    ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
+    ErrCode INTERFACE_FUNC getTransportOption(ITransportOption** transportOption) override;
     ErrCode INTERFACE_FUNC setPort(Int port) override;
     ErrCode INTERFACE_FUNC getPort(Int* port) override;
 

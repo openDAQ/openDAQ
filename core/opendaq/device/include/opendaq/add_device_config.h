@@ -128,7 +128,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it; null for a Device type
      * without options.
      */
-    virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
+    virtual ErrCode INTERFACE_FUNC getTransportOption(ITransportOption** transportOption) = 0;
 
     /*!
      * @brief Sets the port the device is added on.

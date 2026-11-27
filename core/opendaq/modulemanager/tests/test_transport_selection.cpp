@@ -341,7 +341,7 @@ TEST_F(TransportSelectionTest, ConfigListsOnlyOptionsTheTypeKnows)
     ASSERT_EQ(options.get("plain").getSecurityMode(), SecurityMode::None);
     ASSERT_FALSE(options.get("plain").getCertificateRequired());
 
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getTransportOption().getId(), "tls");
     ASSERT_EQ(config.getPort(), 17422);
 }
 
@@ -354,7 +354,7 @@ TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(info);
 
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(config.getTransportOption().assigned());
     ASSERT_EQ(config.getPort(), -1);
 
     const auto serializer = JsonSerializer();
@@ -362,12 +362,12 @@ TEST_F(TransportSelectionTest, ConfigWithoutOptionsTheTypeKnows)
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
     ASSERT_EQ(deserialized.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_FALSE(deserialized.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(deserialized.getTransportOption().assigned());
     ASSERT_EQ(deserialized.getPort(), -1);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
     ASSERT_EQ(streamingConfig.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_FALSE(streamingConfig.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(streamingConfig.getTransportOption().assigned());
 }
 
 // The config keeps the options the server announces; only a saved config selects among the type's again
@@ -381,7 +381,7 @@ TEST_F(TransportSelectionTest, ServedOptionsSerialized)
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
     ASSERT_EQ(deserialized.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
-    ASSERT_EQ(deserialized.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(deserialized.getTransportOption().getId(), "tls");
     ASSERT_EQ(deserialized.getPort(), 17422);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
@@ -409,7 +409,7 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
 
     // The port the connection string of the device info names is not taken: the port follows the selected option
     const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:9000"));
-    ASSERT_EQ(withPort.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(withPort.getTransportOption().getId(), "plain");
     ASSERT_EQ(withPort.getPort(), 7420);
     withPort.setTransportOption("tls");
     ASSERT_EQ(withPort.getPort(), 7421);
@@ -420,7 +420,7 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfo("legacy://host:9000"));
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(config.getTransportOption().assigned());
     ASSERT_EQ(config.getPort(), -1);
 }
 
@@ -501,7 +501,7 @@ TEST_F(TransportSelectionTest, ConnectionStringOptionsDoNotChangeConfigOfUser)
 
     ASSERT_EQ(create("dev://host?TransportOption='tls'&Port=7500", config), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
     ASSERT_EQ(config.getPort(), 7420);
 }
 
@@ -578,7 +578,7 @@ TEST_F(TransportSelectionTest, StoredConfigHoldsSelectionOutsideTypeConfig)
 
     const PropertyObjectPtr storedConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     const auto stored = storedConfig.asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
-    ASSERT_EQ(stored.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(stored.getTransportOption().getId(), "tls");
     ASSERT_FALSE(stored.getTypeConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_TRUE(lastTypeConfig().hasProperty(TransportOptionConfigProperty));
 }

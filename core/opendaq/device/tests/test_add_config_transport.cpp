@@ -180,7 +180,7 @@ TEST_F(AddConfigTransportTest, ListsTypeOptions)
     const auto config = CreateConfig();
 
     ASSERT_EQ(config.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getTransportOption().getId(), "tls");
 
     // The first option is selected with its port, not the one the module declares
     ASSERT_EQ(config.getPort(), 7421);
@@ -204,7 +204,7 @@ TEST_F(AddConfigTransportTest, SelectionProperties)
     const auto properties = Properties(config);
 
     properties.setPropertyValue("TransportOption", "plain");
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
     ASSERT_EQ(config.getPort(), 7420);
 
     properties.setPropertyValue("Port", 9000);
@@ -220,7 +220,7 @@ TEST_F(AddConfigTransportTest, SelectionProperties)
     ASSERT_EQ(properties.getPropertyValue("Port"), 9000);
 
     ASSERT_ANY_THROW(properties.setPropertyValue("TransportOption", "wss"));
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
 }
 
 // The options give the default port; a port set overrides it whichever option is selected
@@ -233,8 +233,8 @@ TEST_F(AddConfigTransportTest, SetTransportOptionKeepsPortSetBefore)
     ASSERT_TRUE(SavesPort(config));
 
     config.setTransportOption("plain");
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
-    ASSERT_EQ(config.getSelectedTransportOption().getPort(), 7420);
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getPort(), 7420);
     ASSERT_EQ(config.getPort(), 9000);
     ASSERT_TRUE(SavesPort(config));
 
@@ -247,7 +247,7 @@ TEST_F(AddConfigTransportTest, SetTransportOptionKeepsPortSetBefore)
 TEST_F(AddConfigTransportTest, SetPortEqualToOptionPortIsKept)
 {
     const auto config = CreateConfig();
-    ASSERT_EQ(config.getSelectedTransportOption().getPort(), 7421);
+    ASSERT_EQ(config.getTransportOption().getPort(), 7421);
 
     config.setPort(7421);
     ASSERT_TRUE(SavesPort(config));
@@ -280,7 +280,7 @@ TEST_F(AddConfigTransportTest, InvalidSelection)
     const auto config = CreateConfig();
 
     ASSERT_THROW(config.setTransportOption("wss"), NotFoundException);
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getTransportOption().getId(), "tls");
     ASSERT_THROW(config.setPort(-2), InvalidParameterException);
     ASSERT_EQ(config.getPort(), 7421);
     ASSERT_FALSE(SavesPort(config));
@@ -292,7 +292,7 @@ TEST_F(AddConfigTransportTest, WithoutTransportOptions)
 
     ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
     ASSERT_THROW(config.setTransportOption("plain"), NotFoundException);
-    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(config.getTransportOption().assigned());
 
     // The config has the same properties as for a type with options, with nothing to select
     const auto properties = Properties(config);
@@ -323,11 +323,11 @@ TEST_F(AddConfigTransportTest, Clone)
     const auto clonedConfig = cloned.asPtrOrNull<IAddDeviceConfig, AddDeviceConfigPtr>();
     ASSERT_TRUE(clonedConfig.assigned());
     ASSERT_EQ(clonedConfig.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(clonedConfig.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(clonedConfig.getTransportOption().getId(), "plain");
     ASSERT_EQ(clonedConfig.getPort(), 9000);
 
     const auto clonedStreamingConfig = clonedConfig.getStreamingOptions().getAvailableStreamingConfigs().get("str");
-    ASSERT_EQ(clonedStreamingConfig.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(clonedStreamingConfig.getTransportOption().getId(), "plain");
     ASSERT_EQ(clonedStreamingConfig.getPort(), 7420);
     ASSERT_FALSE(SavesPort(clonedStreamingConfig));
 
@@ -409,7 +409,7 @@ TEST_F(AddConfigTransportTest, LoadIgnoresOptionsInSavedForm)
     const auto loaded = Load(saved, CreateDeviceType(PlainFirstOptions()));
 
     ASSERT_EQ(loaded.getAvailableTransportOptions().get("tls").getPort(), 7421);
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "tls");
     ASSERT_EQ(loaded.getPort(), 7421);
 }
 
@@ -424,11 +424,11 @@ TEST_F(AddConfigTransportTest, BindKeepsSelection)
 
     const auto bound = Bind(config);
     ASSERT_EQ(bound.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getTransportOption().getId(), "plain");
     ASSERT_EQ(bound.getPort(), 7420);
 
     const auto boundStreaming = bound.getStreamingOptions().getStreamingConfig();
-    ASSERT_EQ(boundStreaming.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(boundStreaming.getTransportOption().getId(), "plain");
     ASSERT_EQ(boundStreaming.getPort(), 9000);
 }
 
@@ -438,7 +438,7 @@ TEST_F(AddConfigTransportTest, BindKeepsPortSet)
     config.setPort(9000);
 
     const auto bound = Bind(config);
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(bound.getTransportOption().getId(), "tls");
     ASSERT_EQ(bound.getPort(), 9000);
     ASSERT_TRUE(SavesPort(bound));
 }
@@ -457,21 +457,21 @@ TEST_F(AddConfigTransportTest, BindRejectsUnknownSelection)
 TEST_F(AddConfigTransportTest, BindKeepsFirstOption)
 {
     const auto config = PlainFirstConfig();
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
 
     const auto bound = Bind(config);
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getTransportOption().getId(), "plain");
     ASSERT_EQ(bound.getPort(), 7420);
-    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "plain");
 }
 
 TEST_F(AddConfigTransportTest, LoadKeepsFirstOption)
 {
     const auto loaded = Load(SavedForm(PlainFirstConfig()));
 
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "plain");
     ASSERT_EQ(loaded.getPort(), 7420);
-    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "plain");
 }
 
 TEST_F(AddConfigTransportTest, LoadKeepsOptionThatIsNotFirst)
@@ -482,9 +482,9 @@ TEST_F(AddConfigTransportTest, LoadKeepsOptionThatIsNotFirst)
 
     const auto loaded = Load(SavedForm(config), CreateDeviceType(PlainFirstOptions()), CreateStreamingType(PlainFirstOptions()));
 
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "tls");
     ASSERT_EQ(loaded.getPort(), 7421);
-    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "tls");
 }
 
 TEST_F(AddConfigTransportTest, LoadKeepsPortSet)
@@ -495,7 +495,7 @@ TEST_F(AddConfigTransportTest, LoadKeepsPortSet)
 
     const auto loaded = Load(SavedForm(config));
 
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "plain");
     ASSERT_EQ(loaded.getPort(), 9000);
     ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getPort(), 9001);
 }
@@ -511,8 +511,8 @@ TEST_F(AddConfigTransportTest, LoadWithoutSavedSelection)
 
     const auto loaded = Load(saved);
 
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
-    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "tls");
 }
 
 // The first option is rejected like any other: the device must not move to another option silently
@@ -552,12 +552,12 @@ TEST_F(AddConfigTransportTest, BindKeepsServerOptions)
     const auto bound = BindToPlainFirstTypes(ServerConfig(TlsFirstServerOptions()));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(bound.getTransportOption().getId(), "tls");
     ASSERT_EQ(bound.getPort(), 7500);
 
     const auto streaming = bound.getStreamingOptions().getStreamingConfig();
     ExpectOptions(streaming.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
-    ASSERT_EQ(streaming.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(streaming.getTransportOption().getId(), "tls");
     ASSERT_EQ(streaming.getPort(), 7500);
 }
 
@@ -569,9 +569,9 @@ TEST_F(AddConfigTransportTest, BindKeepsServerOptionThatIsNotFirst)
 
     const auto bound = BindToPlainFirstTypes(config);
 
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getTransportOption().getId(), "plain");
     ASSERT_EQ(bound.getPort(), 7510);
-    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "plain");
     ASSERT_EQ(bound.getStreamingOptions().getStreamingConfig().getPort(), 7510);
 }
 
@@ -582,12 +582,12 @@ TEST_F(AddConfigTransportTest, BindKeepsTlsOnlyServer)
     const auto bound = BindToPlainFirstTypes(ServerConfig(tlsOnly));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(bound.getTransportOption().getId(), "tls");
     ASSERT_THROW(bound.setTransportOption("plain"), NotFoundException);
 
     const auto streaming = bound.getStreamingOptions().getStreamingConfig();
     ExpectOptions(streaming.getAvailableTransportOptions(), List<IString>("tls"), {7500});
-    ASSERT_EQ(streaming.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(streaming.getTransportOption().getId(), "tls");
 }
 
 TEST_F(AddConfigTransportTest, BindKeepsPortSetOnServerOption)
@@ -597,7 +597,7 @@ TEST_F(AddConfigTransportTest, BindKeepsPortSetOnServerOption)
 
     const auto bound = BindToPlainFirstTypes(config);
 
-    ASSERT_EQ(bound.getSelectedTransportOption().getPort(), 7500);
+    ASSERT_EQ(bound.getTransportOption().getPort(), 7500);
     ASSERT_EQ(bound.getPort(), 9000);
 }
 
@@ -607,7 +607,7 @@ TEST_F(AddConfigTransportTest, BindTwiceKeepsServerOptions)
     const auto bound = BindToPlainFirstTypes(BindToPlainFirstTypes(ServerConfig(TlsFirstServerOptions())));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls", "plain"), {7500, 7510});
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(bound.getTransportOption().getId(), "tls");
 }
 
 TEST_F(AddConfigTransportTest, BindDropsOptionsTheTypeDoesNotList)
@@ -616,7 +616,7 @@ TEST_F(AddConfigTransportTest, BindDropsOptionsTheTypeDoesNotList)
     const auto bound = Bind(ServerConfig(TlsFirstServerOptions()), CreateDeviceType(tlsOnlyType));
 
     ExpectOptions(bound.getAvailableTransportOptions(), List<IString>("tls"), {7500});
-    ASSERT_EQ(bound.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(bound.getTransportOption().getId(), "tls");
 }
 
 // A saved file holds the selection, not the options of the server: they come from the type on load
@@ -627,9 +627,9 @@ TEST_F(AddConfigTransportTest, LoadTakesOptionsFromTheType)
                              CreateStreamingType(PlainFirstOptions()));
 
     ExpectOptions(loaded.getAvailableTransportOptions(), List<IString>("plain", "tls"), {7420, 7421});
-    ASSERT_EQ(loaded.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getTransportOption().getId(), "tls");
     ASSERT_EQ(loaded.getPort(), 7421);
-    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(loaded.getStreamingOptions().getStreamingConfig().getTransportOption().getId(), "tls");
 }
 
 TEST_F(AddConfigTransportTest, SerializeDeserialize)
@@ -645,11 +645,11 @@ TEST_F(AddConfigTransportTest, SerializeDeserialize)
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
     ASSERT_EQ(deserialized.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(deserialized.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(deserialized.getTransportOption().getId(), "plain");
     ASSERT_EQ(deserialized.getPort(), 9000);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
-    ASSERT_EQ(streamingConfig.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(streamingConfig.getTransportOption().getId(), "plain");
     ASSERT_EQ(streamingConfig.getPort(), 7420);
     ASSERT_FALSE(SavesPort(streamingConfig));
 }
@@ -658,19 +658,19 @@ TEST_F(AddConfigTransportTest, AddStreamingConfig)
 {
     const auto config = AddStreamingConfig(CreateStreamingType());
 
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "tls");
+    ASSERT_EQ(config.getTransportOption().getId(), "tls");
     ASSERT_EQ(config.getPort(), 7421);
 
     config.setTransportOption("plain");
     config.setPort(9000);
-    ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
+    ASSERT_EQ(config.getTransportOption().getId(), "plain");
     ASSERT_EQ(config.getPort(), 9000);
     ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_THROW(config.setTransportOption("wss"), NotFoundException);
 
     const auto withoutOptions = AddStreamingConfig(CreateStreamingType(TransportOptionsById({})));
     ASSERT_THROW(withoutOptions.setTransportOption("plain"), NotFoundException);
-    ASSERT_FALSE(withoutOptions.getSelectedTransportOption().assigned());
+    ASSERT_FALSE(withoutOptions.getTransportOption().assigned());
     ASSERT_EQ(Properties(withoutOptions).getPropertyValue("TransportOption"), "");
     ASSERT_EQ(OptionsObject(withoutOptions).getAllProperties().getCount(), 0u);
     ASSERT_EQ(withoutOptions.getPort(), -1);

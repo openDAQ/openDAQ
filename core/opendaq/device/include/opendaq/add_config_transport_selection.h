@@ -134,7 +134,7 @@ inline ErrCode SetTransportOption(const PropertyObjectPtr& config, IString* id)
     });
 }
 
-inline ErrCode GetSelectedTransportOption(const PropertyObjectPtr& config, ITransportOption** transportOption)
+inline ErrCode GetTransportOption(const PropertyObjectPtr& config, ITransportOption** transportOption)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOption);
 

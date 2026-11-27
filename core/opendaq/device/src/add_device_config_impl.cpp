@@ -416,9 +416,9 @@ ErrCode AddDeviceConfigImpl::setTransportOption(IString* id)
     return add_config::SetTransportOption(objPtr, id);
 }
 
-ErrCode AddDeviceConfigImpl::getSelectedTransportOption(ITransportOption** transportOption)
+ErrCode AddDeviceConfigImpl::getTransportOption(ITransportOption** transportOption)
 {
-    return add_config::GetSelectedTransportOption(objPtr, transportOption);
+    return add_config::GetTransportOption(objPtr, transportOption);
 }
 
 ErrCode AddDeviceConfigImpl::setPort(Int port)

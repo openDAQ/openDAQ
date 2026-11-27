@@ -229,7 +229,7 @@ inline void ApplyConnectionStringTransportOptions(const AddDeviceConfigPtr& conf
 template <typename ConfigPtr>
 StringPtr PutPortSetInConnectionString(const ConfigPtr& config, const StringPtr& connectionString)
 {
-    if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getSelectedTransportOption().assigned())
+    if (const Int portSet = GetPortSet(config); portSet != -1 && !config.getTransportOption().assigned())
         return ReplaceConnectionStringPort(connectionString, portSet);
     return connectionString;
 }
@@ -259,7 +259,7 @@ inline StringPtr SetCapabilityConnectionPort(const StringPtr& connectionString,
         DAQ_THROW_EXCEPTION(NotFoundException,
                             R"(The server capability "{}" does not announce the transport option "{}")",
                             capability.getProtocolId(),
-                            config.getSelectedTransportOption().getId());
+                            config.getTransportOption().getId());
     }
 
     const auto port = GetCapabilityConnectionPort(config, config.getDeviceType(), capability);
@@ -278,7 +278,7 @@ PropertyObjectPtr CreateConnectionConfig(const ConfigPtr& config,
     if (typeConfig.assigned())
         checkErrorInfo(typeConfig.asPtr<IPropertyObjectInternal>()->clone(&connectionConfig));
 
-    const TransportOptionPtr selected = config.getSelectedTransportOption();
+    const TransportOptionPtr selected = config.getTransportOption();
     if (!selected.assigned())
     {
         if (type.getAvailableTransportOptions().getCount() > 0)

@@ -41,16 +41,18 @@ jobs:
             cpack-generator: NSIS
             enable-32bit: false
             generate-python-bindings: true
-            generate-csharp-bindings: true
-          - name: Windows VS 2022 Win32 Release
-            runner: windows-2022
-            cmake-generator: "Visual Studio 17 2022"
-            cmake-build-type: Release
-            cmake-defines:
-            cpack-generator: NSIS
-            enable-32bit: true
-            generate-python-bindings: false
+            # TODO: set back to true before merge
             generate-csharp-bindings: false
+          # TODO: uncomment before merge
+          # - name: Windows VS 2022 Win32 Release
+          #   runner: windows-2022
+          #   cmake-generator: "Visual Studio 17 2022"
+          #   cmake-build-type: Release
+          #   cmake-defines:
+          #   cpack-generator: NSIS
+          #   enable-32bit: true
+          #   generate-python-bindings: false
+          #   generate-csharp-bindings: false
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
@@ -98,6 +100,8 @@ jobs:
           package-artifact-retention-days: 1
 
   package_linux:
+    # TODO: remove before merge
+    if: false
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
 

@@ -19,6 +19,7 @@
 
 ## Python
 
+- [#1346](https://github.com/openDAQ/openDAQ/pull/1346) Add a Synchronization tab to the Python GUI demo app: devices grouped by the reference domain at the start of their clock chain, an editable source, and the selected device's interfaces as cards with their mode, settings and statuses. The component tree shows a device's synchronization as a `Synchronization` row when it has an interface besides `InternalClock`, and its deprecated sync component as a `SyncComponent` row when that has any interface.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Expose the function block type options: the `FunctionBlockInputPolicy` enum and the read-only `IFunctionBlockType` properties `input_policy`, `singleton` and `common_settings_type_id`. `common_settings_type_id` is `None` when the type does not declare a common settings relationship. The options can only be read from Python, as the component type builder has no Python binding.
 
 ## Bug fixes

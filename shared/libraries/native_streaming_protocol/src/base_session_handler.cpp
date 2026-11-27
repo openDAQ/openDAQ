@@ -1,10 +1,78 @@
 #include <native_streaming_protocol/base_session_handler.h>
 #include <opendaq/custom_log.h>
 
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 using namespace packet_streaming;
+
+namespace
+{
+
+// Watches a session for inactivity: the activity callback stores a timestamp and the timer re-arms
+// itself for the moment that activity times out. The pending wait owns the monitor.
+class InactivityMonitor : public std::enable_shared_from_this<InactivityMonitor>
+{
+public:
+    using Clock = std::chrono::steady_clock;
+
+    InactivityMonitor(std::weak_ptr<boost::asio::steady_timer> timer,
+                      std::weak_ptr<Session> session,
+                      OnSessionErrorCallback errorHandler,
+                      std::chrono::milliseconds timeout)
+        : timer(std::move(timer))
+        , session(std::move(session))
+        , errorHandler(std::move(errorHandler))
+        , timeout(timeout)
+        , lastActivity(Clock::now().time_since_epoch().count())
+    {
+    }
+
+    void touch()
+    {
+        lastActivity.store(Clock::now().time_since_epoch().count(), std::memory_order_relaxed);
+    }
+
+    void arm(Clock::time_point deadline)
+    {
+        const auto timerPtr = timer.lock();
+        if (!timerPtr)
+            return;
+        timerPtr->expires_at(deadline);
+        timerPtr->async_wait([self = shared_from_this()](const boost::system::error_code& ec) { self->onExpired(ec); });
+    }
+
+private:
+    void onExpired(const boost::system::error_code& ec)
+    {
+        if (ec)
+            return;
+
+        const auto deadline = Clock::time_point(Clock::duration(lastActivity.load(std::memory_order_relaxed))) + timeout;
+        if (Clock::now() < deadline)
+        {
+            arm(deadline);
+            return;
+        }
+        if (const auto sessionPtr = session.lock())
+            errorHandler("Connection activity timeout error", sessionPtr);
+    }
+
+    std::weak_ptr<boost::asio::steady_timer> timer;
+    std::weak_ptr<Session> session;
+    OnSessionErrorCallback errorHandler;
+    std::chrono::milliseconds timeout;
+    std::atomic<Clock::rep> lastActivity;
+};
+
+}
 
 BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
@@ -41,31 +109,13 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
         return;
     }
 
-    auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
-    auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
+    const auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
+    const auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
 
-    std::weak_ptr<Session> session_weak = session;
-    std::weak_ptr<boost::asio::steady_timer> connectionInactivityTimer_weak = connectionInactivityTimer;
+    auto monitor = std::make_shared<InactivityMonitor>(connectionInactivityTimer, session, errorHandler, inactivityTimeoutMs);
+    monitor->arm(InactivityMonitor::Clock::now() + inactivityTimeoutMs);
 
-    OnConnectionAliveCallback onConnectionAliveCallback =
-        [connectionInactivityTimer_weak, session_weak, errorHandler = errorHandler, inactivityTimeoutMs]()
-    {
-        if (auto timer = connectionInactivityTimer_weak.lock())
-        {
-            timer->cancel();
-            timer->expires_from_now(inactivityTimeoutMs);
-
-            timer->async_wait(
-                [errorHandler, session_weak](const boost::system::error_code& ec)
-                {
-                    if (ec)
-                        return;
-                    if (auto session = session_weak.lock())
-                        errorHandler("Connection activity timeout error", session);
-                });
-        }
-    };
-    session->startConnectionActivityMonitoring(onConnectionAliveCallback, heartbeatPeriodMs);
+    session->startConnectionActivityMonitoring([monitor]() { monitor->touch(); }, heartbeatPeriodMs);
     connectionActivityMonitoringStarted = true;
 }
 
@@ -287,61 +337,66 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
     if (!packetBufferReceivedHandler)
         return discardPayload(data, size);
 
-    size_t bytesDone = 0;
+    // The transport payload is the packet header immediately followed by the payload (see
+    // copyHeadersToBuffer); both are validated with plain comparisons and copied into one block.
+    const auto bytes = static_cast<const char*>(data);
 
-    GenericPacketHeader* packetBufferHeader {};
-    void* packetBufferPayload;
-
-    try
+    if (size < sizeof(GenericPacketHeader))
     {
-        auto errorGuard = DAQ_ERROR_GUARD();
-        decltype(GenericPacketHeader::size) headerSize;
-
-        // Get packet buffer header size from received buffer
-        copyData(&headerSize, data, sizeof(headerSize), bytesDone, size);
-        LOG_T("Received packet buffer header size: {}", headerSize);
-
-        if (headerSize < sizeof(GenericPacketHeader))
-        {
-            LOG_E("Unsupported streaming packet buffer header size: {}. Skipping payload.", headerSize);
-            return createReadHeaderTask();
-        }
-
-        // Get packet buffer header from received buffer
-        packetBufferHeader = static_cast<GenericPacketHeader*>(std::malloc(headerSize));
-        copyData(packetBufferHeader, data, headerSize, bytesDone, size);
-        LOG_T("Received packet buffer header: header size {}, payload size {}",
-              packetBufferHeader->size, packetBufferHeader->payloadSize);
-        bytesDone += headerSize;
-
-        // Get packet buffer payload from received buffer
-        if (packetBufferHeader->payloadSize > 0)
-        {
-            packetBufferPayload = std::malloc(packetBufferHeader->payloadSize);
-            copyData(packetBufferPayload, data, packetBufferHeader->payloadSize, bytesDone, size);
-        }
-        else
-        {
-            packetBufferPayload = nullptr;
-        }
-    }
-    catch (const DaqException& e)
-    {
-        LOG_E("Protocol error: {}", e.what());
-        errorHandler(std::string("Protocol error - readPacket - ") + e.what(), session);
+        LOG_E("Protocol error: streaming packet of {} bytes is shorter than a packet buffer header", size);
+        errorHandler("Protocol error - readPacket - truncated packet buffer header", session);
         return createReadStopTask();
     }
 
-    auto recvPacketBuffer =
-        std::make_shared<PacketBuffer>(packetBufferHeader,
-                                       packetBufferPayload,
-                                       [packetBufferHeader, packetBufferPayload]()
-                                       {
-                                           std::free(packetBufferHeader);
-                                           if (packetBufferPayload != nullptr)
-                                               std::free(packetBufferPayload);
-                                       },
-                                       false);
+    const size_t headerSize = *reinterpret_cast<const decltype(GenericPacketHeader::size)*>(bytes);
+    if (headerSize < sizeof(GenericPacketHeader))
+    {
+        LOG_E("Unsupported streaming packet buffer header size: {}. Skipping payload.", headerSize);
+        return createReadHeaderTask();
+    }
+    if (headerSize > size)
+    {
+        LOG_E("Protocol error: packet buffer header size {} exceeds received payload size {}", headerSize, size);
+        errorHandler("Protocol error - readPacket - truncated packet buffer header", session);
+        return createReadStopTask();
+    }
+
+    // The read buffer is not aligned, so the field is copied rather than cast.
+    decltype(GenericPacketHeader::payloadSize) payloadSize;
+    std::memcpy(&payloadSize, bytes + offsetof(GenericPacketHeader, payloadSize), sizeof(payloadSize));
+    if (payloadSize > size - headerSize)
+    {
+        LOG_E("Protocol error: packet buffer payload size {} exceeds received payload size {} (header {})", payloadSize, size, headerSize);
+        errorHandler("Protocol error - readPacket - truncated packet buffer payload", session);
+        return createReadStopTask();
+    }
+    LOG_T("Received packet buffer: header size {}, payload size {}", headerSize, payloadSize);
+
+    // The payload keeps max_align_t alignment, as samples and release packet ids are read in place;
+    // headers that already end on that boundary are copied together with their payload.
+    constexpr size_t payloadAlignment = alignof(std::max_align_t);
+    const size_t payloadOffset = (headerSize + payloadAlignment - 1) / payloadAlignment * payloadAlignment;
+    const auto block = static_cast<char*>(std::malloc(payloadOffset + payloadSize));
+    if (block == nullptr)
+    {
+        errorHandler("Out of memory - readPacket", session);
+        return createReadStopTask();
+    }
+    if (payloadOffset == headerSize)
+    {
+        std::memcpy(block, bytes, headerSize + payloadSize);
+    }
+    else
+    {
+        std::memcpy(block, bytes, headerSize);
+        if (payloadSize > 0)
+            std::memcpy(block + payloadOffset, bytes + headerSize, payloadSize);
+    }
+
+    auto recvPacketBuffer = std::make_shared<PacketBuffer>(reinterpret_cast<GenericPacketHeader*>(block),
+                                                           payloadSize > 0 ? block + payloadOffset : nullptr,
+                                                           [block]() { std::free(block); },
+                                                           false);
 
     packetBufferReceivedHandler(recvPacketBuffer);
 

@@ -269,8 +269,6 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
     }
 
-    auto lock = this->getRecursiveConfigLock2();
-
     const ErrCode errCode = daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
@@ -283,8 +281,6 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
     {
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when unlocking a remote device. A session user was used instead.");
     }
-
-    auto lock = this->getRecursiveConfigLock2();
 
     auto parentDevice = this->getParentDevice();
 
@@ -299,8 +295,6 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
-    auto lock = this->getRecursiveConfigLock2();
-
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())

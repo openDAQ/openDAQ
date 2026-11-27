@@ -362,43 +362,39 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    const auto capability = test_helpers::discoverCapability(
+        client,
+        path,
+        "OpenDAQOPCUA",
+        [&](const ServerCapabilityPtr& listed)
+        { return test_helpers::firstAddressesHaveReachability(listed, expectedReachability, checkIPv6); });
+    ASSERT_TRUE(capability.assigned()) << "Device not found";
+
+    bool hasIPv4 = false;
+    bool hasIPv6 = false;
+    int cnt = 0;
+    for (const auto& addressInfo : capability.getAddressInfo())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+        ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+        if (addressInfo.getType() == "IPv4")
         {
-            if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                break;
-            
-            if (capability.getProtocolName() != "OpenDAQOPCUA")
-                continue;
-
-            bool hasIPv4 = false;
-            bool hasIPv6 = false;
-            int cnt = 0;
-            for (const auto& addressInfo : capability.getAddressInfo())
-            {
-                ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
-                ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
-                if (addressInfo.getType() == "IPv4")
-                {
-                    hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
-                }
-                else if (addressInfo.getType() == "IPv6")
-                {
-                    hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
-                }
-
-                if (hasIPv4 && (hasIPv6 || !checkIPv6))
-                    return;
-
-                cnt++;
-            }
+            hasIPv4 = true;
+            ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
         }
+        else if (addressInfo.getType() == "IPv6")
+        {
+            hasIPv6 = true;
+            ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
+        }
+
+        if (hasIPv4 && (hasIPv6 || !checkIPv6))
+            return;
+
+        cnt++;
     }
 
-    ASSERT_TRUE(false) << "Device not found";
+    ASSERT_TRUE(false) << "Device lists no IPv4 address, or no IPv6 address while IPv6 is enabled";
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
@@ -1768,9 +1764,9 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
@@ -1780,36 +1776,36 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
-    // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
-
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
-
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));

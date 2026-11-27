@@ -24,6 +24,7 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
+#include <regex>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -65,11 +66,18 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
+    // Imitates a server that does not send the type of a property, by taking the type out of its notifications
+    bool withoutPropertyType = false;
 
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
-        client->triggerNotificationPacket(notificationPacket);
+        if (!withoutPropertyType)
+            return client->triggerNotificationPacket(notificationPacket);
+
+        const std::string sent = notificationPacket.parseServerNotification().toStdString();
+        const std::string json = std::regex_replace(sent, std::regex(R"(,"propertyType":\d+)"), "");
+        client->triggerNotificationPacket(PacketBuffer::createServerNotification(json.data(), json.size()));
     }
 
     // client handling
@@ -920,6 +928,63 @@ TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithDictArg)
     auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
     proc(dictArg);
 }
+
+class ConfigSelectionPropertyTypeTest : public ConfigNestedPropertyObjectTest, public testing::WithParamInterface<bool>
+{
+};
+
+// A selection property is of the same kind on the client as on the server, also when the server computes its selection values
+TEST_P(ConfigSelectionPropertyTypeTest, MatchesServer)
+{
+    withoutPropertyType = GetParam();
+
+    const auto strings = List<IString>("a", "b");
+    const auto sparse = Dict<IInteger, IString>({{10, "a"}, {20, "b"}});
+    const auto addWithAndWithoutListener = [&](const std::string& name, const std::function<PropertyPtr(const StringPtr&)>& create)
+    {
+        serverDevice.addProperty(create(name));
+
+        const auto withListener = create(name + "Computed");
+        const BaseObjectPtr values = withListener.getSelectionValues();
+        withListener.getOnSelectionValuesRead() +=
+            [values](const PropertyPtr&, const PropertyMetadataReadArgsPtr& args) { args.setValue(values); };
+        serverDevice.addProperty(withListener);
+    };
+
+    addWithAndWithoutListener("Index", [&](const StringPtr& name) { return SelectionProperty(name, strings, 1); });
+    addWithAndWithoutListener("Sparse", [&](const StringPtr& name) { return SparseSelectionProperty(name, sparse, 20); });
+    addWithAndWithoutListener(
+        "String", [&](const StringPtr& name) { return StringPropertyBuilder(name, "b").setSelectionValues(strings).build(); });
+    addWithAndWithoutListener(
+        "Float",
+        [](const StringPtr& name) { return FloatPropertyBuilder(name, 2.5).setSelectionValues(List<IFloat>(1.5, 2.5)).build(); });
+    addWithAndWithoutListener(
+        "Int",
+        [](const StringPtr& name)
+        {
+            return IntPropertyBuilder(name, 20).setSelectionValues(List<IInteger>(10, 20)).setIsIntegerValueSelection(true).build();
+        });
+
+    for (const char* kind : {"Index", "Sparse", "String", "Float", "Int"})
+    {
+        for (const char* computed : {"", "Computed"})
+        {
+            const std::string name = std::string(kind) + computed;
+
+            // Without the type from the server, only its values tell a sparse selection from an index selection
+            const auto serverType = serverDevice.getProperty(name).getPropertyType();
+            if (!withoutPropertyType || name != "SparseComputed")
+                EXPECT_EQ(clientDevice.getProperty(name).getPropertyType(), serverType) << name;
+
+            BaseObjectPtr selected;
+            EXPECT_NO_THROW(selected = clientDevice.getPropertySelectionValue(name)) << name;
+            EXPECT_EQ(selected, serverDevice.getPropertySelectionValue(name)) << name;
+            EXPECT_EQ(clientDevice.getProperty(name).getPropertyType(), serverType) << name;
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(ServerSendsNoPropertyType, ConfigSelectionPropertyTypeTest, testing::Bool());
 
 TEST_F(ConfigNestedPropertyObjectTest, OnGetSelectionValues)
 {

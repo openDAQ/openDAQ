@@ -1470,6 +1470,13 @@ TEST_F(ConfigProtocolIntegrationTest, AddDeviceConfigOfNewerServerFailsTypedAcce
     ASSERT_THROW(config.getPrimaryAddressType(), NotFoundException);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DefaultAddDeviceConfigIsLocal)
+{
+    const auto config = clientDevice.createDefaultAddDeviceConfig();
+    config.setPropertyValue("General.AutomaticallyConnectStreaming", false);
+    ASSERT_FALSE(config.getPropertyValue("General.AutomaticallyConnectStreaming"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
 {
     // This test reproduces a bug where SetPropertyValue("PropertyObject.Property") 

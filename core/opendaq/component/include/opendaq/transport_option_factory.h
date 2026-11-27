@@ -51,17 +51,6 @@ inline constexpr const char* PortConfigProperty = "Port";
  */
 
 /*!
- * @brief Creates a transport option from the values set on a builder.
- * @param builder The transport option builder.
- * @throws InvalidParameterException when the id is null or empty, or the security mode is not valid.
- */
-inline TransportOptionPtr TransportOptionFromBuilder(const TransportOptionBuilderPtr& builder)
-{
-    TransportOptionPtr obj(TransportOptionFromBuilder_Create(builder));
-    return obj;
-}
-
-/*!
  * @brief Creates a transport option builder with the default values of the fields other than the id.
  * @param id The id of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
  */

@@ -20,8 +20,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-struct ITransportOptionBuilder;
-
 /*!
  * @ingroup opendaq_component_type
  * @addtogroup opendaq_transport_option Transport option
@@ -83,24 +81,6 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) = 0;
 };
-/*!@}*/
-
-/*!
- * @ingroup opendaq_transport_option
- * @addtogroup opendaq_transport_option_factories Factories
- * @{
- */
-
-/*!
- * @brief Creates a transport option from the values set on a builder.
- * @param builder The transport option builder.
- * @throws InvalidParameterException when the id is null or empty, or the security mode is not valid.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, TransportOptionFromBuilder, ITransportOption,
-    ITransportOptionBuilder*, builder
-)
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

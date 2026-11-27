@@ -143,12 +143,6 @@ ErrCode TransportOptionImpl::clone(IPropertyObject** cloned)
         });
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, TransportOption,
-    ITransportOption, createTransportOptionFromBuilder,
-    ITransportOptionBuilder*, builder
-)
-
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TransportOptionImpl)
 
 END_NAMESPACE_OPENDAQ

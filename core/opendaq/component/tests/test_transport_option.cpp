@@ -49,14 +49,6 @@ TEST_F(TransportOptionTest, BuilderGetters)
     ASSERT_TRUE(builder.getCertificateRequired());
 }
 
-TEST_F(TransportOptionTest, FromBuilder)
-{
-    const auto option = TransportOptionFromBuilder(TransportOptionBuilder("plain").setPort(7420));
-
-    ASSERT_EQ(option.getId(), "plain");
-    ASSERT_EQ(option.getPort(), 7420);
-}
-
 TEST_F(TransportOptionTest, BuilderKeepsBuiltOptionsApart)
 {
     const auto builder = TransportOptionBuilder("plain").setPort(7420);

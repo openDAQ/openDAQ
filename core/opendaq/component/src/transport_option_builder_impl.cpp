@@ -1,5 +1,6 @@
 #include <opendaq/transport_option_builder_impl.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/transport_option_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,7 +29,7 @@ ErrCode TransportOptionBuilderImpl::build(ITransportOption** transportOption)
 
     return daqTry([&]
     {
-        *transportOption = TransportOptionFromBuilder(builderPtr).detach();
+        *transportOption = createWithImplementation<ITransportOption, TransportOptionImpl>(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
 }

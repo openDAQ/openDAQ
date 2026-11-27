@@ -4,6 +4,9 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 
+#include <atomic>
+#include <thread>
+
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
 using namespace daq::config_protocol;
@@ -336,6 +339,58 @@ TEST_P(ConfigPacketsTest, ConfigClientConnectDisconnectCallbacks)
     client.clientHandler.reset(); // disconnect
     ASSERT_EQ(clientDisconnectedFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
     ASSERT_TRUE(clientDisconnectedFuture.get());
+}
+
+// The sending thread may hold component locks, so it must not be the one to destroy the configuration server when the client disconnects
+TEST_P(ConfigPacketsTest, SenderDoesNotDestroyConfigServer)
+{
+    // Stands in for the configuration server and records the thread that destroys it; shared, as a failed test leaves it to the teardown
+    struct Probe
+    {
+        explicit Probe(const std::shared_ptr<std::atomic<std::thread::id>>& destroyedOn)
+            : destroyedOn(destroyedOn)
+        {
+        }
+        ~Probe()
+        {
+            *destroyedOn = std::this_thread::get_id();
+        }
+        std::shared_ptr<std::atomic<std::thread::id>> destroyedOn;
+    };
+
+    const auto destroyedOn = std::make_shared<std::atomic<std::thread::id>>();
+    auto probe = std::make_shared<Probe>(destroyedOn);
+    SendConfigProtocolPacketCb sendPacketCb;
+    setUpConfigProtocolServerCb = [this, &probe, &sendPacketCb](SendConfigProtocolPacketCb cb, const UserPtr&, ClientType)
+    {
+        sendPacketCb = cb;
+        ProcessConfigProtocolPacketCb receivePacketCb = [owned = std::move(probe)](PacketBuffer&&) {};
+        configProtocolTriggeredPromise.set_value();
+        return std::make_pair(receivePacketCb, nullptr);
+    };
+
+    startServer();
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    triggerConfigProtocolSetUp();
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
+
+    // Sends until the probe is gone, so that the session is almost always held by the sender when the server releases it
+    std::thread sender(
+        [&destroyedOn, &sendPacketCb]
+        {
+            const std::string json{"{}"};
+            const auto packet = PacketBuffer::createServerNotification(json.c_str(), json.length());
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (destroyedOn->load() == std::thread::id() && std::chrono::steady_clock::now() < deadline)
+                sendPacketCb(packet);
+        });
+    const auto senderId = sender.get_id();
+
+    client.clientHandler.reset(); // disconnect
+    sender.join();
+
+    ASSERT_NE(destroyedOn->load(), std::thread::id());
+    ASSERT_NE(destroyedOn->load(), senderId);
 }
 
 INSTANTIATE_TEST_SUITE_P(

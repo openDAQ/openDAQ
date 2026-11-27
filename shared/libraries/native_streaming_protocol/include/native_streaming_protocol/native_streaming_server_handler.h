@@ -49,7 +49,7 @@ public:
                                           OnClientConnectedCallback clientConnectedHandler,
                                           OnClientDisconnectedCallback clientDisconnectedHandler,
                                           const PropertyObjectPtr& config = NativeStreamingServerHandler::createDefaultConfig());
-    ~NativeStreamingServerHandler() = default;
+    ~NativeStreamingServerHandler();
 
     void startServer(uint16_t port);
     void stopServer();

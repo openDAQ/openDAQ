@@ -20,8 +20,11 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 
 #include <boost/asio/io_context.hpp>
+
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -50,6 +53,16 @@ private:
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
 
+    /// @brief recognises the connection string prefix
+    /// @return the native type, or nothing if the prefix belongs to some other module
+    static std::optional<NativeType> ParseNativeType(const StringPtr& connectionString);
+
+#if NATIVE_STREAMING_ENABLE_TLS
+    /// @brief collects the TLS settings the transport handler needs out of the connection config
+    /// @return the object to hand to the handler, or nothing for a plaintext connection
+    static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config, bool secure);
+#endif
+
     DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
@@ -62,9 +75,10 @@ private:
     std::shared_ptr<boost::asio::io_context> addStreamingProcessingContext(const StringPtr& connectionString);
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr createAndConnectTransportClient(
         const StringPtr& host,
-        const StringPtr& port,
+        Int port,
         const StringPtr& path,
-        const PropertyObjectPtr& config);
+        const PropertyObjectPtr& config,
+        bool secure);
     PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
     void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
@@ -77,17 +91,16 @@ private:
                                  const StringPtr& connectionString,
                                  const PropertyObjectPtr& config,
                                  const StringPtr& host,
-                                 const StringPtr& port,
+                                 Int port,
                                  const StringPtr& path,
-                                 uint16_t& protocolVersion);
+                                 uint16_t& protocolVersion,
+                                 const TransportOptionPtr& transportOption);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
-    bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
-    bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    void validateStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
-    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType);
-    void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);
     bool validateConnectionConfig(const PropertyObjectPtr& config);

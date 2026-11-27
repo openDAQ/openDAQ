@@ -12,6 +12,8 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <native_streaming_protocol/async_exception_guard.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
+#include <native_streaming_protocol/native_streaming_transport_options.h>
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
@@ -42,54 +44,166 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , loggerComponent(logger.getOrAddComponent(id))
     , serverStopped(false)
     , workerPool(nullptr)
+    , plainChannelEnabled(false)
+    , tlsChannelEnabled(false)
+
 {
+    plainChannelEnabled = config.getPropertyValue(PROPERTY_ENABLE_PORT_SERVER);
+#if NATIVE_STREAMING_ENABLE_TLS
+    tlsChannelEnabled = config.getPropertyValue(PROPERTY_ENABLE_TLS_PORT_SERVER);
+#endif
+
+    validateChannelConfig(config);
+
     auto info = rootDevice.getInfo();
-    if (info.hasServerCapability("OpenDAQNativeStreaming"))
-        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeStreaming server capability.", info.getName()));
-    if (info.hasServerCapability("OpenDAQNativeConfiguration"))
-        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeConfiguration server capability.", info.getName()));
+    const auto refuseExisting = [&info](const char* protocolId)
+    {
+        if (info.hasServerCapability(protocolId))
+            DAQ_THROW_EXCEPTION(InvalidStateException,
+                                fmt::format("Device \"{}\" already has an {} server capability.", info.getName(), protocolId));
+    };
+
+    refuseExisting(CONST_NATIVE_STREAMING_ID);
+    refuseExisting(CONST_NATIVE_CONFIG_ID);
 
     initWorkerPool();
-    startProcessingOperations();
-    startTransportOperations();
 
-    prepareServerHandler();
-    streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(serverHandler, processingIOContextPtr, context);
-    streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
-    streaming.setActive(true);
+    try
+    {
+        startProcessingOperations();
+        startTransportOperations();
 
-    const uint16_t port = config.getPropertyValue("NativeStreamingPort");
-    serverHandler->startServer(port);
+        prepareServerHandler();
+        streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(serverHandler, processingIOContextPtr, context);
+        streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+        streaming.setActive(true);
 
-    StringPtr path = config.getPropertyValue("Path");
+        const StringPtr path = config.getPropertyValue(PROPERTY_PATH_SERVER);
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>(true);
 
-    ServerCapabilityConfigPtr serverCapabilityStreaming =
-        ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
-        .setPrefix("daq.ns")
-        .setConnectionType("TCP/IP")
-        .setPort(port);
+        // One option per listener, plain first
+        auto transportOptions = Dict<IString, ITransportOption>();
 
-    serverCapabilityStreaming.addProperty(StringProperty("Path", path == "/" ? "" : path));
-    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityStreaming);
+        if (plainChannelEnabled)
+        {
+            const uint16_t port = config.getPropertyValue(PROPERTY_PORT_SERVER);
+            serverHandler->startServer(port);
+            transportOptions.set(CONST_NATIVE_TRANSPORT_WS, NativeTransportOption(CONST_NATIVE_TRANSPORT_WS, port));
+        }
 
-    ServerCapabilityConfigPtr serverCapabilityConfig =
-        ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
-        .setPrefix("daq.nd")
-        .setConnectionType("TCP/IP")
-        .setPort(port)
-        .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
+#if NATIVE_STREAMING_ENABLE_TLS
+        if (tlsChannelEnabled)
+        {
+            const uint16_t tlsPort = config.getPropertyValue(PROPERTY_TLS_PORT_SERVER);
+            const auto readPath = [&config](const char* name)
+            { return StringPtr(config.getPropertyValue(name)).toStdString(); };
 
-    serverCapabilityConfig.addProperty(StringProperty("Path", path == "/" ? "" : path));
-    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityConfig);
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+            const bool mutualTls = false;
+            const std::string caFile;
+#else
+            const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
+            const std::string caFile = mutualTls ? readPath(PROPERTY_CA_CERT_FILE_PATH_SERVER) : std::string();
+#endif
 
-    this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
+            // an empty CA file is how the transport is told not to ask clients for a certificate
+            serverHandler->startTlsServer(tlsPort,
+                                          readPath(PROPERTY_CERT_FILE_PATH_SERVER),
+                                          readPath(PROPERTY_KEY_FILE_PATH_SERVER),
+                                          caFile);
 
-    const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
-    readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
+            // The TLS listener asks for a client certificate or not, so it serves one of the two options
+            const auto tlsOptionId = mutualTls ? CONST_NATIVE_TRANSPORT_WSS_MTLS : CONST_NATIVE_TRANSPORT_WSS;
+            transportOptions.set(tlsOptionId, NativeTransportOption(tlsOptionId, tlsPort));
+        }
+#endif
 
-    maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
-    packetBuf.resize(maxPacketReadCount);
-    startReading();
+        addServerCapabilities(infoInternal, transportOptions, path);
+
+        this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
+
+        const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
+        readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
+
+        maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
+        packetBuf.resize(maxPacketReadCount);
+        startReading();
+    }
+    catch (...)
+    {
+        stopServerInternal();
+        throw;
+    }
+}
+
+void NativeStreamingServerImpl::validateChannelConfig(const PropertyObjectPtr& config) const
+{
+    if (!plainChannelEnabled && !tlsChannelEnabled)
+    {
+#if NATIVE_STREAMING_ENABLE_TLS
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "Neither \"{}\" nor \"{}\" is enabled, so the server would listen nowhere.",
+                            PROPERTY_ENABLE_PORT_SERVER,
+                            PROPERTY_ENABLE_TLS_PORT_SERVER);
+#else
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "\"{}\" is not enabled, and it is the only listener this build has: the TLS channel "
+                            "needs OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS.",
+                            PROPERTY_ENABLE_PORT_SERVER);
+#endif
+    }
+
+#if NATIVE_STREAMING_ENABLE_TLS
+    if (!tlsChannelEnabled)
+        return;
+
+    const auto isEmpty = [&config](const char* name)
+    { return StringPtr(config.getPropertyValue(name)).getLength() == 0; };
+
+    if (isEmpty(PROPERTY_CERT_FILE_PATH_SERVER) || isEmpty(PROPERTY_KEY_FILE_PATH_SERVER))
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "\"{}\" and \"{}\" are both required when \"{}\" is on.",
+                            PROPERTY_CERT_FILE_PATH_SERVER,
+                            PROPERTY_KEY_FILE_PATH_SERVER,
+                            PROPERTY_ENABLE_TLS_PORT_SERVER);
+
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
+    if (mutualTls && isEmpty(PROPERTY_CA_CERT_FILE_PATH_SERVER))
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "\"{}\" is required to verify client certificates. Set it, or turn \"{}\" off to "
+                            "stop asking clients for one.",
+                            PROPERTY_CA_CERT_FILE_PATH_SERVER,
+                            PROPERTY_ENABLE_MTLS_SERVER);
+#endif
+#endif
+}
+
+// The port of each capability is the port of its first option (see IServerCapabilityConfig::setAvailableTransportOptions)
+void NativeStreamingServerImpl::addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
+                                                      const DictPtr<IString, ITransportOption>& transportOptions,
+                                                      const StringPtr& path) const
+{
+    const StringPtr publishedPath = path == "/" ? "" : path;
+
+    ServerCapabilityConfigPtr streamingCapability =
+        ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming)
+            .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
+            .setConnectionType("TCP/IP")
+            .setAvailableTransportOptions(transportOptions);
+
+    streamingCapability.addProperty(StringProperty("Path", publishedPath));
+    infoInternal.addServerCapability(streamingCapability);
+
+    ServerCapabilityConfigPtr configCapability =
+        ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming)
+            .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
+            .setConnectionType("TCP/IP")
+            .setAvailableTransportOptions(transportOptions)
+            .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
+
+    configCapability.addProperty(StringProperty("Path", publishedPath));
+    infoInternal.addServerCapability(configCapability);
 }
 
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
@@ -292,7 +406,9 @@ void NativeStreamingServerImpl::stopServerInternal()
 
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
 
-    serverHandler->stopServer();
+    // absent when the constructor failed before creating it
+    if (serverHandler)
+        serverHandler->stopServer();
     stopTransportOperations();
     stopProcessingOperations();
 
@@ -303,10 +419,15 @@ void NativeStreamingServerImpl::stopServerInternal()
         {
             const auto info = rootDevice.getInfo();
             const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-            if (info.hasServerCapability("OpenDAQNativeStreaming"))
-                infoInternal.removeServerCapability("OpenDAQNativeStreaming");
-            if (info.hasServerCapability("OpenDAQNativeConfiguration"))
-                infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+
+            const auto removeIfPresent = [&info, &infoInternal](const char* protocolId)
+            {
+                if (info.hasServerCapability(protocolId))
+                    infoInternal.removeServerCapability(protocolId);
+            };
+
+            removeIfPresent(CONST_NATIVE_STREAMING_ID);
+            removeIfPresent(CONST_NATIVE_CONFIG_ID);
             for (const auto& [_, clientNumber] : registeredClientIds)
             {
                 if (clientNumber != 0)
@@ -388,8 +509,8 @@ void NativeStreamingServerImpl::prepareServerHandler()
         {
             const auto clientInfo =
                 isStreamingConnection
-                    ? ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
-                    : ConnectedClientInfo(address, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
+                    ? ConnectedClientInfo(address, ProtocolType::Streaming, CONST_NATIVE_STREAMING_ID, "", hostName)
+                    : ConnectedClientInfo(address, ProtocolType::Configuration, CONST_NATIVE_CONFIG_ID, ClientTypeTools::ClientTypeToString(clientType), hostName);
             clientInfo.addProperty(StringProperty("Reconnected", reconnected ? "Yes" : "No"));
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(&clientNumber, clientInfo);
         }
@@ -567,21 +688,25 @@ PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const Propert
     return defConfig;
 }
 
+// One service for all channels. Its port is the port of the first option, like the port of the capabilities:
+// clients which know no options connect there.
 PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 {
+    const char* portProperty = plainChannelEnabled ? PROPERTY_PORT_SERVER : PROPERTY_TLS_PORT_SERVER;
+
     auto discoveryConfig = PropertyObject();
-    discoveryConfig.addProperty(StringProperty("ServiceName", "_opendaq-streaming-native._tcp.local."));
-    discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ_NS"));
-    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
-    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
+    discoveryConfig.addProperty(StringProperty("ServiceName", CONST_NATIVE_SERVICE_NAME));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", CONST_NATIVE_SERVICE_CAPABILITY));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue(PROPERTY_PATH_SERVER)));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue(portProperty)));
     discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
 
     if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
     {
         const DeviceInfoPtr info = rootDevice.getInfo();
-        if (info.assigned() && info.hasServerCapability("OpenDAQNativeConfiguration"))
+        if (info.assigned() && info.hasServerCapability(CONST_NATIVE_CONFIG_ID))
         {
-            ServerCapabilityPtr serverCapabilityConfig = info.getServerCapability("OpenDAQNativeConfiguration");
+            ServerCapabilityPtr serverCapabilityConfig = info.getServerCapability(CONST_NATIVE_CONFIG_ID);
             discoveryConfig.addProperty(ListProperty(
                 "AuthenticationMethods", serverCapabilityConfig.getAuthenticationMethods()));
         }
@@ -592,11 +717,12 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerTypeBuilder()
-        .setId("OpenDAQNativeStreaming")
+        .setId(CONST_NATIVE_SERVER_TYPE_ID)
         .setName("openDAQ Native Streaming server")
         .setDescription("Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol")
         .setDefaultConfig(NativeStreamingServerImpl::createDefaultConfig(context))
         .setServerKind(ServerKind::Mirror)
+        .setAvailableTransportOptions(DefaultNativeTransportOptions())
         .build()
         .asPtr<IServerType>();
 }

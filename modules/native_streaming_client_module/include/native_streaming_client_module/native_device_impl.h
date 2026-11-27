@@ -22,19 +22,17 @@
 #include <config_protocol/config_client_device_impl.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 
 #include <future>
 #include <mutex>
 #include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
-
-static const char* NativeConfigurationDeviceTypeId = "OpenDAQNativeConfiguration";
-static const char* NativeStreamingTypeId = "OpenDAQNativeStreaming";
-static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;
 
@@ -48,7 +46,8 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                Int reconnectionPeriod);
+                                Int reconnectionPeriod,
+                                const TransportOptionPtr& transportOption);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
@@ -57,6 +56,9 @@ public:
     void closeConnectionOnRemoval();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
+
+    /// @brief the transport option the connection uses, at the port it is connected to
+    TransportOptionPtr getTransportOption() const;
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -93,6 +95,7 @@ private:
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
+    TransportOptionPtr transportOption;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
@@ -142,7 +145,7 @@ class ConnectionStringUtils
 public:
     static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
-    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    static StringPtr GetPort(const StringPtr& url);
     static StringPtr GetPath(const StringPtr& url);
 };
 

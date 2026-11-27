@@ -1,4 +1,5 @@
 #include <native_streaming_server_module/native_server_streaming_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/custom_log.h>
@@ -16,7 +17,7 @@ using namespace opendaq_native_streaming_protocol;
 NativeServerStreamingImpl::NativeServerStreamingImpl(TransportServerHandlerPtr transportServerHandler,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                      ContextPtr context)
-    : Super("OpenDAQNativeStreaming", context, false, "OpenDAQNativeStreaming")
+    : Super(CONST_NATIVE_STREAMING_ID, context, false, CONST_NATIVE_STREAMING_ID)
     , transportServerHandler(transportServerHandler)
     , processingIOContextPtr(processingIOContextPtr)
 {

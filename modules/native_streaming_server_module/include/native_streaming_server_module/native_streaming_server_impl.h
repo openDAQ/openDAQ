@@ -23,6 +23,8 @@
 #include <coretypes/intfs.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 #include <tsl/ordered_map.h>
 #include <boost/asio/thread_pool.hpp>
 #include <config_protocol/config_protocol_server.h>
@@ -49,6 +51,16 @@ protected:
     void onStopServer() override;
     StreamingPtr onGetStreaming() override;
     void prepareServerHandler();
+
+    /// @brief refuses a configuration which would leave the server without a usable listener, or
+    /// which turns the TLS listener on without the secrets it needs
+    void validateChannelConfig(const PropertyObjectPtr& config) const;
+
+    /// @brief publishes the streaming and the configuration capability of one channel
+    /// @param secure selects the secure identifiers, prefixes and security level
+    void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
+                               const DictPtr<IString, ITransportOption>& transportOptions,
+                               const StringPtr& path) const;
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
 
@@ -107,6 +119,9 @@ protected:
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
     StreamingPtr streaming;
     std::unique_ptr<boost::asio::thread_pool> workerPool;
+
+    bool plainChannelEnabled;
+    bool tlsChannelEnabled;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

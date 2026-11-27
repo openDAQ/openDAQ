@@ -1,6 +1,7 @@
 #include "test_helpers/test_helpers.h"
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
 #include <algorithm>
 #include <list>
 
@@ -927,6 +928,62 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         evUnsubDomain->clear();
     }
 }
+
+
+// The param - whether the legacy add-device config is used to supply the credentials (see test_helpers::configModeName)
+class ConfigDeviceWithStreamingCredentialsTest : public testing::TestWithParam<bool>
+{
+};
+
+// The OPC UA device and its auto-attached native streaming connect with credentials of different users
+TEST_P(ConfigDeviceWithStreamingCredentialsTest, SeparateDeviceAndStreamingCredentials)
+{
+    const auto users = List<IUser>(User("opcuaUser", "opcuaPass"), User("streamingUser", "streamingPass"));
+    auto serverInstance = test_helpers::instanceBuilder()
+        .setModulePath("[[none]]")
+        .setAuthenticationProvider(StaticAuthenticationProvider(false, users))
+        .build();
+    {
+        const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+        serverInstance.getModuleManager().addModule(deviceModule);
+        serverInstance.setRootDevice("daqmock://phys_device");
+
+        addNativeServerModule(serverInstance);
+        addOpcuaServerModule(serverInstance);
+        test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming");
+        // streaming server added first, so its capability is published over opcua
+        test_helpers::addServer(serverInstance, "OpenDAQOPCUA");
+    }
+
+    auto clientInstance = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(clientInstance);
+    addOpcuaClientModule(clientInstance);
+
+    const auto connectionString = test_helpers::withPort("daq.opcua://127.0.0.1");
+
+    // The device credentials are valid, so the rejected streaming shows it uses its own ones
+    {
+        const auto config = test_helpers::createAddDeviceConfig(clientInstance, connectionString, GetParam());
+        test_helpers::setDeviceCredentials(config, "OpenDAQOPCUAConfiguration", "opcuaUser", "opcuaPass", GetParam());
+        test_helpers::setStreamingCredentials(config, "OpenDAQNativeStreaming", "streamingUser", "wrongPass", GetParam());
+
+        const auto device = clientInstance.addDevice(connectionString, config);
+        ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
+        clientInstance.removeDevice(device);
+    }
+
+    {
+        const auto config = test_helpers::createAddDeviceConfig(clientInstance, connectionString, GetParam());
+        test_helpers::setDeviceCredentials(config, "OpenDAQOPCUAConfiguration", "opcuaUser", "opcuaPass", GetParam());
+        test_helpers::setStreamingCredentials(config, "OpenDAQNativeStreaming", "streamingUser", "streamingPass", GetParam());
+
+        const auto device = clientInstance.addDevice(connectionString, config);
+        ASSERT_TRUE(test_helpers::waitForStreamingSources(device, 1));
+        ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources()[0].getProtocolId(), "OpenDAQNativeStreaming");
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(ConfigModes, ConfigDeviceWithStreamingCredentialsTest, testing::Bool(), test_helpers::configModeName);
 
 #endif
 

@@ -14,14 +14,14 @@ Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
 Classifier: Intended Audience :: Science/Research
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python :: 3.14
-Requires-Python: >=3.8
+Classifier: Programming Language :: Python :: 3.15
+Requires-Python: >=3.9
 Requires-Dist: numpy >= 1.7.0
 Description-Content-Type: text/markdown
 
@@ -40,7 +40,7 @@ while also embracing existing standards such as MQTT and XCP via Ethernet.
 Installation
 ------------
 
-The package is available as binary wheels for Python 3.8-3.14. It has been built and tested for:
+The package is available as binary wheels for Python 3.9-3.15. It has been built and tested for:
 * 64-bit Windows
 * x86_64 Linux (built on manylinux_2_28, requires GLIBC >= 2.28)
 

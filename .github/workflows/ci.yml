@@ -70,16 +70,20 @@ jobs:
           {
             "match-jobs": ["windows-*", "ubuntu-*-x86_64-*", "ubuntu-*-armv8-*", "macos-*"],
             "pip-install": ["numpy"],
+            "use-python-version": "3.15"
+          },
+          {
+            "match-jobs": ["ubuntu-26.04-*"],
             "use-python-version": "3.14"
           },
           {
             "match-jobs": ["manylinux*"],
             "yum-install": ["openssl-devel", "libX11-devel", "libXrandr-devel", "libXcursor-devel", "libXi-devel", "mesa-libGL-devel", "systemd-devel", "freetype-devel", "mono-core"],
-            "run": "/opt/python/cp314-cp314/bin/python -m pip install numpy"
+            "run": "/opt/python/cp315-cp315/bin/python -m pip install numpy"
           },
           {
             "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
-            "use-python-version": "3.8"
+            "use-python-version": "3.9"
           }
         ]
       cmake-presets: >
@@ -87,8 +91,12 @@ jobs:
           {
             "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
             "test-preset": "${{ inputs.ctest_preset || 'run_tests_parallel' }}",
-            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"},
+            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.15"},
             "cache-externals": true
+          },
+          {
+            "match-jobs": ["ubuntu-26.04-*"],
+            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
           },
           {
             "match-jobs": ["windows-*-x86-*"],
@@ -100,7 +108,7 @@ jobs:
           },
           {
             "match-jobs": ["manylinux*"],
-            "cache-variables": {"Python_EXECUTABLE": "/opt/python/cp314-cp314/bin/python"}
+            "cache-variables": {"Python_EXECUTABLE": "/opt/python/cp315-cp315/bin/python"}
           },
           {
             "match-jobs": ["macos-*"],
@@ -119,7 +127,7 @@ jobs:
             "cache-variables": {
               "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false,
               "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
-              "OPENDAQ_PYTHON_VERSION": "3.8"
+              "OPENDAQ_PYTHON_VERSION": "3.9"
             }
           },
           {
